@@ -1,3 +1,5 @@
+
+Logincomponents · CSS
 /* ============================================
    Auth Cards — login, sign up, forgot password
    Palette: near-black slate base + violet→cyan
@@ -6,7 +8,7 @@
    at a glance, gradient reserved for the one
    primary action so it's obvious what to click.
    ============================================ */
-
+ 
 :root {
   --auth-bg-1: #0b0d17;
   --auth-bg-2: #14162a;
@@ -25,11 +27,20 @@
   --auth-radius: 10px;
   --auth-font: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
 }
-
+ 
 /* ---- Page backdrop ----
-   Add className="auth-page" to the outermost <div>
-   in loginCard.jsx / signUpCard.jsx / forgotPasswordCard.jsx */
-.auth-page {
+   Lives on body/html since your JSX has no separate outer
+   "page" div — auth-page is on the SAME div as the card
+   content, so auth-page below is styled as the card itself,
+   and centering is done one level up. */
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+ 
+body {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -39,11 +50,20 @@
     radial-gradient(circle at 85% 85%, rgba(110, 231, 255, 0.10), transparent 45%),
     linear-gradient(180deg, var(--auth-bg-1), var(--auth-bg-2));
   padding: 24px;
+  box-sizing: border-box;
   font-family: var(--auth-font);
   -webkit-font-smoothing: antialiased;
 }
-
-.auth-page > div,
+ 
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+ 
+/* ---- The card itself ---- */
+.auth-page,
 .auth-card {
   width: 100%;
   max-width: 380px;
@@ -58,7 +78,7 @@
     0 1px 0 rgba(255, 255, 255, 0.04) inset,
     0 24px 48px -16px rgba(0, 0, 0, 0.6);
 }
-
+ 
 /* ---- Heading ---- */
 .greet {
   color: var(--auth-text);
@@ -69,7 +89,7 @@
   margin: 0 0 6px;
   text-align: center;
 }
-
+ 
 /* Short supporting line under the heading — purely optional,
    only applies if you add <p className="auth-subtext">…</p> */
 .auth-subtext {
@@ -78,7 +98,7 @@
   text-align: center;
   margin: -10px 0 10px;
 }
-
+ 
 /* ---- Inputs ---- */
 .identifier,
 .password {
@@ -94,17 +114,17 @@
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-
+ 
 .identifier::placeholder,
 .password::placeholder {
   color: var(--auth-text-muted);
 }
-
+ 
 .identifier:hover,
 .password:hover {
   border-color: var(--auth-border-hover);
 }
-
+ 
 .identifier:focus-visible,
 .password:focus-visible,
 .identifier:focus,
@@ -112,12 +132,12 @@
   border-color: var(--auth-accent);
   box-shadow: 0 0 0 4px var(--auth-accent-soft);
 }
-
+ 
 .identifier + .identifier,
 .password + .password {
   margin-top: 2px;
 }
-
+ 
 /* ---- Primary action button ----
    Gradient + lift on hover so it's unmistakably the one
    thing to click; nothing else on the card uses a gradient. */
@@ -139,25 +159,25 @@
   transition: background-position 0.35s ease, transform 0.08s ease, box-shadow 0.15s ease;
   box-shadow: 0 8px 20px -8px rgba(139, 92, 246, 0.6);
 }
-
+ 
 .sign-in-btn:hover,
 .submit-btn:hover {
   background-position: 100% 50%;
   box-shadow: 0 10px 24px -8px rgba(139, 92, 246, 0.75);
 }
-
+ 
 .sign-in-btn:active,
 .submit-btn:active {
   transform: translateY(1px) scale(0.99);
   box-shadow: 0 6px 14px -8px rgba(139, 92, 246, 0.6);
 }
-
+ 
 .sign-in-btn:focus-visible,
 .submit-btn:focus-visible {
   outline: 2px solid var(--auth-accent-2);
   outline-offset: 2px;
 }
-
+ 
 .sign-in-btn:disabled,
 .submit-btn:disabled {
   background: var(--auth-border);
@@ -165,7 +185,7 @@
   color: var(--auth-text-muted);
   cursor: not-allowed;
 }
-
+ 
 /* ---- Links ----
    Two different jobs, two different weights:
    "forgot password" is a quiet utility link near the inputs;
@@ -178,12 +198,12 @@
   text-decoration: none;
   transition: color 0.15s ease;
 }
-
+ 
 .auth-card a:hover,
 .auth-page a:hover {
   color: var(--auth-accent-2);
 }
-
+ 
 /* First link under the password field = "forgot password":
    right-aligned, quiet, tucked close to the field it relates to */
 .password + a {
@@ -191,7 +211,7 @@
   margin-top: -6px;
   font-size: 0.82rem;
 }
-
+ 
 /* Last link in the card = the account-switch prompt:
    its own row, separated by a divider, centered, slightly bolder */
 .auth-card a:last-of-type,
@@ -206,20 +226,20 @@
   font-weight: 500;
   color: var(--auth-text);
 }
-
+ 
 .auth-card a:last-of-type:hover,
 .auth-page a:last-of-type:hover {
   color: var(--auth-accent-2);
 }
-
+ 
 /* ---- Small screens ---- */
 @media (max-width: 420px) {
-  .auth-page > div,
+  .auth-page,
   .auth-card {
     padding: 30px 24px 26px;
     border-radius: 16px;
   }
-
+ 
   .greet {
     font-size: 1.5rem;
   }
