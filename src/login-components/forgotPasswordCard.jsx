@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-function ForgotPasswordPage() {
-    const [email, setEmail] = useState('')
+function ForgotPasswordCard() {
+  const [email, setEmail] = useState('')
 
   return (
     <div>
@@ -15,9 +15,9 @@ function ForgotPasswordPage() {
         onChange={(e) => setEmail(e.target.value)}
       />
       <button className="submit-btn">Send Reset Link</button>
-      <Link to="/loginPage">Back to Login</Link>
+      <Link to="/">Back to Login</Link>
     </div>
   );
 }
 
-export default ForgotPasswordPage;
+export default ForgotPasswordCard;

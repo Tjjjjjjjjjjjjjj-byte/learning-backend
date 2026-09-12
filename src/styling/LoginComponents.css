@@ -1,0 +1,154 @@
+/* ============================================
+   Auth Cards — login, sign up, forgot password
+   Color scheme: deep indigo/slate background with
+   a violet accent. High contrast, calm, modern —
+   avoids harsh pure black/white for less eye strain.
+   ============================================ */
+
+:root {
+  --auth-bg: #0f1120;
+  --auth-card-bg: #1a1d33;
+  --auth-border: #2c3050;
+  --auth-text: #f2f3f8;
+  --auth-text-muted: #9497b3;
+  --auth-accent: #8b5cf6;      /* violet-500 */
+  --auth-accent-hover: #7c3aed; /* violet-600 */
+  --auth-accent-soft: rgba(139, 92, 246, 0.15);
+  --auth-error: #f87171;
+  --auth-radius: 14px;
+}
+
+/* ---- Page backdrop ----
+   Add className="auth-page" to the outermost <div>
+   in loginCard.jsx / signUpCard.jsx / forgotPasswordPage.jsx
+   to center the card and get the background. */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--auth-bg);
+  padding: 24px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.auth-page > div,
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--auth-card-bg);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Heading ---- */
+.greet {
+  color: var(--auth-text);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+/* ---- Inputs ---- */
+.identifier,
+.password {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  color: var(--auth-text);
+  background: #12142452;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--auth-border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.identifier::placeholder,
+.password::placeholder {
+  color: var(--auth-text-muted);
+}
+
+.identifier:hover,
+.password:hover {
+  border-color: #3a3f66;
+}
+
+.identifier:focus,
+.password:focus {
+  border-color: var(--auth-accent);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px var(--auth-accent-soft);
+}
+
+/* ---- Buttons ---- */
+.sign-in-btn,
+.submit-btn {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--auth-accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.sign-in-btn:hover,
+.submit-btn:hover {
+  background: var(--auth-accent-hover);
+}
+
+.sign-in-btn:active,
+.submit-btn:active {
+  transform: translateY(1px);
+}
+
+.sign-in-btn:disabled,
+.submit-btn:disabled {
+  background: var(--auth-border);
+  color: var(--auth-text-muted);
+  cursor: not-allowed;
+}
+
+/* ---- Links (react-router-dom <Link>) ---- */
+.auth-card a,
+.auth-page a {
+  color: var(--auth-text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  text-align: center;
+}
+
+.auth-card a:hover,
+.auth-page a:hover {
+  color: var(--auth-accent);
+  text-decoration: underline;
+}
+
+/* Sign-up prompt link on the login card reads better
+   as its own row, slightly separated from "forgot password" */
+.auth-card a:last-of-type {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--auth-border);
+}
+
+/* ---- Small screens ---- */
+@media (max-width: 420px) {
+  .auth-page > div,
+  .auth-card {
+    padding: 28px 22px;
+    border-radius: 10px;
+  }
+}

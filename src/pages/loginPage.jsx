@@ -1,9 +1,9 @@
-import loginCard from "../login-components/loginCard";
+import LoginCard from "../login-components/LoginCard";
 
-function loginPage() {
+function LoginPage() {
 
     return (
-        <loginCard />
+        <LoginCard />
     )
 }
-export default loginCard
+export default LoginPage

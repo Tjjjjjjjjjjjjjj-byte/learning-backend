@@ -4,6 +4,8 @@ import LoginPage from './pages/loginPage.jsx'
 import Playlists from './pages/playlists.jsx'
 import Profile from './pages/profile.jsx'
 import SearchPage from './pages/searchPage.jsx'
+import SignUpPage from './pages/signUpPage.jsx'
+import ForgotPasswordPage from './pages/forgotPasswordPage.jsx'
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
       <Route path="/playlists" element={<Playlists />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/search" element={<SearchPage />} />
+      <Route path="/signUpPage" element={<SignUpPage />} />
+      <Route path="/forgotPasswordPage" element={<ForgotPasswordPage />} />
     </Routes>
   )
 }

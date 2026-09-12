@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-function loginCard() {
+function LoginCard() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   return (
@@ -21,10 +21,10 @@ function loginCard() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Link to="/forgotPasswordPage">ForgotYourPassword?</Link>
+      <Link to="/forgotPasswordPage">Forgot Your Password?</Link>
       <Link to="/signUpPage">Don't have an account? Sign Up Now!</Link>
       <button className="sign-in-btn">Sign In</button>
     </div>
   );
 }
-export default loginCard;
+export default LoginCard;
