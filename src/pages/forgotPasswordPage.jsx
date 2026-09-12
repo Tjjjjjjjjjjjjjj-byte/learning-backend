@@ -1,4 +1,4 @@
-import ForgotPasswordCard from "../login-components/ForgotPasswordCard"
+import ForgotPasswordCard from "../login-components/forgotPasswordCard"
 function ForgotPasswordPage() {
 
     return (

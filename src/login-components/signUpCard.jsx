@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import "../styling/LoginComponents.css";
 
 function SignUpCard() {
   const [username, setUsername] = useState("");
@@ -8,7 +9,7 @@ function SignUpCard() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   return (
-    <div>
+    <div className="auth-page">
       <h1 className="greet">Create Your Account</h1>
       <input
         className="identifier"
@@ -39,7 +40,7 @@ function SignUpCard() {
         onChange={(e) => setConfirmPassword(e.target.value)}
       />
       <button className="submit-btn">Sign Up</button>
-      <Link to="/loginPage">Already have an account? Log In</Link>
+      <Link to="/">Already have an account? Log In</Link>
     </div>
   );
 }

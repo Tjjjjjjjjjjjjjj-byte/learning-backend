@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import "../styling/LoginComponents.css";
 
 function ForgotPasswordCard() {
   const [email, setEmail] = useState('')
 
   return (
-    <div>
+    <div className="auth-page">
       <h1 className="greet">Forgot Your Password?</h1>
       <input
         className="identifier"

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import "../styling/LoginComponents.css";
 
 function LoginCard() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   return (
-    <div>
+    <div className="auth-page">
       <h1 className="greet">Welcome Back!</h1>
       <input
         className="identifier"
