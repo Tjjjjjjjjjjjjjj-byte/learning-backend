@@ -1,7 +1,7 @@
-import SearchBar from "../home-components/searchbar"
+import Nav from "../home-components/nav"
 function home() {
     return (
-        <SearchBar />
+        <Nav/>
     )
 }
 export default home

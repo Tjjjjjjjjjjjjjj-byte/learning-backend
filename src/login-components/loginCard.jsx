@@ -4,6 +4,26 @@ import { Link } from "react-router-dom";
 function LoginCard() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  
+
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("error");
+      } else {
+        console.log("loffed in");
+      }
+    } catch (error) {}
+  };
+
   return (
     <div className="auth-page">
       <h1 className="greet">Welcome Back!</h1>
@@ -23,7 +43,9 @@ function LoginCard() {
       />
       <Link to="/forgotPasswordPage">Forgot Your Password?</Link>
       <Link to="/signUpPage">Don't have an account? Sign Up Now!</Link>
-      <button className="sign-in-btn">Sign In</button>
+      <button className="sign-in-btn" onClick={handleLogin}>
+        Sign In
+      </button>
     </div>
   );
 }
