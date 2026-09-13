@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import "../styling/LoginComponents.css";
 
 function LoginCard() {
   const [identifier, setIdentifier] = useState("");
