@@ -17,17 +17,17 @@ app.post("/login", (req, res) => {
   const foundUser = users.find((u) => u.identifier === identifier);
 
   if (!foundUser) {
-    return res.status(401)
+    return res.status(401);
   }
 
   if (foundUser.password !== password) {
-    return res.status(401)
+    return res.status(401);
   }
 
-  res.status(200)
+  res.status(200);
 });
 
-app.post("/signup", (req, res) => {
+app.post("/signUpPage", (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
 
   const usersData = fs.readFileSync("./users.json", "utf-8");
@@ -36,15 +36,24 @@ app.post("/signup", (req, res) => {
   const foundUser = users.find((u) => u.identifier === identifier);
 
   if (foundUser) {
-    return res.status(409)
+    return res.status(409);
   } else if (foundUser.email) {
     return res.status(409);
   } else {
-    fs.writeFileSync("./users.json")
-    res.status(200)
-  }
+    const newUser = { username, email, password };
 
-  
+    if (password !== confirmPassword) {
+      res.status(400);
+    } else {
+      users.push(newUser);
+      fs.writeFileSync(
+        "./users.json",
+        JSON.stringify(users, null, 2), // 2nd: Convert array to indented JSON text
+        "utf-8",
+      );
+      res.status(200);
+    }
+  }
 });
 
 app.listen(PORT, () => {
