@@ -16,7 +16,7 @@ function ForgotPasswordCard() {
         onChange={(e) => setEmail(e.target.value)}
       />
       <button className="submit-btn">Send Reset Link</button>
-      <Link to="/">Back to Login</Link>
+      <Link to="/login">Back to Login</Link>
     </div>
   );
 }

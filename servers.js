@@ -1,23 +1,52 @@
-const users = require("./users.json");
-import e from "express";
+import express from "express";
+import fs from "fs";
+import cors from "cors";
 
-const handleLogin = async () => {
-  try {
-    const response = await fetch("http://localhost:3000/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ identifier, password }),
-    });
+const app = express();
+const PORT = 3000;
 
-    if(!response.ok) {
-        throw new Error('error')
-    } else {
-        console.log("loffed in")
-    }
+app.use(express.json()); // lets req.body parse incoming JSON
+app.use(cors());
 
-  } catch (error) {
+app.post("/login", (req, res) => {
+  const { identifier, password } = req.body;
 
+  const usersData = fs.readFileSync("./users.json", "utf-8");
+  const users = JSON.parse(usersData);
+
+  const foundUser = users.find((u) => u.identifier === identifier);
+
+  if (!foundUser) {
+    return res.status(401)
   }
-};
+
+  if (foundUser.password !== password) {
+    return res.status(401)
+  }
+
+  res.status(200)
+});
+
+app.post("/signup", (req, res) => {
+  const { username, email, password, confirmPassword } = req.body;
+
+  const usersData = fs.readFileSync("./users.json", "utf-8");
+  const users = JSON.parse(usersData);
+
+  const foundUser = users.find((u) => u.identifier === identifier);
+
+  if (foundUser) {
+    return res.status(409)
+  } else if (foundUser.email) {
+    return res.status(409);
+  } else {
+    fs.writeFileSync("./users.json")
+    res.status(200)
+  }
+
+  
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

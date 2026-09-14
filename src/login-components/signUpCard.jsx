@@ -1,3 +1,4 @@
+import { response } from "express";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -6,6 +7,19 @@ function SignUpCard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordFailed, setPasswordFailed] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  const handleSignUp = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/signup")
+      if(response.status === 409) {
+        setFailed(true)
+      }
+    } catch (error) {
+      
+    }
+  }
 
   return (
     <div className="auth-page">
@@ -38,8 +52,9 @@ function SignUpCard() {
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
       />
+      {failed && <span>Make Sure That your passwords are matches</span>}
       <button className="submit-btn">Sign Up</button>
-      <Link to="/">Already have an account? Log In</Link>
+      <Link to="/login">Already have an account? Log In</Link>
     </div>
   );
 }
