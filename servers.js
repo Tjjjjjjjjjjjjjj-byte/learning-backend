@@ -6,8 +6,19 @@ import validator from "validator"
 const app = express();
 const PORT = 3000;
 
+import session from "express-session";
+
+app.use(session({
+  secret: "some-random-secret-string",
+  resave: false,
+  saveUninitialized: false,
+}));
+
 app.use(express.json()); 
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
 
 app.post("/login", (req, res) => {
   const { identifier, password } = req.body;
