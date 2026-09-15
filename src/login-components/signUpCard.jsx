@@ -6,19 +6,36 @@ function SignUpCard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordFailed, setPasswordFailed] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [passwordFailed, setPasswordFailed] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [emailFailed, setEmailFailed] = useState(false);
 
   const handleSignUp = async () => {
+    setFailed(false);
+    setPasswordFailed(false);
+    setEmailFailed(false);
     try {
-      const response = await fetch("http://localhost:3000/signup")
-      if(response.status === 409) {
-        setFailed(true)
+      const response = await fetch("http://localhost:3000/signUpPage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, email, password, confirmPassword }), // Pass input state data
+      });
+
+      if (response.status === 409) {
+        setFailed(true);
+      } else if (response.status === 400) {
+        setPasswordFailed(true);
+      } else if (response.status === 422) {
+        setEmailFailed(true);
+      } else {
+        setFailed(false);
       }
     } catch (error) {
-      
+      console.error("Network error:", error);
     }
-  }
+  };
 
   return (
     <div className="auth-page">
@@ -30,6 +47,7 @@ function SignUpCard() {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
       />
+      {failed && <p className="error-message">UserName is already taken.</p>}
       <input
         className="identifier"
         type="email"
@@ -37,6 +55,9 @@ function SignUpCard() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
+      {emailFailed && (
+        <p className="error-message">please enter a valid email.</p>
+      )}
       <input
         type="password"
         placeholder="Create a Password"
@@ -51,8 +72,12 @@ function SignUpCard() {
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
       />
-      {failed && <span>Make Sure That your passwords are matches</span>}
-      <button className="submit-btn">Sign Up</button>
+      {passwordFailed && (
+        <p className="error-message">Make sure That your passwords matches</p>
+      )}
+      <button className="submit-btn" onClick={handleSignUp}>
+        Sign Up
+      </button>
       <Link to="/login">Already have an account? Log In</Link>
     </div>
   );
