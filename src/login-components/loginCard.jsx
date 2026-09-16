@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react"; // Added useEffect
+import { Link, useNavigate } from "react-router-dom";
 
 function LoginCard() {
   const [identifier, setIdentifier] = useState("");
@@ -8,10 +7,34 @@ function LoginCard() {
   const [failed, setFailed] = useState(false);
   const navigate = useNavigate();
 
+  // 1. Run the login check instantly when the page loads
+  useEffect(() => {
+    async function checkLogIn() {
+      try {
+        const response = await fetch("http://localhost:3000/me", {
+          method: "GET", // Changed to GET (standard for checking active sessions)
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.status === 200) {
+          navigate("/home", { replace: true }); // Instantly redirect to home
+        }
+      } catch (error) {
+        console.error("Session check failed:", error);
+      }
+    }
+
+    checkLogIn();
+  }, [navigate]);
+
   const handleLogin = async () => {
     try {
-      const response = await fetch("http://localhost:3000/signUpPage", {
+      const response = await fetch("http://localhost:3000/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -22,9 +45,11 @@ function LoginCard() {
         setFailed(true);
       } else {
         setFailed(false);
-        navigate("/home")
+        navigate("/home");
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error("Login error:", error);
+    }
   };
 
   return (
@@ -40,7 +65,7 @@ function LoginCard() {
       {failed && <p className="error-message">Incorrect username or password</p>}
 
       <input
-        type="text"
+        type="password" // Changed to password type to hide characters
         placeholder="Enter your password"
         className={failed ? "input-error" : "password"}
         value={password}
@@ -56,4 +81,5 @@ function LoginCard() {
     </div>
   );
 }
+
 export default LoginCard;

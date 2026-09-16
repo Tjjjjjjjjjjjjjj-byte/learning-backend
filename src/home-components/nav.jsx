@@ -1,4 +1,4 @@
-import SearchBar from "../hooks/searchbar";
+import SearchBar from "./searchbar";
 import ProfileIcon from "./profileIcon";
 function Nav() {
     <nav>

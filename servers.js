@@ -20,18 +20,27 @@ app.use(cors({
   credentials: true,
 }));
 
+app.get("/me", (req, res) => {
+  if (req.session.user) {
+    res.status(200).json({ loggedIn: true, user: req.session.user });
+  } else {
+    res.status(401).json({ loggedIn: false });
+  }
+});
+
 app.post("/login", (req, res) => {
   const { identifier, password } = req.body;
 
   const usersData = fs.readFileSync("./users.json", "utf-8");
   const users = JSON.parse(usersData);
 
-  const foundUser = users.find((u) => u.identifier === identifier, u.email === identifier);
+  const foundUser = users.find((u) => u.identifier === identifier || u.email === identifier);
 
   if (!foundUser || foundUser.password !== password) {
     return res.status(401).json({ message: "Invalid credentials" }); 
   }
 
+  req.session.user = { username: foundUser.identifier };
   return res.status(200).json({ message: "Login successful" });
 });
 
