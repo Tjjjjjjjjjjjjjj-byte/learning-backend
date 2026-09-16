@@ -1,6 +1,7 @@
-import SearchBar from "./searchbar";
-import ProfileIcon from "./profileIcon";
-import HomeBtn from "./home";
+import SearchBar from "./navBar/searchbar";
+import ProfileIcon from "./navBar/profileIcon";
+import HomeBtn from "./navBar/home";
+import "../styling/nav.css";
 function Nav() {
   return (
     <nav>
