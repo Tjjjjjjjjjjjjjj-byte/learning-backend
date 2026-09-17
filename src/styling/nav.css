@@ -1,9 +1,9 @@
 /* ============================================
-   Home page top nav — Spotify-style bar:
-   circular icon buttons, pill search field with
-   an inline icon, profile avatar on the right.
-   Same palette as the auth pages (LoginComponents.css)
-   so the whole app feels like one product.
+   Home page top nav — Spotify-style bar.
+   Floating rounded card with a small gap from the
+   viewport edge (like real Spotify), rather than a
+   flush edge-to-edge bar. Same palette/tokens as
+   sidebar.css and LoginComponents.css.
    ============================================ */
 
 :root {
@@ -19,33 +19,41 @@
   --auth-accent-soft: rgba(29, 185, 84, 0.18);
   --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
 
-  /* Shared sizing scale so every nav control stays visually
-     consistent — change these once, everything follows. */
-  --nav-icon-size: clamp(36px, 4vw, 40px);
-  --nav-avatar-size: clamp(32px, 3.5vw, 36px);
+  --nav-icon-size: clamp(40px, 4vw, 44px);
+  --nav-avatar-size: clamp(34px, 3.5vw, 38px);
   --nav-gap: clamp(12px, 2vw, 20px);
+  --page-margin: 8px;
+  --panel-radius: 10px;
+
+  /* Nav's own content height (excludes --page-margin above/below) —
+     sidebar.css reads this to know where to start. */
+  --nav-height: 64px;
+}
+
+body {
+  background: var(--auth-bg);
 }
 
 /* ---- Layout ----
    Three-track grid — left controls, a truly centered search
-   pill, right controls — instead of flex + margin-left:auto.
-   With flex, the search pill sits wherever the leftover space
-   happens to land (closer to whichever side has less content);
-   grid's center track centers it exactly regardless of how
-   wide the left/right groups are. */
+   pill, right controls. Floats as a rounded card, offset from
+   the viewport edge by --page-margin on all sides but the bottom
+   (sidebar.css picks up right where this leaves off). */
 nav {
   position: sticky;
-  top: 0;
+  top: var(--page-margin);
   z-index: 100;
+  box-sizing: border-box;
+  height: var(--nav-height);
+  margin: var(--page-margin) var(--page-margin) 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--nav-gap);
-  padding: 10px 20px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--auth-border);
+  padding: 0 20px;
+  background: var(--auth-surface);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   font-family: var(--auth-font);
   animation: nav-fade-in 0.3s ease;
 }
@@ -80,7 +88,7 @@ nav {
 }
 
 .homeBtn .material-symbols-outlined {
-  font-size: calc(var(--nav-icon-size) * 0.55);
+  font-size: calc(var(--nav-icon-size) * 0.5);
 }
 
 .homeBtn:hover {
@@ -100,16 +108,14 @@ nav {
 }
 
 /* ---- Search ----
-   Centered in its own grid track; capped width so it doesn't
-   stretch edge to edge on wide screens, and centered within
-   that track via margin auto so it stays put regardless of
-   how the left/right groups resize. */
+   The wrapping div has no class of its own, so it's targeted
+   structurally via the input it contains. */
 nav > div:has(> input.SearchBar) {
   grid-column: 2;
   justify-self: center;
   width: 100%;
   max-width: 480px;
-  height: var(--nav-icon-size);
+  height: calc(var(--nav-icon-size) * 0.95);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -199,14 +205,13 @@ nav > div:has(> input.SearchBar:focus) > .material-symbols-outlined {
   outline-offset: 2px;
 }
 
-/* ---- Small screens ----
-   Below ~560px, drop the search pill to its own second row
-   and let it span full width instead of squeezing into the
-   center track next to two fixed-size buttons. */
+/* ---- Small screens ---- */
 @media (max-width: 560px) {
   nav {
     grid-template-columns: auto 1fr auto;
     grid-template-rows: auto auto;
+    height: auto;
+    padding: 10px 16px;
     row-gap: 10px;
   }
 

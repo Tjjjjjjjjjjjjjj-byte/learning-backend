@@ -1,0 +1,376 @@
+/* ============================================
+   Playlist sidebar — minimized + expanded states.
+   Floating rounded card matched to nav.css's spacing
+   system (--page-margin, --panel-radius), same
+   palette/tokens as nav.css and LoginComponents.css.
+   The fullscreen "maximized" state is intentionally
+   left unstyled for now.
+   ============================================ */
+
+:root {
+  --auth-bg: #000000;
+  --auth-surface: #121212;
+  --auth-input-bg: #1a1a1a;
+  --auth-tile-bg: #242424;
+  --auth-border: #2a2a2a;
+  --auth-border-hover: #444444;
+  --auth-text: #ffffff;
+  --auth-text-muted: #b3b3b3;
+  --auth-accent: #1db954;
+  --auth-accent-soft: rgba(29, 185, 84, 0.18);
+  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  --page-margin: 8px;
+  --panel-radius: 10px;
+  --nav-height: 64px; /* keep in sync with nav.css */
+  /* Distance from viewport top to where the sidebar starts:
+     top page-margin + nav height + gap between nav and sidebar. */
+  --sidebar-top: calc(var(--page-margin) * 2 + var(--nav-height));
+}
+
+/* ---- Container: minimized ---- */
+.sidebar.minimized {
+  position: fixed;
+  top: var(--sidebar-top);
+  left: var(--page-margin);
+  bottom: var(--page-margin);
+  width: 72px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 8px;
+  background: var(--auth-surface);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-family: var(--auth-font);
+}
+
+/* ---- Expand/menu toggle (minimized) ---- */
+.sidebar.minimized .expandBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar.minimized .expandBtn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.sidebar.minimized .expandBtn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+.sidebar.minimized .expandBtn:active {
+  transform: scale(0.92);
+}
+
+.sidebar.minimized .expandBtn:focus-visible {
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Create playlist button (minimized) ---- */
+.sidebar.minimized .createPlaylist-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar.minimized .createPlaylist-btn .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.sidebar.minimized .createPlaylist-btn:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.06);
+}
+
+.sidebar.minimized .createPlaylist-btn:active {
+  transform: scale(0.94);
+}
+
+.sidebar.minimized .createPlaylist-btn:focus-visible {
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Playlist tile (minimized) ---- */
+.sidebar.minimized .playlist {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: var(--auth-tile-bg);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.sidebar.minimized .playlist:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.04);
+}
+
+.sidebar.minimized .playlist:active {
+  transform: scale(0.97);
+}
+
+.sidebar.minimized .playlist:focus-visible {
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 2px;
+}
+
+.sidebar.minimized .playlist img {
+  display: none;
+}
+
+.sidebar.minimized .playlist::before {
+  content: "music_note";
+  font-family: "Material Symbols Outlined";
+  font-size: 22px;
+  color: var(--auth-text-muted);
+}
+
+.sidebar.minimized .playlist .material-symbols-outlined {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: var(--auth-text);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================
+   Expanded state (minimized === false, maximized === false)
+   DOM order is flat — expand-btn-div, playlistCreateDiv, one
+   playlistComponent-div per playlist, then maximize-btn last —
+   so a grid pins the three header pieces to row 1 and lets
+   every playlist row flow onto its own row below, regardless
+   of where it actually sits in the markup.
+   ============================================ */
+.sidebar:not(.minimized) {
+  position: fixed;
+  top: var(--sidebar-top);
+  left: var(--page-margin);
+  bottom: var(--page-margin);
+  width: 320px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  align-content: start;
+  column-gap: 8px;
+  row-gap: 20px;
+  padding: 18px 14px;
+  background: var(--auth-surface);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-family: var(--auth-font);
+}
+
+/* ---- Header: library icon + label (left) ---- */
+.sidebar:not(.minimized) .expand-btn-div {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar:not(.minimized) .expandBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sidebar:not(.minimized) .expandBtn .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.sidebar:not(.minimized) .expandBtn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+.sidebar:not(.minimized) .expandP {
+  margin: 0;
+  color: var(--auth-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* ---- Header: create button + label (right, before maximize) ---- */
+.sidebar:not(.minimized) .playlistCreateDiv {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar:not(.minimized) .createPlaylist-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar:not(.minimized) .createPlaylist-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.sidebar:not(.minimized) .createPlaylist-btn:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.06);
+}
+
+.sidebar:not(.minimized) .createText {
+  margin: 0;
+  color: var(--auth-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Header: maximize/expand toggle (far right) ----
+   Styled as a plain icon button here — its own fullscreen
+   behavior (the "maximized" state) is left alone. */
+.sidebar:not(.minimized) .maximize-btn {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sidebar:not(.minimized) .maximize-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.sidebar:not(.minimized) .maximize-btn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+/* ---- Playlist rows ----
+   Each spans the full grid width and stacks below the header. */
+.sidebar:not(.minimized) .playlistComponent-div {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div:hover {
+  background: var(--auth-input-bg);
+}
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: var(--auth-tile-bg);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist img {
+  display: none;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist::before {
+  content: "music_note";
+  font-family: "Material Symbols Outlined";
+  font-size: 22px;
+  color: var(--auth-text-muted);
+}
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist .material-symbols-outlined {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--auth-text);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.sidebar:not(.minimized) .playlist-info {
+  margin: 0;
+  color: var(--auth-text-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hidden {
+    display: none;
+}
