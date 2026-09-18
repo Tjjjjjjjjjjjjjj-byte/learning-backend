@@ -1,20 +1,12 @@
 
-function Minimize({minimized, setMinimized}) {
-    const minimize = () => {
-        if(minimized === true) {
-            setMinimized(false)
-        } else {
-            setMinimized(true)
-        }
-    }
-    
+function Minimize({minimized, setMinimized, maximized}) {
     return (
         minimized ? (
-            <button className="expandBtn" onClick={minimize}><span className="material-symbols-outlined">menu</span></button>
+            <button className="expandBtn" onClick={() => setMinimized(!minimized)}><span className="material-symbols-outlined">menu</span></button>
         ) : (
             <div className="expand-btn-div">
-                <button className="expandBtn" onClick={minimize}><span className="material-symbols-outlined">menu</span></button>
-                <p className="expandP">Your Library</p>
+                {!maximized ? <button className="expandBtn" onClick={() => setMinimized(!minimized)}><span className="material-symbols-outlined">menu</span><p className="expandP">Your Library</p></button> : <p className="expandP">Your Library</p>}
+                
             </div>
         )
     )

@@ -9,11 +9,16 @@ function PlaylistSidebar() {
   const [minimized, setMinimized] = useState(true);
   const [maximized, setMaximized] = useState(false);
   return (
-    <aside className={minimized ? "sidebar minimized" : "sidebar"}>
+    !maximized ? (<aside className={minimized ? "sidebar minimized" : "sidebar"}>
       <Minimize setMinimized={setMinimized} minimized={minimized} />
       <CreateNewPlaylist minimized={minimized} maximized={maximized} createOptionsHidden={createOptionsHidden} setCreateOptionsHidden={setCreateOptionsHidden}/>
-      <Playlist minimized={minimized} maximized={maximized}/>
       <Maximize minimized={minimized} setMaximized={setMaximized} maximized={maximized}/>
+      <Playlist minimized={minimized} maximized={maximized}/>
+    </aside>) : <aside className="maximized">
+      <Minimize setMinimized={setMinimized} minimized={minimized} maximized={maximized} />
+      <CreateNewPlaylist minimized={minimized} maximized={maximized} createOptionsHidden={createOptionsHidden} setCreateOptionsHidden={setCreateOptionsHidden}/>
+      <Maximize minimized={minimized} setMaximized={setMaximized} maximized={maximized}/>
+      <Playlist minimized={minimized} maximized={maximized}/>
     </aside>
   );
 }
