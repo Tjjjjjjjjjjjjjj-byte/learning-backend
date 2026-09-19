@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 function Playlist({ minimized, maximized, viewMode = "list" }) {
+  console.log("minimized:", minimized, "maximized:", maximized);
   let type = "Playlist";
   let author = "You";
   const [hovering, setHovering] = useState(false);
@@ -23,9 +24,11 @@ function Playlist({ minimized, maximized, viewMode = "list" }) {
             <span className="material-symbols-outlined">play_circle</span>
           )}
         </button>
-        <p className="playlist-info">
-          {type} · {author}
-        </p>
+        {!minimized && (
+  <p className="playlist-info">
+    {type} · {author}
+  </p>
+)}
       </div>
     );
   }

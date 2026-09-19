@@ -91,10 +91,32 @@ app.get("/home", (req, res) => {
   const username = req.session.user.username;
 
   const userPlaylists = playlists.filter(
-  (playlist) => playlist.owner === username
-);
+    (playlist) => playlist.owner === username,
+  );
 
   return res.status(200).json(userPlaylists);
+});
+
+app.post("/create", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Must be logged in" });
+  }
+
+  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
+  const playlists = JSON.parse(playlistsData);
+  const username = req.session.user.username;
+  let id = playlists[playlists.length - 1].id;
+  id = Number(id) + 1;
+
+  const newPlaylist = {
+    name: "",
+    id: id,
+    owner: username,
+    songs: [],
+  };
+  playlists.push(newPlaylist)
+  fs.writeFileSync("./playlists.json", JSON.stringify(playlists, null, 2), "utf-8")
+  return res.status(200).json({ message: "creation successful"})
 });
 
 app.listen(PORT, () => {

@@ -37,7 +37,11 @@ function PlaylistSidebar() {
         maximized={maximized}
       />
       {playlists.map((playlist) => (
-        <Playlist key={playlist.id} />
+        <Playlist
+          key={playlist.id}
+          minimized={minimized}
+          maximized={maximized}
+        />
       ))}
     </aside>
   ) : (
@@ -65,7 +69,13 @@ function PlaylistSidebar() {
         <span>Date Added</span>
         <span>Played</span>
       </div>
-      <Playlist minimized={minimized} maximized={maximized} />
+      {playlists.map((playlist) => (
+        <Playlist
+          key={playlist.id}
+          minimized={minimized}
+          maximized={maximized}
+        />
+      ))}
     </aside>
   );
 }
