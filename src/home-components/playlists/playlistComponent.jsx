@@ -1,12 +1,18 @@
 import { useState } from "react";
 
-function Playlist({ minimized, maximized }) {
+function Playlist({ minimized, maximized, viewMode = "list" }) {
   let type = "Playlist";
   let author = "You";
   const [hovering, setHovering] = useState(false);
   if (!minimized || maximized) {
     return (
-      <div className="playlistComponent-div">
+      <div
+        className={
+          viewMode === "grid"
+            ? "playlistComponent-div grid-view"
+            : "playlistComponent-div"
+        }
+      >
         <button
           className="playlist"
           onMouseEnter={() => setHovering(true)}

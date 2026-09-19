@@ -374,3 +374,554 @@
 .hidden {
     display: none;
 }
+
+/* ============================================
+   Maximized state (full "Your Library" takeover).
+   Same DOM flatness problem as the other states —
+   header pieces, filter/search/sort placeholders, and
+   the table header all get pinned to explicit rows via
+   grid, then playlist rows flow below as table-style rows
+   aligned to the same column tracks as the header.
+   ============================================ */
+.maximized {
+  position: fixed;
+  top: var(--sidebar-top);
+  left: var(--page-margin);
+  right: var(--page-margin);
+  bottom: var(--page-margin);
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  align-content: start;
+  column-gap: 12px;
+  row-gap: 18px;
+  padding: 20px 24px;
+  background: var(--auth-surface);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-family: var(--auth-font);
+}
+
+/* ---- Row 1: title + create + collapse ---- */
+.maximized .expand-btn-div {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.maximized .expandP {
+  margin: 0;
+  color: var(--auth-text);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.maximized .playlistCreateDiv {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.maximized .createPlaylist-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 500px;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.maximized .createPlaylist-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.maximized .createPlaylist-btn:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.03);
+}
+
+.maximized .createText {
+  margin: 0;
+}
+
+.maximized .maximize-btn {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.maximized .maximize-btn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+/* ---- Row 2: Playlists filter pill (left) ---- */
+.maximized .library-filters {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.maximized .filter-pill {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 500px;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.maximized .filter-pill.active {
+  background: var(--auth-text);
+  color: #000000;
+}
+
+.maximized .filter-pill:hover {
+  background: var(--auth-border-hover);
+}
+
+.maximized .filter-pill.active:hover {
+  background: var(--auth-text);
+}
+
+/* ---- Row 2: library search + sort (right) ---- */
+.maximized .library-search {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 500px;
+  background: transparent;
+  color: var(--auth-text-muted);
+  transition: background 0.15s ease;
+}
+
+.maximized .library-search:focus-within {
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+}
+
+.maximized .library-search .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.LibrarySearch {
+  border: none;
+  background: transparent;
+  color: var(--auth-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  width: 160px;
+}
+
+.LibrarySearch::placeholder {
+  color: var(--auth-text-muted);
+}
+
+/* Expanded rail: icon-only toggle instead of a permanently-open box */
+.sidebar:not(.minimized) .library-search {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.library-search-toggle {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.library-search-toggle:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+.library-search.open {
+  background: var(--auth-input-bg);
+  border-radius: 500px;
+  padding: 0 10px 0 0;
+}
+
+.library-search.open .LibrarySearch {
+  width: 100px;
+}
+
+/* ---- Sort/view control ----
+   .library-sort is the actual grid item now (the trigger button
+   and its dropdown are both children of it); .sort-btn is just
+   styled as a button, not placed in the grid directly. */
+.maximized .library-sort {
+  grid-column: 4;
+  grid-row: 2;
+  justify-self: end;
+  position: relative;
+}
+
+.sidebar:not(.minimized) .library-sort {
+  grid-column: 4;
+  grid-row: 2;
+  justify-self: end;
+  position: relative;
+}
+
+.sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sort-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.sort-btn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+/* Dropdown is a real child of its trigger's wrapper now, so it's
+   just normal relative/absolute positioning — no fixed-coordinate
+   guesswork like the createOptions popover needed. */
+.sort-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 250;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  background: #282828;
+  border: 1px solid var(--auth-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  font-family: var(--auth-font);
+}
+
+.sort-dropdown-label {
+  margin: 4px 16px 6px;
+  color: var(--auth-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.sort-dropdown-label.view-as-label {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--auth-border);
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--auth-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sort-option:hover {
+  background: var(--auth-input-bg);
+}
+
+.sort-option.selected {
+  color: var(--auth-accent);
+}
+
+.sort-option .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--auth-accent);
+}
+
+.view-toggle {
+  display: flex;
+  gap: 6px;
+  padding: 4px 16px 0;
+}
+
+.view-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: var(--auth-input-bg);
+  color: var(--auth-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.view-btn.active {
+  background: var(--auth-border-hover);
+  color: var(--auth-accent);
+}
+
+.view-btn:hover {
+  color: var(--auth-text);
+}
+
+/* ---- Grid view ----
+   Per-item card layout instead of a horizontal row. Still only
+   one playlist renders today, so this changes that single
+   item's own layout rather than arranging a multi-column grid
+   of several — same {type} · {author} text as list view, since
+   the component has no separate title field yet. */
+.sidebar:not(.minimized) .playlistComponent-div.grid-view,
+.maximized .playlistComponent-div.grid-view {
+  flex-direction: column;
+  align-items: flex-start;
+  width: 160px;
+  gap: 8px;
+  padding: 12px;
+}
+
+.playlistComponent-div.grid-view .playlist {
+  width: 100%;
+  height: 140px;
+  border-radius: 8px;
+}
+
+.playlistComponent-div.grid-view .playlist-info {
+  white-space: normal;
+  font-size: 0.85rem;
+}
+
+/* ---- Table header row ---- */
+.maximized .library-table-header {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: 1fr 200px 100px;
+  padding: 8px 8px 12px;
+  border-bottom: 1px solid var(--auth-border);
+  color: var(--auth-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.maximized .library-table-header span:last-child {
+  text-align: right;
+}
+
+/* ---- Playlist rows ----
+   Left-aligned to match the header's "Title" column start.
+   Real Date Added / Played cells aren't rendered yet (no data
+   for them in playlistComponent.jsx), so those columns stay
+   visually empty for now rather than faking values. */
+.maximized .playlistComponent-div {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.maximized .playlistComponent-div:hover {
+  background: var(--auth-input-bg);
+}
+
+.maximized .playlistComponent-div .playlist {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: var(--auth-tile-bg);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+}
+
+.maximized .playlistComponent-div .playlist img {
+  display: none;
+}
+
+.maximized .playlistComponent-div .playlist::before {
+  content: "music_note";
+  font-family: "Material Symbols Outlined";
+  font-size: 20px;
+  color: var(--auth-text-muted);
+}
+
+.maximized .playlistComponent-div .playlist .material-symbols-outlined {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--auth-text);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.maximized .playlist-info {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--auth-text);
+  font-size: 0.9rem;
+}
+
+/* ============================================
+   "Create" popover (Playlist / Blend / Folder).
+   Rendered by CreateNewPlaylist as a sibling of the create
+   button, not a child of it, so it can't be positioned with
+   a simple parent-relative anchor — it's pulled out of the
+   grid/document flow with position:fixed instead (fixed, not
+   absolute, so the sidebar/maximized panel's overflow-y:auto
+   can't clip it), with rough coordinates per context since
+   the button's real position depends on that context's layout.
+   Dark theme, matching the rest of the app.
+   ============================================ */
+.createOptions {
+  position: fixed;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  background: var(--auth-surface);
+  color: var(--auth-text);
+  border: 1px solid var(--auth-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  font-family: var(--auth-font);
+}
+
+/* Two classes beats one regardless of source order, so this
+   can't lose the cascade tie the way relying on the generic
+   .hidden rule did. */
+.createOptions.hidden {
+  display: none;
+}
+
+/* Anchor points — approximate, since the real button position
+   shifts with content; nudge these if they drift out of place.
+   Each is offset clear of that context's sidebar width, not
+   inside it, so the popover sits beside the rail rather than
+   on top of it. */
+.sidebar.minimized .createOptions:not(.hidden) {
+  top: calc(var(--sidebar-top) + 60px);
+  left: calc(var(--page-margin) + 84px); /* clears the 72px minimized rail + gap */
+}
+
+.sidebar:not(.minimized) .createOptions:not(.hidden) {
+  top: calc(var(--sidebar-top) + 56px);
+  left: calc(var(--page-margin) + 332px); /* clears the 320px expanded rail + gap */
+}
+
+.maximized .createOptions:not(.hidden) {
+  top: calc(var(--sidebar-top) + 56px);
+  right: calc(var(--page-margin) + 70px);
+}
+
+.createOptions .create-playlist,
+.createOptions .blend,
+.createOptions .folder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px 16px;
+  border: none;
+  border-bottom: 1px solid var(--auth-border);
+  background: var(--auth-surface);
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.createOptions button:last-child {
+  border-bottom: none;
+}
+
+.createOptions .create-playlist:hover,
+.createOptions .blend:hover,
+.createOptions .folder:hover {
+  background: var(--auth-input-bg);
+}
+
+.createOptions svg {
+  width: 36px;
+  height: 36px;
+}
+
+.createOptions .create-option-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.createOptions .explanation {
+  margin: 0;
+  color: var(--auth-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}

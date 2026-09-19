@@ -6,7 +6,6 @@ function Minimize({minimized, setMinimized, maximized}) {
         ) : (
             <div className="expand-btn-div">
                 {!maximized ? <button className="expandBtn" onClick={() => setMinimized(!minimized)}><span className="material-symbols-outlined">menu</span><p className="expandP">Your Library</p></button> : <p className="expandP">Your Library</p>}
-                
             </div>
         )
     )

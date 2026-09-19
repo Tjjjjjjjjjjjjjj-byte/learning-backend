@@ -34,7 +34,7 @@ function CreateNewPlaylist({ minimized, maximized }) {
       <div className={hidden ? "createOptions hidden" : "createOptions"}>
         <button 
           id="playlist"
-          className="playlist"
+          className="create-playlist"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >

@@ -3,7 +3,9 @@ import CreateNewPlaylist from "./playlists/createnewplaylist";
 import Minimize from "./playlists/minimize";
 import Playlist from "./playlists/playlistComponent";
 import Maximize from "./playlists/maximize";
+import LibrarySort from "./playlists/librarySort";
 import "../styling/sidebar.css";
+import LibrarySearch from "./playlists/librarySearch";
 function PlaylistSidebar() {
   const [createOptionsHidden, setCreateOptionsHidden] = useState(false);
   const [minimized, setMinimized] = useState(true);
@@ -42,6 +44,13 @@ function PlaylistSidebar() {
         setMaximized={setMaximized}
         maximized={maximized}
       />
+      <LibrarySort className="library-filters"/>
+      <LibrarySearch className="library-search"/>
+      <div className="library-table-header">
+        <span>Title</span>
+        <span>Date Added</span>
+        <span>Played</span>
+      </div>
       <Playlist minimized={minimized} maximized={maximized} />
     </aside>
   );
