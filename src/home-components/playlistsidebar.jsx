@@ -12,18 +12,29 @@ function PlaylistSidebar() {
   const [minimized, setMinimized] = useState(true);
   const [maximized, setMaximized] = useState(false);
   const [playlists, setPlaylists] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState("Recents");
-  const [viewMode, setViewMode] = useState("Grid")
+  const [viewMode, setViewMode] = useState("list");
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
+  const fetchPlaylists = () => {
+    setLoading(true);
     fetch("http://localhost:3000/home", {
       credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
         setPlaylists(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load playlists:", err);
+        setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchPlaylists();
   }, []);
 
   const searchedPlaylist = playlists.filter((playlist) =>
@@ -35,6 +46,32 @@ function PlaylistSidebar() {
   } else if (sort === "Creator") {
     searchedPlaylist.sort((a, b) => a.owner.localeCompare(b.owner));
   }
+  // "Recents" / "Recently Added" fall back to the order the backend
+  // returns — there's no timestamp field on a playlist yet to sort by.
+
+  const listClassName =
+    !minimized && viewMode === "grid" ? "library-list grid-mode" : "library-list";
+
+  const list = (
+    <div className={listClassName}>
+      {searchedPlaylist.map((playlist) => (
+        <Playlist
+          key={playlist.id}
+          minimized={minimized}
+          maximized={maximized}
+          viewMode={viewMode}
+          name={playlist.name}
+          owner={playlist.owner}
+        />
+      ))}
+      {!loading && !minimized && searchedPlaylist.length === 0 && (
+        <p className="library-empty">
+          {query ? "No playlists found." : "No playlists yet — create one to get started."}
+        </p>
+      )}
+      {loading && !minimized && <p className="library-empty">Loading your library…</p>}
+    </div>
+  );
 
   return !maximized ? (
     <aside className={minimized ? "sidebar minimized" : "sidebar"}>
@@ -44,21 +81,14 @@ function PlaylistSidebar() {
         maximized={maximized}
         createOptionsHidden={createOptionsHidden}
         setCreateOptionsHidden={setCreateOptionsHidden}
+        onCreatePlaylist={fetchPlaylists}
       />
       <Maximize
         minimized={minimized}
         setMaximized={setMaximized}
         maximized={maximized}
       />
-      {searchedPlaylist.map((playlist) => (
-        <Playlist
-          key={playlist.id}
-          minimized={minimized}
-          maximized={maximized}
-          name={playlist.name}
-          owner={playlist.owner}
-        />
-      ))}
+      {list}
     </aside>
   ) : (
     <aside className="maximized">
@@ -72,15 +102,24 @@ function PlaylistSidebar() {
         maximized={maximized}
         createOptionsHidden={createOptionsHidden}
         setCreateOptionsHidden={setCreateOptionsHidden}
+        onCreatePlaylist={fetchPlaylists}
       />
       <Maximize
         minimized={minimized}
         setMaximized={setMaximized}
         maximized={maximized}
       />
-      <LibrarySort className="library-filters" sort={sort} setSort={setSort} />
+      <LibrarySort
+        minimized={minimized}
+        maximized={maximized}
+        sort={sort}
+        setSort={setSort}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+      />
       <LibrarySearch
-        className="library-search"
+        minimized={minimized}
+        maximized={maximized}
         query={query}
         setQuery={setQuery}
       />
@@ -89,15 +128,7 @@ function PlaylistSidebar() {
         <span>Date Added</span>
         <span>Played</span>
       </div>
-      {searchedPlaylist.map((playlist) => (
-        <Playlist
-          key={playlist.id}
-          minimized={minimized}
-          maximized={maximized}
-          name={playlist.name}
-          owner={playlist.owner}
-        />
-      ))}
+      {list}
     </aside>
   );
 }

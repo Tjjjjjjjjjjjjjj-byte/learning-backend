@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ReactSVG } from "react-svg";
 
-function CreateNewPlaylist({ minimized, maximized }) {
+function CreateNewPlaylist({ minimized, maximized, onCreatePlaylist }) {
   const [hidden, setHidden] = useState(true);
   const [hoveredButton, setHoveredButton] = useState(null);
 
@@ -14,13 +14,23 @@ function CreateNewPlaylist({ minimized, maximized }) {
   };
 
   async function handleCreate() {
-    const response = await fetch("http://localhost:3000/create", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const response = await fetch("http://localhost:3000/create", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.ok) {
+        setHidden(true);
+        onCreatePlaylist?.();
+      } else {
+        console.error("Failed to create playlist:", response.status);
+      }
+    } catch (err) {
+      console.error("Failed to create playlist:", err);
+    }
   }
 
   return (
