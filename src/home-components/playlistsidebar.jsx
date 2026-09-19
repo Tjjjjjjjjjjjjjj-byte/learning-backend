@@ -12,6 +12,8 @@ function PlaylistSidebar() {
   const [minimized, setMinimized] = useState(true);
   const [maximized, setMaximized] = useState(false);
   const [playlists, setPlaylists] = useState([]);
+  const [sort, setSort] = useState("Recents");
+  const [viewMode, setViewMode] = useState("Grid")
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -24,9 +26,15 @@ function PlaylistSidebar() {
       });
   }, []);
 
-  const searchedPlaylist = playlists.filter(playlist =>
-    playlist.name.toLowerCase().includes(query.toLowerCase())
+  const searchedPlaylist = playlists.filter((playlist) =>
+    playlist.name.toLowerCase().includes(query.toLowerCase()),
   );
+
+  if (sort === "Alphabetical") {
+    searchedPlaylist.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sort === "Creator") {
+    searchedPlaylist.sort((a, b) => a.owner.localeCompare(b.owner));
+  }
 
   return !maximized ? (
     <aside className={minimized ? "sidebar minimized" : "sidebar"}>
@@ -70,8 +78,12 @@ function PlaylistSidebar() {
         setMaximized={setMaximized}
         maximized={maximized}
       />
-      <LibrarySort className="library-filters" />
-      <LibrarySearch className="library-search" query={query} setQuery={setQuery} />
+      <LibrarySort className="library-filters" sort={sort} setSort={setSort} />
+      <LibrarySearch
+        className="library-search"
+        query={query}
+        setQuery={setQuery}
+      />
       <div className="library-table-header">
         <span>Title</span>
         <span>Date Added</span>

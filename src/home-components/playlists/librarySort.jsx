@@ -2,18 +2,8 @@ import { useState, useRef, useEffect } from "react";
 
 const SORT_OPTIONS = ["Recents", "Recently Added", "Alphabetical", "Creator"];
 
-/**
- * "Sort by" / "View as" control for "Your Library".
- * - minimized (72px rail): no room — renders nothing.
- * - expanded (320px rail): icon-only trigger, same dropdown.
- * - maximized: full "<current sort> ▾" trigger, as in the reference.
- *
- * viewMode/setViewMode is lifted up to PlaylistSidebar so the
- * playlist list itself can react to it.
- */
-function LibrarySort({ minimized, maximized, viewMode, setViewMode }) {
+function LibrarySort({ minimized, maximized, viewMode, setViewMode, setSort, sort }) {
   const [open, setOpen] = useState(false);
-  const [sortBy, setSortBy] = useState("Recents");
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -33,7 +23,7 @@ function LibrarySort({ minimized, maximized, viewMode, setViewMode }) {
   return (
     <div className="library-sort" ref={containerRef}>
       <button className="sort-btn" onClick={() => setOpen(!open)}>
-        {maximized && <span>{sortBy}</span>}
+        {maximized && <span>{sort}</span>}
         <span className="material-symbols-outlined">list</span>
       </button>
 
@@ -44,14 +34,14 @@ function LibrarySort({ minimized, maximized, viewMode, setViewMode }) {
             <button
               key={option}
               className={
-                sortBy === option ? "sort-option selected" : "sort-option"
+                sort === option ? "sort-option selected" : "sort-option"
               }
               onClick={() => {
-                setSortBy(option);
+                setSort(option);
               }}
             >
               <span>{option}</span>
-              {sortBy === option && (
+              {sort === option && (
                 <span className="material-symbols-outlined">check</span>
               )}
             </button>
