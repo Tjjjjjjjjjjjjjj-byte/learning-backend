@@ -1,34 +1,25 @@
+// playlistComponent.jsx — receive it as props, no fetch, no handleData at all
 import { useState } from "react";
 
-function Playlist({ minimized, maximized, viewMode = "list" }) {
-  console.log("minimized:", minimized, "maximized:", maximized);
-  let type = "Playlist";
-  let author = "You";
+function Playlist({ name, owner, minimized, maximized, viewMode = "list" }) {
   const [hovering, setHovering] = useState(false);
+
   if (!minimized || maximized) {
     return (
-      <div
-        className={
-          viewMode === "grid"
-            ? "playlistComponent-div grid-view"
-            : "playlistComponent-div"
-        }
-      >
+      <div className={viewMode === "grid" ? "playlistComponent-div grid-view" : "playlistComponent-div"}>
         <button
           className="playlist"
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
         >
           <img src="" alt="" />
-          {hovering && (
-            <span className="material-symbols-outlined">play_circle</span>
-          )}
+          {hovering && <span className="material-symbols-outlined">play_circle</span>}
         </button>
         {!minimized && (
-  <p className="playlist-info">
-    {type} · {author}
-  </p>
-)}
+          <p className="playlist-info">
+            {name} · {owner}
+          </p>
+        )}
       </div>
     );
   }
@@ -39,9 +30,7 @@ function Playlist({ minimized, maximized, viewMode = "list" }) {
       onMouseLeave={() => setHovering(false)}
     >
       <img src="" alt="" />
-      {hovering && (
-        <span className="material-symbols-outlined">play_circle</span>
-      )}
+      {hovering && <span className="material-symbols-outlined">play_circle</span>}
     </button>
   );
 }

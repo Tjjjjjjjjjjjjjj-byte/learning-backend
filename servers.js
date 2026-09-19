@@ -94,7 +94,7 @@ app.get("/home", (req, res) => {
     (playlist) => playlist.owner === username,
   );
 
-  return res.status(200).json(userPlaylists);
+  return res.status(200).json( {playlists: userPlaylists} );
 });
 
 app.post("/create", (req, res) => {

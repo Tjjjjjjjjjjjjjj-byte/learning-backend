@@ -6,11 +6,13 @@ import Maximize from "./playlists/maximize";
 import LibrarySort from "./playlists/librarySort";
 import "../styling/sidebar.css";
 import LibrarySearch from "./playlists/librarySearch";
+
 function PlaylistSidebar() {
   const [createOptionsHidden, setCreateOptionsHidden] = useState(false);
   const [minimized, setMinimized] = useState(true);
   const [maximized, setMaximized] = useState(false);
   const [playlists, setPlaylists] = useState([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     fetch("http://localhost:3000/home", {
@@ -21,6 +23,10 @@ function PlaylistSidebar() {
         setPlaylists(data);
       });
   }, []);
+
+  const searchedPlaylist = playlists.filter(playlist =>
+    playlist.name.toLowerCase().includes(query.toLowerCase())
+  );
 
   return !maximized ? (
     <aside className={minimized ? "sidebar minimized" : "sidebar"}>
@@ -36,11 +42,13 @@ function PlaylistSidebar() {
         setMaximized={setMaximized}
         maximized={maximized}
       />
-      {playlists.map((playlist) => (
+      {searchedPlaylist.map((playlist) => (
         <Playlist
           key={playlist.id}
           minimized={minimized}
           maximized={maximized}
+          name={playlist.name}
+          owner={playlist.owner}
         />
       ))}
     </aside>
@@ -63,17 +71,19 @@ function PlaylistSidebar() {
         maximized={maximized}
       />
       <LibrarySort className="library-filters" />
-      <LibrarySearch className="library-search" />
+      <LibrarySearch className="library-search" query={query} setQuery={setQuery} />
       <div className="library-table-header">
         <span>Title</span>
         <span>Date Added</span>
         <span>Played</span>
       </div>
-      {playlists.map((playlist) => (
+      {searchedPlaylist.map((playlist) => (
         <Playlist
           key={playlist.id}
           minimized={minimized}
           maximized={maximized}
+          name={playlist.name}
+          owner={playlist.owner}
         />
       ))}
     </aside>
