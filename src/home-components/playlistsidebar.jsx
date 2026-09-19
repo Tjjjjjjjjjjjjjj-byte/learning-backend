@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CreateNewPlaylist from "./playlists/createnewplaylist";
 import Minimize from "./playlists/minimize";
 import Playlist from "./playlists/playlistComponent";
@@ -10,6 +10,18 @@ function PlaylistSidebar() {
   const [createOptionsHidden, setCreateOptionsHidden] = useState(false);
   const [minimized, setMinimized] = useState(true);
   const [maximized, setMaximized] = useState(false);
+  const [playlists, setPlaylists] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:3000/home", {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setPlaylists(data);
+      });
+  }, []);
+
   return !maximized ? (
     <aside className={minimized ? "sidebar minimized" : "sidebar"}>
       <Minimize setMinimized={setMinimized} minimized={minimized} />
@@ -24,7 +36,9 @@ function PlaylistSidebar() {
         setMaximized={setMaximized}
         maximized={maximized}
       />
-      <Playlist minimized={minimized} maximized={maximized} />
+      {playlists.map((playlist) => (
+        <Playlist key={playlist.id} />
+      ))}
     </aside>
   ) : (
     <aside className="maximized">
@@ -44,8 +58,8 @@ function PlaylistSidebar() {
         setMaximized={setMaximized}
         maximized={maximized}
       />
-      <LibrarySort className="library-filters"/>
-      <LibrarySearch className="library-search"/>
+      <LibrarySort className="library-filters" />
+      <LibrarySearch className="library-search" />
       <div className="library-table-header">
         <span>Title</span>
         <span>Date Added</span>

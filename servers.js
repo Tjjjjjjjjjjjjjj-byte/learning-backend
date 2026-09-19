@@ -1,24 +1,28 @@
 import express from "express";
 import fs from "fs";
 import cors from "cors";
-import validator from "validator"
+import validator from "validator";
 
 const app = express();
 const PORT = 3000;
 
 import session from "express-session";
 
-app.use(session({
-  secret: "some-random-secret-string",
-  resave: false,
-  saveUninitialized: false,
-}));
+app.use(
+  session({
+    secret: "some-random-secret-string",
+    resave: false,
+    saveUninitialized: false,
+  }),
+);
 
-app.use(express.json()); 
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
+app.use(express.json());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 app.get("/me", (req, res) => {
   if (req.session.user) {
@@ -34,10 +38,12 @@ app.post("/login", (req, res) => {
   const usersData = fs.readFileSync("./users.json", "utf-8");
   const users = JSON.parse(usersData);
 
-  const foundUser = users.find((u) => u.identifier === identifier || u.email === identifier);
+  const foundUser = users.find(
+    (u) => u.identifier === identifier || u.email === identifier,
+  );
 
   if (!foundUser || foundUser.password !== password) {
-    return res.status(401).json({ message: "Invalid credentials" }); 
+    return res.status(401).json({ message: "Invalid credentials" });
   }
 
   req.session.user = { username: foundUser.identifier };
@@ -58,7 +64,9 @@ app.post("/signUpPage", (req, res) => {
     return res.status(422).json({ message: "Must be a valid email" });
   }
 
-  const userExists = users.some((u) => u.identifier === username || u.email === email);
+  const userExists = users.some(
+    (u) => u.identifier === username || u.email === email,
+  );
 
   if (userExists) {
     return res.status(409).json({ message: "Username or Email already taken" });
@@ -70,6 +78,23 @@ app.post("/signUpPage", (req, res) => {
   fs.writeFileSync("./users.json", JSON.stringify(users, null, 2), "utf-8");
 
   return res.status(200).json({ message: "Registration successful" });
+});
+
+app.get("/home", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Must be logged in" });
+  }
+
+  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
+  const playlists = JSON.parse(playlistsData);
+
+  const username = req.session.user.username;
+
+  const userPlaylists = playlists.filter(
+  (playlist) => playlist.owner === username
+);
+
+  return res.status(200).json(userPlaylists);
 });
 
 app.listen(PORT, () => {
