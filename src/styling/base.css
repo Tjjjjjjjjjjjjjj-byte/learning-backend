@@ -1,0 +1,12 @@
+:root {
+  --page-margin: 8px;
+  --panel-radius: 10px;
+  --nav-height: 64px;
+  --sidebar-top: calc(var(--page-margin) * 2 + var(--nav-height));
+}
+
+@media (max-width: 560px) {
+  :root {
+    --nav-height: 108px;
+  }
+}

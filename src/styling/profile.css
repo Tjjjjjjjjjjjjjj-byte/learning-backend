@@ -1,0 +1,32 @@
+.profile-page {
+    min-height: 100%;
+    padding: 2rem;
+}
+
+.profile-page button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 220px;
+    padding: 0.8rem 1.2rem;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    background: #1e1e1e;
+    color: #e8e8e8;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.profile-page button:hover {
+    border-color: #e05252;
+    background: #2a1717;
+    color: #ff6b6b;
+}
+
+.profile-page button:active {
+    transform: scale(0.97);
+}

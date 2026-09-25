@@ -1,0 +1,496 @@
+.edit-details-overlay {
+  --content-left: 88px;
+
+  position: fixed;
+  z-index: 1000;
+  top: 80px;
+  right: 8px;
+  bottom: 8px;
+  left: var(--content-left);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+  padding: 24px;
+
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+
+  transition: left 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+
+  animation: edit-overlay-in 0.18s ease both;
+}
+
+.edit-details-overlay.sidebar-expanded {
+  --content-left: 336px;
+}
+.edit-details {
+  position: relative;
+  width: 655px;
+  max-width: calc(100vw - 120px);
+  box-sizing: border-box;
+  padding: 28px 30px 24px;
+  border-radius: 8px;
+  background: #282828;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-family:
+    "Roboto",
+    -apple-system,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  animation:
+    edit-modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.edit-details .header {
+  display: block;
+  margin-bottom: 30px;
+
+  color: #ffffff;
+
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.edit-close {
+  position: absolute;
+  top: 26px;
+  right: 24px;
+
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: transparent;
+  color: #b3b3b3;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.edit-close:hover {
+  background: #3a3a3a;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.edit-main {
+  display: grid;
+  grid-template-columns: 225px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.edit-photo {
+  position: relative;
+
+  width: 225px;
+  height: 225px;
+
+  padding: 0;
+
+  overflow: hidden;
+
+  border: 0;
+  border-radius: 4px;
+
+  background: #333333;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.25);
+}
+
+.edit-photo img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+}
+
+.edit-photo::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.2);
+
+  opacity: 0;
+
+  transition: opacity 0.15s ease;
+}
+
+.edit-photo:hover::after {
+  opacity: 1;
+}
+
+.edit-photo .edit-dots {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-photo .dots {
+  position: relative;
+  z-index: 3;
+
+  width: 54px;
+  height: 54px;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+
+  font-size: 1.4rem;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.dot-edit-values {
+  position: absolute;
+  z-index: 4;
+
+  top: 66px;
+  left: 50%;
+
+  min-width: 155px;
+
+  padding: 6px;
+
+  transform: translateX(-50%);
+
+  border-radius: 5px;
+
+  background: #282828;
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.45);
+}
+
+.dot-edit-values button {
+  width: 100%;
+
+  padding: 10px 12px;
+
+  border: 0;
+  border-radius: 3px;
+
+  background: transparent;
+  color: #ffffff;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.dot-edit-values button:hover {
+  background: #3a3a3a;
+}
+
+.edit-fields {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 20px;
+}
+
+.edit-field {
+  position: relative;
+}
+
+.edit-field-label {
+  position: absolute;
+
+  top: 0;
+  left: 12px;
+
+  transform: translateY(-50%);
+
+  padding: 0 3px;
+
+  background: #282828;
+  color: #b3b3b3;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+
+  pointer-events: none;
+}
+
+.edit-name {
+  width: 100%;
+  height: 52px;
+
+  box-sizing: border-box;
+
+  padding: 0 14px;
+
+  border: 1px solid #5a5a5a;
+  border-radius: 4px;
+
+  background: #333333;
+  color: #ffffff;
+
+  outline: none;
+
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.edit-name::placeholder {
+  color: #a7a7a7;
+}
+
+.edit-name:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #ffffff;
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  margin-top: 20px;
+}
+
+.edit-private {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 8px;
+
+  min-height: 42px;
+
+  padding: 0 16px;
+
+  border: 1px solid #777777;
+  border-radius: 999px;
+
+  background: transparent;
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.edit-private:hover {
+  background: #3a3a3a;
+  border-color: #ffffff;
+}
+
+.edit-private:active {
+  transform: scale(0.97);
+}
+
+.edit-save {
+  min-width: 124px;
+  height: 60px;
+
+  padding: 0 30px;
+
+  border: 0;
+  border-radius: 999px;
+
+  background: #ffffff;
+  color: #171717;
+
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+.edit-save:hover {
+  background: #f2f2f2;
+  transform: scale(1.03);
+}
+
+.edit-save:active {
+  transform: scale(0.98);
+}
+
+.edit-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+@keyframes edit-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes edit-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 700px) {
+  .edit-details-overlay {
+    top: 80px;
+    left: 72px;
+    padding: 12px;
+  }
+
+  .edit-details-overlay.sidebar-expanded {
+    left: 320px;
+  }
+
+  .edit-details {
+    width: min(100%, 560px);
+    padding: 24px;
+  }
+
+  .edit-main {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-photo {
+    width: min(225px, 100%);
+    height: auto;
+    aspect-ratio: 1;
+    justify-self: center;
+  }
+
+  .edit-actions {
+    align-items: stretch;
+  }
+}
+
+/* Nav wraps to two rows below 560px (see nav.css) — bump the top
+   offset again so the modal doesn't open underneath it. */
+@media (max-width: 560px) {
+  .edit-details-overlay {
+    top: 124px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edit-details-overlay,
+  .edit-details {
+    animation: none;
+    transition: none;
+  }
+}
+
+.edit-details-overlay.closing {
+  animation: edit-overlay-out 0.18s ease both;
+}
+
+.edit-details-overlay.closing .edit-details {
+  animation: edit-modal-out 0.18s ease both;
+}
+
+@keyframes edit-overlay-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes edit-modal-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+.add-playlist-button span {
+  transition: transform 0.2s ease;
+}
+
+.add-playlist-button.exists {
+  color: #1ed760;
+}
+
+.add-playlist-button.exists span {
+  transform: rotate(45deg);
+}
+
+.edit-description {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid var(--auth-border, #2a2a2a);
+    border-radius: 6px;
+    background: var(--auth-input-bg, #1a1a1a);
+    color: #fff;
+    font: inherit;
+    outline: none;
+}
+
+.edit-description:focus {
+    border-color: var(--auth-accent, #1db954);
+}

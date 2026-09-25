@@ -1,0 +1,215 @@
+:root {
+  --auth-bg: #000000;
+  --auth-surface: #121212;
+  --auth-input-bg: #1a1a1a;
+  --auth-tile-bg: #242424;
+  --auth-border: #2a2a2a;
+  --auth-border-hover: #444444;
+  --auth-text: #ffffff;
+  --auth-text-muted: #b3b3b3;
+  --auth-accent: #1db954;
+  --auth-accent-hover: #1ed760;
+  --auth-accent-soft: rgba(29, 185, 84, 0.18);
+  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+.hero {
+  position: relative;
+  flex-shrink: 0;
+  min-height: 300px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 32px;
+  background:
+    radial-gradient(
+      circle at 25% 10%,
+      rgba(95, 95, 95, 0.34),
+      transparent 38%
+    ),
+    linear-gradient(
+      180deg,
+      #292929 0%,
+      #151515 48%,
+      #000000 100%
+    );
+  font-family: var(--auth-font);
+  overflow: hidden;
+  isolation: isolate;
+  animation: hero-reveal 0.45s
+    cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: -30%;
+  background: radial-gradient(
+    circle at 20% 20%,
+    rgba(255, 255, 255, 0.16),
+    transparent 35%
+  );
+  filter: blur(45px);
+  animation: hero-glow 8s ease-in-out infinite alternate;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.18) 45%,
+    rgba(0, 0, 0, 0.52) 100%
+  );
+  pointer-events: none;
+}
+
+.hero > img {
+  flex: 0 0 clamp(160px, 19vw, 300px);
+  width: clamp(160px, 19vw, 300px);
+  aspect-ratio: 1;
+  height: auto;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--auth-tile-bg);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55);
+  animation: cover-reveal 0.55s
+    cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
+.details {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 2px;
+  animation: details-reveal 0.45s
+    cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.playlist-status {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--auth-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.playlist-name {
+  max-width: 100%;
+  margin: 0;
+  color: var(--auth-text);
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.playlist-owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--auth-text-muted);
+  font-size: 0.9rem;
+}
+
+.contributor {
+  color: var(--auth-text);
+  font-weight: 700;
+}
+
+@keyframes hero-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cover-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes details-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hero-glow {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(5%, 4%, 0) scale(1.08);
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    min-height: 280px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .hero > img {
+    flex-basis: 150px;
+    width: 150px;
+  }
+
+  .details {
+    align-items: center;
+  }
+
+  .playlist-status {
+    align-self: center;
+  }
+
+  .playlist-name {
+    font-size: clamp(2rem, 10vw, 3.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .hero > img,
+  .details,
+  .hero::before {
+    animation: none;
+  }
+}

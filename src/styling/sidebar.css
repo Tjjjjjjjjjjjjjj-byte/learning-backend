@@ -1,0 +1,1118 @@
+/* ============================================
+   Playlist sidebar — minimized + expanded states.
+   Floating rounded card matched to nav.css's spacing
+   system (--page-margin, --panel-radius), same
+   palette/tokens as nav.css and LoginComponents.css.
+   The fullscreen "maximized" state is intentionally
+   left unstyled for now.
+   ============================================ */
+
+:root {
+  --auth-bg: #000000;
+  --auth-surface: #121212;
+  --auth-input-bg: #1a1a1a;
+  --auth-tile-bg: #242424;
+  --auth-border: #2a2a2a;
+  --auth-border-hover: #444444;
+  --auth-text: #ffffff;
+  --auth-text-muted: #b3b3b3;
+  --auth-accent: #1db954;
+  --auth-accent-soft: rgba(29, 185, 84, 0.18);
+  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  /* Distance from viewport top to where the sidebar starts:
+     top page-margin + nav height + gap between nav and sidebar. */
+  --sidebar-top: calc(var(--page-margin) * 2 + var(--nav-height));
+}
+
+/* ---- Container: minimized ---- */
+.sidebar.minimized {
+  position: fixed;
+  top: var(--sidebar-top);
+  left: var(--page-margin);
+  bottom: var(--page-margin);
+  width: 72px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 8px;
+  background: var(--auth-surface);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-family: var(--auth-font);
+}
+
+/* ---- Playlist list wrapper (minimized rail) ----
+   Multiple tiles now render from real backend data (previously
+   only one hardcoded tile existed, so this wrapper wasn't
+   needed). It's just a plain vertical stack here — minimized
+   never uses grid view, since Playlist ignores viewMode when
+   collapsed to an icon tile. */
+.sidebar.minimized .library-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+/* ---- Expand/menu toggle (minimized) ---- */
+.sidebar.minimized .expandBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar.minimized .expandBtn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.sidebar.minimized .expandBtn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+.sidebar.minimized .expandBtn:active {
+  transform: scale(0.92);
+}
+
+.sidebar.minimized .expandBtn:focus-visible {
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Create playlist button (minimized) ---- */
+.sidebar.minimized .createPlaylist-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar.minimized .createPlaylist-btn .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.sidebar.minimized .createPlaylist-btn:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.06);
+}
+
+.sidebar.minimized .createPlaylist-btn:active {
+  transform: scale(0.94);
+}
+
+.sidebar.minimized .createPlaylist-btn:focus-visible {
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Playlist tile (minimized) ---- */
+.sidebar.minimized .playlist {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: var(--auth-tile-bg);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.sidebar.minimized .playlist:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.04);
+}
+
+.sidebar.minimized .playlist:active {
+  transform: scale(0.97);
+}
+
+.sidebar.minimized .playlist:focus-visible {
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 2px;
+}
+
+
+.sidebar.minimized .playlist .play-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: var(--auth-text);
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar.minimized .playlist:hover .play-icon {
+  opacity: 1;
+}
+
+.sidebar.minimized .playlist .play-icon.active {
+  opacity: 1;
+  background: rgba(29, 185, 84, 0.85);
+  color: #000;
+}
+
+/* ============================================
+   Expanded state (minimized === false, maximized === false)
+   DOM order is flat — expand-btn-div, playlistCreateDiv, one
+   playlistComponent-div per playlist, then maximize-btn last —
+   so a grid pins the three header pieces to row 1 and lets
+   every playlist row flow onto its own row below, regardless
+   of where it actually sits in the markup.
+   ============================================ */
+.sidebar:not(.minimized) {
+  position: fixed;
+  top: var(--sidebar-top);
+  left: var(--page-margin);
+  bottom: var(--page-margin);
+  width: 320px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  align-content: start;
+  column-gap: 8px;
+  row-gap: 20px;
+  padding: 18px 14px;
+  background: var(--auth-surface);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-family: var(--auth-font);
+}
+
+/* ---- Header: library icon + label (left) ---- */
+.sidebar:not(.minimized) .expand-btn-div {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* This button holds BOTH the menu icon and the "Your Library"
+   label together in this state (unlike the minimized/maximized
+   variants, which are icon-only) — so it needs to size to its
+   content, not be forced into a fixed icon-sized square. */
+.sidebar:not(.minimized) .expandBtn {
+  width: auto;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sidebar:not(.minimized) .expandBtn .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 22px;
+}
+
+.sidebar:not(.minimized) .expandBtn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+.sidebar:not(.minimized) .expandP {
+  margin: 0;
+  color: var(--auth-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Header: create button + label (right, before maximize) ---- */
+.sidebar:not(.minimized) .playlistCreateDiv {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+}
+
+/* Same situation as expandBtn — this button holds the "+" icon
+   AND the "Create" label together here, so it needs to size to
+   its content as a pill, not be forced into a fixed 32px circle
+   (that shape belongs to the minimized icon-only variant). */
+.sidebar:not(.minimized) .createPlaylist-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 500px;
+  border: none;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar:not(.minimized) .createPlaylist-btn .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.sidebar:not(.minimized) .createPlaylist-btn:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.03);
+}
+
+.sidebar:not(.minimized) .createText {
+  margin: 0;
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Header: maximize/expand toggle (far right) ----
+   Styled as a plain icon button here — its own fullscreen
+   behavior (the "maximized" state) is left alone. */
+.sidebar:not(.minimized) .maximize-btn {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sidebar:not(.minimized) .maximize-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.sidebar:not(.minimized) .maximize-btn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+/* ---- Playlist list wrapper (expanded rail) ----
+   This wrapper is the actual grid item (spans the full header
+   grid width); rows/cards flow inside it via plain flexbox, so
+   grid-mode can wrap multiple cards instead of each card being
+   its own full-width grid row (which is what happened before —
+   fine with one hardcoded playlist, visibly broken once real
+   data could return several). */
+.sidebar:not(.minimized) .library-list {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar:not(.minimized) .library-list.grid-mode {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ---- Playlist rows ---- */
+.sidebar:not(.minimized) .playlistComponent-div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div:hover {
+  background: var(--auth-input-bg);
+}
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: var(--auth-tile-bg);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+}
+
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist .play-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--auth-text);
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist:hover .play-icon {
+  opacity: 1;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div .playlist .play-icon.active {
+  opacity: 1;
+  background: rgba(29, 185, 84, 0.85);
+  color: #000;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div.playing .playlist-info {
+  color: var(--auth-accent);
+}
+
+.sidebar:not(.minimized) .playlist-info {
+  margin: 0;
+  color: var(--auth-text-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ============================================
+   Maximized state (full "Your Library" takeover).
+   Same DOM flatness problem as the other states —
+   header pieces, filter/search/sort placeholders, and
+   the table header all get pinned to explicit rows via
+   grid, then playlist rows flow below as table-style rows
+   aligned to the same column tracks as the header.
+   ============================================ */
+.maximized {
+  position: fixed;
+  top: var(--sidebar-top);
+  left: var(--page-margin);
+  width: calc(100vw - var(--page-margin) * 2);
+  bottom: var(--page-margin);
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  align-content: start;
+  column-gap: 12px;
+  row-gap: 18px;
+  padding: 20px 24px;
+  background: var(--auth-surface);
+  border-radius: var(--panel-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-family: var(--auth-font);
+}
+
+/* ---- Row 1: title + create + collapse ---- */
+.maximized .expand-btn-div {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.maximized .expandP {
+  margin: 0;
+  color: var(--auth-text);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.maximized .playlistCreateDiv {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.maximized .createPlaylist-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 500px;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.maximized .createPlaylist-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.maximized .createPlaylist-btn:hover {
+  background: var(--auth-border-hover);
+  transform: scale(1.03);
+}
+
+.maximized .createText {
+  margin: 0;
+}
+
+.maximized .maximize-btn {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.maximized .maximize-btn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+/* ---- Row 2: Playlists filter pill (left) ---- */
+.maximized .library-filters {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.maximized .filter-pill {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 500px;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.maximized .filter-pill.active {
+  background: var(--auth-text);
+  color: #000000;
+}
+
+.maximized .filter-pill:hover {
+  background: var(--auth-border-hover);
+}
+
+.maximized .filter-pill.active:hover {
+  background: var(--auth-text);
+}
+
+/* ---- Row 2: library search + sort (right) ---- */
+.maximized .library-search {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 500px;
+  background: transparent;
+  color: var(--auth-text-muted);
+  transition: background 0.15s ease;
+}
+
+.maximized .library-search:focus-within {
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+}
+
+.maximized .library-search .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.LibrarySearch {
+  border: none;
+  background: transparent;
+  color: var(--auth-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  width: 160px;
+}
+
+.LibrarySearch::placeholder {
+  color: var(--auth-text-muted);
+}
+
+/* Expanded rail: icon-only toggle instead of a permanently-open box */
+.sidebar:not(.minimized) .library-search {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.library-search-toggle {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.library-search-toggle:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+.library-search.open {
+  background: var(--auth-input-bg);
+  border-radius: 500px;
+  padding: 0 10px 0 0;
+}
+
+.library-search.open .LibrarySearch {
+  width: 100px;
+}
+
+/* ---- Sort/view control ----
+   .library-sort is the actual grid item now (the trigger button
+   and its dropdown are both children of it); .sort-btn is just
+   styled as a button, not placed in the grid directly. */
+.maximized .library-sort {
+  grid-column: 4;
+  grid-row: 2;
+  justify-self: end;
+  position: relative;
+}
+
+.sidebar:not(.minimized) .library-sort {
+  grid-column: 4;
+  grid-row: 2;
+  justify-self: end;
+  position: relative;
+}
+
+.sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--auth-text-muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sort-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.sort-btn:hover {
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+}
+
+/* Dropdown is a real child of its trigger's wrapper now, so it's
+   just normal relative/absolute positioning — no fixed-coordinate
+   guesswork like the createOptions popover needed. */
+.sort-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 250;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  background: #282828;
+  border: 1px solid var(--auth-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  font-family: var(--auth-font);
+}
+
+.sort-dropdown-label {
+  margin: 4px 16px 6px;
+  color: var(--auth-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.sort-dropdown-label.view-as-label {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--auth-border);
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--auth-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sort-option:hover {
+  background: var(--auth-input-bg);
+}
+
+.sort-option.selected {
+  color: var(--auth-accent);
+}
+
+.sort-option .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--auth-accent);
+}
+
+.view-toggle {
+  display: flex;
+  gap: 6px;
+  padding: 4px 16px 0;
+}
+
+.view-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: var(--auth-input-bg);
+  color: var(--auth-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.view-btn.active {
+  background: var(--auth-border-hover);
+  color: var(--auth-accent);
+}
+
+.view-btn:hover {
+  color: var(--auth-text);
+}
+
+/* ---- Grid view ----
+   Per-item card layout instead of a horizontal row. Still only
+   one playlist renders today, so this changes that single
+   item's own layout rather than arranging a multi-column grid
+   of several — same {type} · {author} text as list view, since
+   the component has no separate title field yet. */
+.sidebar:not(.minimized) .playlistComponent-div.grid-view,
+.maximized .playlistComponent-div.grid-view {
+  flex-direction: column;
+  align-items: flex-start;
+  width: 160px;
+  gap: 8px;
+  padding: 12px;
+}
+
+.playlistComponent-div.grid-view .playlist {
+  width: 100%;
+  height: 140px;
+  border-radius: 8px;
+}
+
+.playlistComponent-div.grid-view .playlist-info {
+  white-space: normal;
+  font-size: 0.85rem;
+}
+
+/* ---- Table header row ---- */
+.maximized .library-table-header {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 8px 8px 12px;
+  border-bottom: 1px solid var(--auth-border);
+  color: var(--auth-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.maximized .library-table-header span:last-child {
+  text-align: right;
+}
+
+/* ---- Playlist list wrapper (maximized) ---- */
+.maximized .library-list {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.maximized .library-list.grid-mode {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ---- Playlist rows ----
+   Left-aligned to match the header's "Title" column start.
+   Real Date Added / Played cells aren't rendered yet (no data
+   for them in playlistComponent.jsx), so those columns stay
+   visually empty for now rather than faking values. */
+.maximized .playlistComponent-div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.maximized .playlistComponent-div:hover {
+  background: var(--auth-input-bg);
+}
+
+.maximized .playlistComponent-div .playlist {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: var(--auth-tile-bg);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+}
+
+
+.maximized .playlistComponent-div .playlist .play-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--auth-text);
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.maximized .playlistComponent-div .playlist:hover .play-icon {
+  opacity: 1;
+}
+
+.maximized .playlistComponent-div .playlist .play-icon.active {
+  opacity: 1;
+  background: rgba(29, 185, 84, 0.85);
+  color: #000;
+}
+
+.maximized .playlistComponent-div.playing .playlist-info {
+  color: var(--auth-accent);
+}
+
+.maximized .playlist-info {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--auth-text);
+  font-size: 0.9rem;
+}
+
+/* ---- Loading / empty states ---- */
+.library-empty {
+  grid-column: 1 / -1;
+  margin: 24px 8px;
+  color: var(--auth-text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ============================================
+   "Create" popover (Playlist / Blend / Folder).
+   Rendered by CreateNewPlaylist as a sibling of the create
+   button, not a child of it, so it can't be positioned with
+   a simple parent-relative anchor — it's pulled out of the
+   grid/document flow with position:fixed instead (fixed, not
+   absolute, so the sidebar/maximized panel's overflow-y:auto
+   can't clip it), with rough coordinates per context since
+   the button's real position depends on that context's layout.
+   Dark theme, matching the rest of the app.
+   ============================================ */
+.createOptions {
+  position: fixed;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  background: var(--auth-surface);
+  color: var(--auth-text);
+  border: 1px solid var(--auth-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  font-family: var(--auth-font);
+}
+
+/* Two classes beats one regardless of source order, so this
+   can't lose the cascade tie the way relying on the generic
+   .hidden rule did. */
+.createOptions.hidden {
+  display: none;
+}
+
+/* Anchor points — approximate, since the real button position
+   shifts with content; nudge these if they drift out of place.
+   Each is offset clear of that context's sidebar width, not
+   inside it, so the popover sits beside the rail rather than
+   on top of it. */
+.sidebar.minimized .createOptions:not(.hidden) {
+  top: calc(var(--sidebar-top) + 60px);
+  left: calc(var(--page-margin) + 84px); /* clears the 72px minimized rail + gap */
+}
+
+.sidebar:not(.minimized) .createOptions:not(.hidden) {
+  top: calc(var(--sidebar-top) + 56px);
+  left: calc(var(--page-margin) + 332px); /* clears the 320px expanded rail + gap */
+}
+
+.maximized .createOptions:not(.hidden) {
+  top: calc(var(--sidebar-top) + 56px);
+  right: calc(var(--page-margin) + 70px);
+}
+
+.createOptions .create-playlist,
+.createOptions .blend,
+.createOptions .folder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px 16px;
+  border: none;
+  border-bottom: 1px solid var(--auth-border);
+  background: var(--auth-surface);
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.createOptions button:last-child {
+  border-bottom: none;
+}
+
+.createOptions .create-playlist:hover,
+.createOptions .blend:hover,
+.createOptions .folder:hover {
+  background: var(--auth-input-bg);
+}
+
+.createOptions svg {
+  width: 36px;
+  height: 36px;
+}
+
+.createOptions .create-option-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.createOptions .explanation {
+  margin: 0;
+  color: var(--auth-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.playlist-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.playlist-info p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-info button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #b7c6e6;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.playlist-info button:hover {
+  background: rgba(255, 80, 100, 0.15);
+  color: #ff647c;
+  transform: scale(1.08);
+}
+
+.playlist-info button:active {
+  transform: scale(0.94);
+}
+
+.playlist-info button .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.confirmDelete {
+  position: fixed;
+  z-index: 500;
+  top: 50%;
+  left: 50%;
+  width: min(360px, calc(100vw - 32px));
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid var(--auth-border);
+  border-radius: 10px;
+  background: #282828;
+  box-shadow:
+    0 16px 45px rgba(0, 0, 0, .65),
+    0 0 0 100vmax rgba(0, 0, 0, .45);
+}
+
+.confirmDelete p {
+  margin: 0;
+  color: #fff;
+  font-size: .95rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.confirmDelete .del,
+.confirmDelete .cancel {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: 5px;
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirmDelete .del {
+  background: #ff4444;
+  color: #fff;
+}
+
+.confirmDelete .del:hover {
+  background: #ff2222;
+}
+
+.confirmDelete .cancel {
+  background: #404040;
+  color: #fff;
+}
+
+.confirmDelete .cancel:hover {
+  background: #4a4a4a;
+}
+
+.createOptions button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.createOptions button:disabled:hover {
+  background: var(--auth-surface);
+}

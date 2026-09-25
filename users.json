@@ -1,0 +1,27 @@
+[
+  {
+    "identifier": "test",
+    "password": "1234",
+    "email": "test@gmail.com"
+  },
+  {
+    "identifier": "test2",
+    "password": "1234",
+    "email": "test2@gmail.com"
+  },
+  {
+    "identifier": "hello",
+    "email": "asdf@gmail.com",
+    "password": "asdf"
+  },
+  {
+    "identifier": "jhlkjhk",
+    "email": "asdasdff@gmail.com",
+    "password": "1234"
+  },
+  {
+    "identifier": "test3",
+    "email": "test1@gmail.com",
+    "password": "1234"
+  }
+]

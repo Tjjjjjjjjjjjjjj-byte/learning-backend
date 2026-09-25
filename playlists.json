@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Japanese",
+    "id": 5,
+    "cover": "https://picsum.photos/seed/picsum/200/300",
+    "owner": "test",
+    "status": "private",
+    "songs": [
+      "5mEqD00bdFcsiVd0MfvEeF",
+      "6CRX3ENpLq42r0iBSjOqr1"
+    ],
+    "downloaded": []
+  },
+  {
+    "name": "My Playlist\\",
+    "id": 6,
+    "cover": "https://picsum.photos/seed/picsum/200/300",
+    "owner": "test",
+    "status": "private",
+    "songs": [],
+    "downloaded": [],
+    "description": "asf"
+  }
+]

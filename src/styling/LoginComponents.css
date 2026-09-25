@@ -1,0 +1,260 @@
+/* ============================================
+   Auth pages — login, sign up, forgot password
+   Spotify-inspired palette (true black surfaces,
+   signature green accent, pill-shaped primary
+   button) + Material touches (Roboto stack,
+   layered elevation shadows, ripple-style press
+   feedback). Pages are full-bleed — no floating
+   "card" — content is centered directly on the
+   full-viewport background like Spotify's own
+   login screen.
+   ============================================ */
+
+:root {
+  --auth-bg: #000000;
+  --auth-surface: #121212;
+  --auth-input-bg: #1a1a1a;
+  --auth-border: #2a2a2a;
+  --auth-border-hover: #444444;
+  --auth-text: #ffffff;
+  --auth-text-muted: #b3b3b3;
+  --auth-accent: #1db954;
+  --auth-accent-hover: #1ed760;
+  --auth-accent-soft: rgba(29, 185, 84, 0.18);
+  --auth-error: #f15e6c;
+  --auth-error-soft: rgba(241, 94, 108, 0.16);
+  --auth-radius: 6px;
+  --auth-radius-pill: 500px;
+  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --auth-content-width: 400px;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* ---- Full-bleed page ----
+   .auth-page is both the page AND the layout container —
+   there's no separate card, so it fills the entire viewport
+   and just centers its children directly. */
+.auth-page {
+  width: 100vw;
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 24px;
+  background: radial-gradient(circle at 50% 0%, var(--auth-surface), var(--auth-bg) 70%);
+  font-family: var(--auth-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Every direct child is capped at a comfortable reading/
+   form width so the full-bleed page doesn't stretch inputs
+   edge to edge on large screens. */
+.auth-page > * {
+  width: 100%;
+  max-width: var(--auth-content-width);
+  box-sizing: border-box;
+}
+
+/* ---- Heading ---- */
+.greet {
+  color: var(--auth-text);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.auth-subtext {
+  color: var(--auth-text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  margin: -8px 0 8px;
+}
+
+/* ---- Inputs ---- */
+.identifier,
+.password {
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.identifier::placeholder,
+.password::placeholder {
+  color: var(--auth-text-muted);
+}
+
+.identifier:hover,
+.password:hover {
+  border-color: var(--auth-border-hover);
+}
+
+.identifier:focus-visible,
+.password:focus-visible,
+.identifier:focus,
+.password:focus {
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px var(--auth-accent-soft);
+}
+
+/* ---- Error state ---- */
+.input-error {
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--auth-text);
+  background: var(--auth-input-bg);
+  border: 1px solid var(--auth-error);
+  border-radius: var(--auth-radius);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--auth-error-soft);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-error::placeholder {
+  color: var(--auth-text-muted);
+}
+
+.input-error:focus-visible,
+.input-error:focus {
+  border-color: var(--auth-error);
+  box-shadow: 0 0 0 4px var(--auth-error-soft);
+}
+
+/* Error copy under a field — tight to the input above it,
+   normal gap below to whatever comes next */
+.error-message {
+  color: var(--auth-error);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin: -10px 0 0;
+  text-align: left;
+}
+
+/* ---- Primary action button ----
+   Spotify's signature pill button, Material-style layered
+   elevation, subtle "ripple" press feedback on :active. */
+.sign-in-btn,
+.submit-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  margin-top: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #000000;
+  background: var(--auth-accent);
+  border: none;
+  border-radius: var(--auth-radius-pill);
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
+}
+
+.sign-in-btn:hover,
+.submit-btn:hover {
+  background: var(--auth-accent-hover);
+  transform: scale(1.02);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.35),
+    0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.sign-in-btn:active,
+.submit-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.sign-in-btn:focus-visible,
+.submit-btn:focus-visible {
+  outline: 2px solid var(--auth-text);
+  outline-offset: 2px;
+}
+
+.sign-in-btn:disabled,
+.submit-btn:disabled {
+  background: var(--auth-border);
+  color: var(--auth-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---- Links ---- */
+.auth-page a {
+  color: var(--auth-text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  text-align: center;
+  transition: color 0.15s ease;
+}
+
+.auth-page a:hover {
+  color: var(--auth-text);
+  text-decoration: underline;
+}
+
+.password + a {
+  margin-top: -2px;
+  text-align: right;
+  font-size: 0.82rem;
+}
+
+.auth-page a:last-of-type {
+  margin-top: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--auth-border);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--auth-text);
+}
+
+.auth-page a:last-of-type:hover {
+  color: var(--auth-accent);
+}
+
+/* ---- Small screens ---- */
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 32px 20px;
+  }
+
+  .greet {
+    font-size: 1.6rem;
+  }
+}
+
+.success-message {
+  color: var(--auth-accent);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin: -4px 0 0;
+  text-align: left;
+}
+
+.reset-link {
+  color: var(--auth-accent) !important;
+  font-weight: 600;
+}
