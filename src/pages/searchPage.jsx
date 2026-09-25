@@ -18,18 +18,15 @@ function SearchPage({ player }) {
 
   const {
     current,
-    setCurrent,
     currentPlaylistId,
-    setCurrentPlaylistId,
     isPlaying,
     setIsPlaying,
+    setCurrent,
+    setCurrentPlaylistId,
     setPlaybackTracks,
     setPlaybackPlaylistId,
   } = player;
 
-  // Clicking play on a search result queues up the rest of the current
-  // search results as the playback queue, so auto-next moves through
-  // them the same way it moves through a real playlist.
   function playFromSearch(track) {
     if (current === track.id && currentPlaylistId === SEARCH_QUEUE_ID) {
       setIsPlaying(!isPlaying);
@@ -139,10 +136,11 @@ function SearchPage({ player }) {
               {results.tracks?.items?.length > 0 && (
                 <section className="search-section">
                   <h2>Songs</h2>
+
                   <div className="search-results">
-                    {results.tracks.items.map((track) => (
+                    {results.tracks.items.map((track, index) => (
                       <TrackCard
-                        key={track.id}
+                        key={`${track.id}-${index}`}
                         track={track}
                         playlists={playlists}
                         isCurrentTrack={
@@ -150,7 +148,6 @@ function SearchPage({ player }) {
                           currentPlaylistId === SEARCH_QUEUE_ID
                         }
                         isPlaying={isPlaying}
-                        setIsPlaying={setIsPlaying}
                         onPlay={playFromSearch}
                       />
                     ))}
@@ -161,6 +158,7 @@ function SearchPage({ player }) {
               {results.artists?.items?.length > 0 && (
                 <section className="search-section">
                   <h2>Artists</h2>
+
                   <div className="search-results">
                     {results.artists.items.map((artist) => (
                       <ArtistCard key={artist.id} artist={artist} />
@@ -172,6 +170,7 @@ function SearchPage({ player }) {
               {results.albums?.items?.length > 0 && (
                 <section className="search-section">
                   <h2>Albums</h2>
+
                   <div className="search-results">
                     {results.albums.items.map((album) => (
                       <AlbumCard key={album.id} album={album} />

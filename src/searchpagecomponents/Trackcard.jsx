@@ -7,7 +7,6 @@ function TrackCard({
   isCurrentTrack,
   isPlaying,
   onPlay,
-  setIsPlaying
 }) {
   const [hidden, setHidden] = useState(true);
   const [exists, setExists] = useState([]);
@@ -16,31 +15,13 @@ function TrackCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletingDownload, setDeletingDownload] = useState(false);
   const containerRef = useRef(null);
-  
+
   function togglePlay(e) {
     if (e) {
       e.stopPropagation();
     }
 
-    if (isCurrentTrack) {
-      setIsPlaying(!isPlaying);
-    } else {
-      setCurrent(track.id);
-
-      setCurrentPlaylistId(selectedPlaylist.id);
-
-      setIsPlaying(true);
-    }
-  }
-
-  function handleRowClick(e) {
-    if (selectMode) {
-      if (e) e.stopPropagation();
-      onToggleSelect?.(track.id);
-      return;
-    }
-
-    togglePlay(e);
+    onPlay?.(track);
   }
 
   useEffect(() => {
@@ -119,28 +100,39 @@ function TrackCard({
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target)
+      ) {
         setHidden(true);
         setConfirmDelete(false);
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   async function addToPlaylist(playlistId) {
     const isAdded = exists.includes(playlistId);
 
     try {
-      const response = await fetch(`http://localhost:3000/add/${playlistId}`, {
-        method: isAdded ? "DELETE" : "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `http://localhost:3000/add/${playlistId}`,
+        {
+          method: isAdded ? "DELETE" : "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            trackId: track.id,
+          }),
         },
-        body: JSON.stringify({ trackId: track.id }),
-      });
+      );
 
       const data = await response.json();
 
@@ -192,16 +184,23 @@ function TrackCard({
       <div className="search-result-info">
         <h3>{track.name}</h3>
         <p>{track.artists?.map((artist) => artist.name).join(", ")}</p>
-        <p className="search-result-album">{track.album?.name}</p>
+        <p className="search-result-album">
+          {track.album?.name}
+        </p>
       </div>
 
       <button
         className="add-playlist"
         type="button"
-        onClick={() => setHidden(!hidden)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setHidden(!hidden);
+        }}
         title="Add to playlist"
       >
-        <span className="material-symbols-outlined">add_circle</span>
+        <span className="material-symbols-outlined">
+          add_circle
+        </span>
       </button>
 
       {downloading ? (
@@ -209,7 +208,9 @@ function TrackCard({
           className="track-download-state downloading"
           title="Downloading"
         >
-          <span className="material-symbols-outlined">progress_activity</span>
+          <span className="material-symbols-outlined">
+            progress_activity
+          </span>
         </span>
       ) : downloaded ? (
         <button
@@ -221,7 +222,9 @@ function TrackCard({
             setConfirmDelete(true);
           }}
         >
-          <span className="material-symbols-outlined">download_done</span>
+          <span className="material-symbols-outlined">
+            download_done
+          </span>
         </button>
       ) : (
         <button
@@ -233,14 +236,20 @@ function TrackCard({
             downloadSong();
           }}
         >
-          <span className="material-symbols-outlined">download</span>
+          <span className="material-symbols-outlined">
+            download
+          </span>
         </button>
       )}
 
       {confirmDelete && (
         <div className="search-download-confirm">
           <p>Delete downloaded file?</p>
-          <span>{track.name} will stay in your playlists.</span>
+
+          <span>
+            {track.name} will stay in your playlists.
+          </span>
+
           <div>
             <button
               type="button"
@@ -249,6 +258,7 @@ function TrackCard({
             >
               Delete Download
             </button>
+
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
@@ -264,8 +274,14 @@ function TrackCard({
         <div className="add-to-playlist-div">
           <div className="add-to-playlist-header">
             <span>Add to playlist</span>
-            <button type="button" onClick={() => setHidden(true)}>
-              <span className="material-symbols-outlined">close</span>
+
+            <button
+              type="button"
+              onClick={() => setHidden(true)}
+            >
+              <span className="material-symbols-outlined">
+                close
+              </span>
             </button>
           </div>
 

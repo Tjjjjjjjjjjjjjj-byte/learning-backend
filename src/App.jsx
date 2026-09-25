@@ -44,8 +44,6 @@ function App() {
       return;
     }
 
-    // The search page builds and sets playbackTracks itself (it isn't
-    // a real playlist id to fetch from the backend) — nothing to do here.
     if (currentPlaylistId === SEARCH_QUEUE_ID) {
       return;
     }
@@ -176,6 +174,7 @@ function App() {
 
     const requestId = sourceRequestRef.current + 1;
     sourceRequestRef.current = requestId;
+    const controller = new AbortController();
 
     if (!current || !selectedTrack) {
       audio.pause();
@@ -185,18 +184,10 @@ function App() {
       setCurrentTime(0);
       setDuration(0);
 
-      return;
+      return () => {
+        controller.abort();
+      };
     }
-
-    const name = encodeURIComponent(selectedTrack.name || "");
-
-    const artist = encodeURIComponent(
-      selectedTrack.artists?.[0]?.name || "",
-    );
-
-    const sourceUrl =
-      `http://localhost:3000/song/stream/${encodeURIComponent(selectedTrack.id)}` +
-      `?name=${name}&artist=${artist}`;
 
     audio.pause();
     audio.removeAttribute("src");
@@ -205,17 +196,108 @@ function App() {
     setCurrentTime(0);
     setDuration(0);
 
-    audio.src = sourceUrl;
-    audio.load();
+    async function loadAudioSource() {
+      try {
+        let audioUrl;
 
-    if (isPlayingRef.current) {
-      audio.play().catch((error) => {
-        if (sourceRequestRef.current !== requestId) return;
+        if (selectedTrack.downloaded) {
+          audioUrl = `http://localhost:3000/song/file/${encodeURIComponent(
+            selectedTrack.id,
+          )}`;
+        } else {
+          const name = encodeURIComponent(selectedTrack.name || "");
+          const artist = encodeURIComponent(
+            selectedTrack.artists?.[0]?.name || "",
+          );
 
-        console.error("AUDIO PLAY FAILED:", error);
+          const response = await fetch(
+            `http://localhost:3000/song/stream/${encodeURIComponent(
+              selectedTrack.id,
+            )}?name=${name}&artist=${artist}`,
+            {
+              credentials: "include",
+              signal: controller.signal,
+            },
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to get audio URL");
+          }
+
+          if (!data.url || typeof data.url !== "string") {
+            throw new Error("Backend returned no playable audio URL");
+          }
+
+          audioUrl = data.url;
+        }
+
+        if (
+          controller.signal.aborted ||
+          sourceRequestRef.current !== requestId
+        ) {
+          return;
+        }
+
+        audio.src = audioUrl;
+        audio.load();
+
+        if (!isPlayingRef.current) {
+          return;
+        }
+
+        if (audio.readyState < 3) {
+          await new Promise((resolve, reject) => {
+            const handleCanPlay = () => {
+              cleanup();
+              resolve();
+            };
+
+            const handleError = () => {
+              cleanup();
+              reject(
+                new Error("Audio element could not load the assigned source"),
+              );
+            };
+
+            const cleanup = () => {
+              audio.removeEventListener("canplay", handleCanPlay);
+              audio.removeEventListener("error", handleError);
+            };
+
+            audio.addEventListener("canplay", handleCanPlay, {
+              once: true,
+            });
+
+            audio.addEventListener("error", handleError, {
+              once: true,
+            });
+          });
+        }
+
+        if (
+          controller.signal.aborted ||
+          sourceRequestRef.current !== requestId ||
+          !isPlayingRef.current
+        ) {
+          return;
+        }
+
+        await audio.play();
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        console.error("AUDIO SOURCE/PLAY FAILED:", error);
         setIsPlaying(false);
-      });
+      }
     }
+
+    loadAudioSource();
+
+    return () => {
+      controller.abort();
+    };
   }, [
     current,
     currentPlaylistId,
@@ -233,7 +315,7 @@ function App() {
       return;
     }
 
-    if (!audio.src || !current) {
+    if (!audio.src) {
       return;
     }
 
@@ -241,7 +323,7 @@ function App() {
       console.error("AUDIO PLAY FAILED:", error);
       setIsPlaying(false);
     });
-  }, [isPlaying, current]);
+  }, [isPlaying]);
 
   const player = {
     current,
@@ -262,7 +344,6 @@ function App() {
     <>
       <audio
         ref={audioRef}
-        crossOrigin="use-credentials"
         preload="metadata"
         hidden
       />
