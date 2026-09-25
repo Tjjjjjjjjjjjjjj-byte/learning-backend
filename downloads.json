@@ -1,25 +1,3 @@
 {
-  "test": [
-    {
-      "trackId": "5mEqD00bdFcsiVd0MfvEeF",
-      "name": "Dream lantern",
-      "artist": "RADWIMPS",
-      "file": "downloads\\RADWIMPS - Dream lantern.mp3",
-      "youtubeId": "MtLHwqbE1eI"
-    },
-    {
-      "trackId": "6CRX3ENpLq42r0iBSjOqr1",
-      "name": "Grand Escape (feat. Toko Miura)",
-      "artist": "RADWIMPS",
-      "file": "downloads\\RADWIMPS - Grand Escape (feat. Toko Miura).mp3",
-      "youtubeId": "saDmN2f3HI0"
-    },
-    {
-      "trackId": "6Vi6gx8IMRXORPx8fPd2YJ",
-      "name": "Realize",
-      "artist": "Colbie Caillat",
-      "file": "downloads\\Colbie Caillat - Realize.mp3",
-      "youtubeId": "GlZxZ2n2zpw"
-    }
-  ]
+  "test": []
 }
