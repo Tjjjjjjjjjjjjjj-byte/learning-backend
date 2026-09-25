@@ -14,6 +14,7 @@ function Features({
   downloadingTrackId,
   setDownloadingTrackId,
   setPlaybackTracks,
+  onEnterSelectMode,
 }) {
   const isThisPlaylistPlaying =
     currentPlaylistId ===
@@ -386,6 +387,26 @@ function Features({
               </span>
 
               Download remaining
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOptionsOpen(
+                  false,
+                );
+
+                onEnterSelectMode?.();
+              }}
+              disabled={
+                !hasSongs
+              }
+            >
+              <span className="material-symbols-outlined">
+                checklist
+              </span>
+
+              Select songs
             </button>
           </div>
         )}

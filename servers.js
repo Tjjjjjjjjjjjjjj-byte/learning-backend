@@ -21,11 +21,7 @@ function readDownloads() {
 }
 
 function saveDownloads(downloads) {
-  fs.writeFileSync(
-    DOWNLOADS_FILE,
-    JSON.stringify(downloads, null, 2),
-    "utf-8",
-  );
+  fs.writeFileSync(DOWNLOADS_FILE, JSON.stringify(downloads, null, 2), "utf-8");
 }
 
 function getUserDownloads(username) {
@@ -63,10 +59,12 @@ function savePasswordResets(resets) {
 }
 
 function sanitizeFilename(value) {
-  return String(value)
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
-    .replace(/[. ]+$/g, "")
-    .trim() || "Unknown";
+  return (
+    String(value)
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+      .replace(/[. ]+$/g, "")
+      .trim() || "Unknown"
+  );
 }
 
 function findGlobalDownload(trackId) {
@@ -181,11 +179,7 @@ app.post("/signUpPage", (req, res) => {
 
   users.push(newUser);
 
-  fs.writeFileSync(
-    "./users.json",
-    JSON.stringify(users, null, 2),
-    "utf-8",
-  );
+  fs.writeFileSync("./users.json", JSON.stringify(users, null, 2), "utf-8");
 
   return res.status(200).json({
     message: "Registration successful",
@@ -265,9 +259,7 @@ app.patch("/home/playlist/:id", (req, res) => {
   const username = req.session.user.username;
 
   const playlist = playlists.find(
-    (playlist) =>
-      playlist.id === reqId &&
-      playlist.owner === username,
+    (playlist) => playlist.id === reqId && playlist.owner === username,
   );
 
   if (!playlist) {
@@ -276,12 +268,7 @@ app.patch("/home/playlist/:id", (req, res) => {
     });
   }
 
-  const {
-    name,
-    description,
-    status,
-    cover,
-  } = req.body;
+  const { name, description, status, cover } = req.body;
 
   if (name !== undefined) {
     playlist.name = name;
@@ -299,10 +286,7 @@ app.patch("/home/playlist/:id", (req, res) => {
     playlist.cover = cover;
   }
 
-  fs.writeFileSync(
-    "./playlists.json",
-    JSON.stringify(playlists, null, 2),
-  );
+  fs.writeFileSync("./playlists.json", JSON.stringify(playlists, null, 2));
 
   res.status(200).json(playlist);
 });
@@ -321,9 +305,7 @@ app.delete("/home/playlist/:id", (req, res) => {
   const username = req.session.user.username;
 
   const playlistExists = playlists.some(
-    (playlist) =>
-      playlist.id === reqId &&
-      playlist.owner === username,
+    (playlist) => playlist.id === reqId && playlist.owner === username,
   );
 
   if (!playlistExists) {
@@ -332,9 +314,7 @@ app.delete("/home/playlist/:id", (req, res) => {
     });
   }
 
-  const newPlaylists = playlists.filter(
-    (playlist) => playlist.id !== reqId,
-  );
+  const newPlaylists = playlists.filter((playlist) => playlist.id !== reqId);
 
   fs.writeFileSync(
     "./playlists.json",
@@ -348,32 +328,25 @@ app.delete("/home/playlist/:id", (req, res) => {
 });
 
 async function getSpotifyToken() {
-  const response = await fetch(
-    "https://accounts.spotify.com/api/token",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type":
-          "application/x-www-form-urlencoded",
-        Authorization:
-          "Basic " +
-          Buffer.from(
-            `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`,
-          ).toString("base64"),
-      },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-      }),
+  const response = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization:
+        "Basic " +
+        Buffer.from(
+          `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`,
+        ).toString("base64"),
     },
-  );
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+    }),
+  });
 
   if (!response.ok) {
     const error = await response.json();
 
-    throw new Error(
-      error.error_description ||
-        "failed to fetch token",
-    );
+    throw new Error(error.error_description || "failed to fetch token");
   }
 
   const data = await response.json();
@@ -401,10 +374,7 @@ app.get("/search", async (req, res) => {
     const maxRequests = 10;
 
     while (
-      tracks.length +
-        artists.length +
-        albums.length <
-        50 &&
+      tracks.length + artists.length + albums.length < 50 &&
       offset < maxRequests * limit
     ) {
       const response = await fetch(
@@ -450,29 +420,22 @@ app.get("/search", async (req, res) => {
     const selectedArtists = artists.slice(0, 5);
     const selectedAlbums = albums.slice(0, 5);
 
-    const remainingSlots =
-      50 -
-      selectedArtists.length -
-      selectedAlbums.length;
+    const remainingSlots = 50 - selectedArtists.length - selectedAlbums.length;
 
-    const selectedTracks =
-      tracks.slice(0, remainingSlots);
+    const selectedTracks = tracks.slice(0, remainingSlots);
 
     const downloadedIds = req.session.user
       ? new Set(
-          getUserDownloads(
-            req.session.user.username,
-          ).map(
+          getUserDownloads(req.session.user.username).map(
             (download) => download.trackId,
           ),
         )
       : new Set();
 
-    const tracksWithDownloadState =
-      selectedTracks.map((track) => ({
-        ...track,
-        downloaded: downloadedIds.has(track.id),
-      }));
+    const tracksWithDownloadState = selectedTracks.map((track) => ({
+      ...track,
+      downloaded: downloadedIds.has(track.id),
+    }));
 
     res.json({
       tracks: {
@@ -486,10 +449,7 @@ app.get("/search", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(
-      "Spotify search error:",
-      error,
-    );
+    console.error("Spotify search error:", error);
 
     res.status(500).json({
       message: error.message,
@@ -508,19 +468,12 @@ app.post("/add/:id", (req, res) => {
   const { trackId } = req.body;
   const username = req.session.user.username;
 
-  const playlistsData =
-    fs.readFileSync(
-      "./playlists.json",
-      "utf-8",
-    );
+  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
 
-  const playlists =
-    JSON.parse(playlistsData);
+  const playlists = JSON.parse(playlistsData);
 
   const targetPlaylist = playlists.find(
-    (playlist) =>
-      playlist.id === reqId &&
-      playlist.owner === username,
+    (playlist) => playlist.id === reqId && playlist.owner === username,
   );
 
   if (!targetPlaylist) {
@@ -545,28 +498,14 @@ app.post("/add/:id", (req, res) => {
 
   songs.push(trackId);
 
-  const userDownloads =
-    getUserDownloads(username);
+  const userDownloads = getUserDownloads(username);
 
-  if (
-    userDownloads.some(
-      (download) =>
-        download.trackId === trackId,
-    )
-  ) {
-    if (
-      !Array.isArray(
-        targetPlaylist.downloaded,
-      )
-    ) {
+  if (userDownloads.some((download) => download.trackId === trackId)) {
+    if (!Array.isArray(targetPlaylist.downloaded)) {
       targetPlaylist.downloaded = [];
     }
 
-    if (
-      !targetPlaylist.downloaded.includes(
-        trackId,
-      )
-    ) {
+    if (!targetPlaylist.downloaded.includes(trackId)) {
       targetPlaylist.downloaded.push(trackId);
     }
   }
@@ -582,115 +521,78 @@ app.post("/add/:id", (req, res) => {
   });
 });
 
-app.get(
-  "/home/playlist/:id/tracks",
-  async (req, res) => {
-    if (!req.session.user) {
-      return res.status(401).json({
-        message: "Must be logged in",
+app.get("/home/playlist/:id/tracks", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Must be logged in",
+    });
+  }
+
+  try {
+    const reqId = Number(req.params.id);
+
+    const username = req.session.user.username;
+
+    const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
+
+    const playlists = JSON.parse(playlistsData);
+
+    const targetPlaylist = playlists.find(
+      (playlist) => playlist.id === reqId && playlist.owner === username,
+    );
+
+    if (!targetPlaylist) {
+      return res.status(404).json({
+        message: "Playlist not found",
       });
     }
 
-    try {
-      const reqId = Number(
-        req.params.id,
-      );
+    const songs = targetPlaylist.songs;
 
-      const username =
-        req.session.user.username;
+    if (!songs || songs.length === 0) {
+      return res.status(200).json([]);
+    }
 
-      const playlistsData =
-        fs.readFileSync(
-          "./playlists.json",
-          "utf-8",
-        );
+    const token = await getSpotifyToken();
 
-      const playlists =
-        JSON.parse(playlistsData);
+    const userDownloads = getUserDownloads(username);
 
-      const targetPlaylist =
-        playlists.find(
-          (playlist) =>
-            playlist.id === reqId &&
-            playlist.owner === username,
-        );
+    const downloadedIds = new Set(
+      userDownloads.map((download) => download.trackId),
+    );
 
-      if (!targetPlaylist) {
-        return res.status(404).json({
-          message: "Playlist not found",
-        });
+    const tracks = [];
+
+    for (const id of songs) {
+      const response = await fetch(`https://api.spotify.com/v1/tracks/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data || !data.id) {
+        console.error("SPOTIFY TRACK ERROR:", id, response.status, data);
+
+        continue;
       }
 
-      const songs = targetPlaylist.songs;
-
-      if (!songs || songs.length === 0) {
-        return res.status(200).json([]);
-      }
-
-      const token =
-        await getSpotifyToken();
-
-      const userDownloads =
-        getUserDownloads(username);
-
-      const downloadedIds = new Set(
-        userDownloads.map(
-          (download) =>
-            download.trackId,
-        ),
-      );
-
-      const tracks = [];
-
-      for (const id of songs) {
-        const response = await fetch(
-          `https://api.spotify.com/v1/tracks/${id}`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          },
-        );
-
-        const data =
-          await response.json();
-
-        if (
-          !response.ok ||
-          !data ||
-          !data.id
-        ) {
-          console.error(
-            "SPOTIFY TRACK ERROR:",
-            id,
-            response.status,
-            data,
-          );
-
-          continue;
-        }
-
-        tracks.push({
-          ...data,
-          downloaded:
-            downloadedIds.has(id),
-        });
-      }
-
-      res.json(tracks);
-    } catch (error) {
-      console.error(
-        "Failed to get playlist tracks:",
-        error,
-      );
-
-      res.status(500).json({
-        message: error.message,
+      tracks.push({
+        ...data,
+        downloaded: downloadedIds.has(id),
       });
     }
-  },
-);
+
+    res.json(tracks);
+  } catch (error) {
+    console.error("Failed to get playlist tracks:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
 
 app.delete("/add/:id", (req, res) => {
   if (!req.session.user) {
@@ -701,24 +603,15 @@ app.delete("/add/:id", (req, res) => {
 
   const reqId = Number(req.params.id);
   const { trackId } = req.body;
-  const username =
-    req.session.user.username;
+  const username = req.session.user.username;
 
-  const playlistsData =
-    fs.readFileSync(
-      "./playlists.json",
-      "utf-8",
-    );
+  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
 
-  const playlists =
-    JSON.parse(playlistsData);
+  const playlists = JSON.parse(playlistsData);
 
-  const targetPlaylist =
-    playlists.find(
-      (playlist) =>
-        playlist.id === reqId &&
-        playlist.owner === username,
-    );
+  const targetPlaylist = playlists.find(
+    (playlist) => playlist.id === reqId && playlist.owner === username,
+  );
 
   if (!targetPlaylist) {
     return res.status(404).json({
@@ -732,32 +625,20 @@ app.delete("/add/:id", (req, res) => {
     });
   }
 
-  const songIndex =
-    targetPlaylist.songs.indexOf(
-      trackId,
-    );
+  const songIndex = targetPlaylist.songs.indexOf(trackId);
 
   if (songIndex === -1) {
     return res.status(404).json({
-      message:
-        "Song is not in the playlist",
+      message: "Song is not in the playlist",
     });
   }
 
-  targetPlaylist.songs.splice(
-    songIndex,
-    1,
-  );
+  targetPlaylist.songs.splice(songIndex, 1);
 
-  if (
-    Array.isArray(
-      targetPlaylist.downloaded,
-    )
-  ) {
-    targetPlaylist.downloaded =
-      targetPlaylist.downloaded.filter(
-        (id) => id !== trackId,
-      );
+  if (Array.isArray(targetPlaylist.downloaded)) {
+    targetPlaylist.downloaded = targetPlaylist.downloaded.filter(
+      (id) => id !== trackId,
+    );
   }
 
   fs.writeFileSync(
@@ -779,26 +660,17 @@ app.delete("/playlist/:id", (req, res) => {
   }
 
   const reqId = Number(req.params.id);
-  const username =
-    req.session.user.username;
+  const username = req.session.user.username;
 
   const { trackId } = req.body;
 
-  const playlistsData =
-    fs.readFileSync(
-      "./playlists.json",
-      "utf-8",
-    );
+  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
 
-  const playlists =
-    JSON.parse(playlistsData);
+  const playlists = JSON.parse(playlistsData);
 
-  const targetPlaylist =
-    playlists.find(
-      (playlist) =>
-        playlist.id === reqId &&
-        playlist.owner === username,
-    );
+  const targetPlaylist = playlists.find(
+    (playlist) => playlist.id === reqId && playlist.owner === username,
+  );
 
   if (!targetPlaylist) {
     return res.status(404).json({
@@ -806,32 +678,20 @@ app.delete("/playlist/:id", (req, res) => {
     });
   }
 
-  const songIndex =
-    targetPlaylist.songs.indexOf(
-      trackId,
-    );
+  const songIndex = targetPlaylist.songs.indexOf(trackId);
 
   if (songIndex === -1) {
     return res.status(404).json({
-      message:
-        "Song is not in the playlist",
+      message: "Song is not in the playlist",
     });
   }
 
-  targetPlaylist.songs.splice(
-    songIndex,
-    1,
-  );
+  targetPlaylist.songs.splice(songIndex, 1);
 
-  if (
-    Array.isArray(
-      targetPlaylist.downloaded,
-    )
-  ) {
-    targetPlaylist.downloaded =
-      targetPlaylist.downloaded.filter(
-        (id) => id !== trackId,
-      );
+  if (Array.isArray(targetPlaylist.downloaded)) {
+    targetPlaylist.downloaded = targetPlaylist.downloaded.filter(
+      (id) => id !== trackId,
+    );
   }
 
   fs.writeFileSync(
@@ -845,98 +705,67 @@ app.delete("/playlist/:id", (req, res) => {
   });
 });
 
-app.patch(
-  "/playlist/:id/downloaded",
-  (req, res) => {
-    if (!req.session.user) {
-      return res.status(401).json({
-        message: "Must be logged in",
-      });
-    }
-
-    const reqId = Number(
-      req.params.id,
-    );
-
-    const username =
-      req.session.user.username;
-
-    const {
-      trackId,
-      trackIds,
-      all,
-    } = req.body;
-
-    const playlistsData =
-      fs.readFileSync(
-        "./playlists.json",
-        "utf-8",
-      );
-
-    const playlists =
-      JSON.parse(playlistsData);
-
-    const targetPlaylist =
-      playlists.find(
-        (playlist) =>
-          playlist.id === reqId &&
-          playlist.owner === username,
-      );
-
-    if (!targetPlaylist) {
-      return res.status(404).json({
-        message: "Playlist not found",
-      });
-    }
-
-    let idsToMark;
-
-    if (all) {
-      idsToMark =
-        targetPlaylist.songs;
-    } else if (Array.isArray(trackIds)) {
-      idsToMark = trackIds;
-    } else if (trackId) {
-      idsToMark = [trackId];
-    } else {
-      return res.status(400).json({
-        message:
-          "Provide trackId, trackIds, or all",
-      });
-    }
-
-    const existing =
-      Array.isArray(
-        targetPlaylist.downloaded,
-      )
-        ? targetPlaylist.downloaded
-        : [];
-
-    const merged = new Set([
-      ...existing,
-      ...idsToMark,
-    ]);
-
-    targetPlaylist.downloaded =
-      Array.from(merged).filter(
-        (id) =>
-          targetPlaylist.songs.includes(
-            id,
-          ),
-      );
-
-    fs.writeFileSync(
-      "./playlists.json",
-      JSON.stringify(playlists, null, 2),
-      "utf-8",
-    );
-
-    return res.status(200).json({
-      downloaded:
-        targetPlaylist.downloaded,
+app.patch("/playlist/:id/downloaded", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Must be logged in",
     });
-  },
-);
+  }
+
+  const reqId = Number(req.params.id);
+
+  const username = req.session.user.username;
+
+  const { trackId, trackIds, all } = req.body;
+
+  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
+
+  const playlists = JSON.parse(playlistsData);
+
+  const targetPlaylist = playlists.find(
+    (playlist) => playlist.id === reqId && playlist.owner === username,
+  );
+
+  if (!targetPlaylist) {
+    return res.status(404).json({
+      message: "Playlist not found",
+    });
+  }
+
+  let idsToMark;
+
+  if (all) {
+    idsToMark = targetPlaylist.songs;
+  } else if (Array.isArray(trackIds)) {
+    idsToMark = trackIds;
+  } else if (trackId) {
+    idsToMark = [trackId];
+  } else {
+    return res.status(400).json({
+      message: "Provide trackId, trackIds, or all",
+    });
+  }
+
+  const existing = Array.isArray(targetPlaylist.downloaded)
+    ? targetPlaylist.downloaded
+    : [];
+
+  const merged = new Set([...existing, ...idsToMark]);
+
+  targetPlaylist.downloaded = Array.from(merged).filter((id) =>
+    targetPlaylist.songs.includes(id),
+  );
+
+  fs.writeFileSync(
+    "./playlists.json",
+    JSON.stringify(playlists, null, 2),
+    "utf-8",
+  );
+
+  return res.status(200).json({
+    downloaded: targetPlaylist.downloaded,
+  });
+});
 
 app.get("/downloads", (req, res) => {
   if (!req.session.user) {
@@ -945,17 +774,12 @@ app.get("/downloads", (req, res) => {
     });
   }
 
-  const username =
-    req.session.user.username;
+  const username = req.session.user.username;
 
-  const userDownloads =
-    getUserDownloads(username);
+  const userDownloads = getUserDownloads(username);
 
   return res.status(200).json({
-    downloads: userDownloads.map(
-      (download) =>
-        download.trackId,
-    ),
+    downloads: userDownloads.map((download) => download.trackId),
   });
 });
 
@@ -966,53 +790,37 @@ app.post("/song/download", (req, res) => {
     });
   }
 
-  const {
-    name,
-    artist,
-    trackId,
-  } = req.body;
+  const { name, artist, trackId } = req.body;
 
-  const username =
-    req.session.user.username;
+  const username = req.session.user.username;
 
   if (!name || !artist || !trackId) {
     return res.status(400).json({
-      message:
-        "Missing song name, artist, or track ID",
+      message: "Missing song name, artist, or track ID",
     });
   }
 
-  const existingDownloads =
-    getUserDownloads(username);
+  const existingDownloads = getUserDownloads(username);
 
-  const alreadyDownloaded =
-    existingDownloads.find(
-      (download) =>
-        download.trackId === trackId,
-    );
+  const alreadyDownloaded = existingDownloads.find(
+    (download) => download.trackId === trackId,
+  );
 
   if (alreadyDownloaded) {
     return res.status(200).json({
-      message:
-        "Song already downloaded",
+      message: "Song already downloaded",
       downloaded: true,
       trackId,
       file: alreadyDownloaded.file,
     });
   }
 
-  const globalDownload =
-    findGlobalDownload(trackId);
+  const globalDownload = findGlobalDownload(trackId);
 
   if (globalDownload) {
-    const downloads =
-      readDownloads();
+    const downloads = readDownloads();
 
-    if (
-      !Array.isArray(
-        downloads[username],
-      )
-    ) {
+    if (!Array.isArray(downloads[username])) {
       downloads[username] = [];
     }
 
@@ -1021,23 +829,20 @@ app.post("/song/download", (req, res) => {
       name,
       artist,
       file: globalDownload.file,
-      youtubeId:
-        globalDownload.youtubeId,
+      youtubeId: globalDownload.youtubeId,
     });
 
     saveDownloads(downloads);
 
     return res.status(200).json({
-      message:
-        "Song already downloaded",
+      message: "Song already downloaded",
       downloaded: true,
       trackId,
       file: globalDownload.file,
     });
   }
 
-  const trackQuery =
-    `${name} ${artist}`;
+  const trackQuery = `${name} ${artist}`;
 
   const search = spawn("yt-dlp", [
     "--skip-download",
@@ -1049,827 +854,525 @@ app.post("/song/download", (req, res) => {
 
   let outputData = "";
 
-  search.stdout.on(
-    "data",
-    (data) => {
-      outputData +=
-        data.toString();
-    },
-  );
+  search.stdout.on("data", (data) => {
+    outputData += data.toString();
+  });
 
-  search.stderr.on(
-    "data",
-    (data) => {
-      console.log(
-        "yt-dlp:",
-        data.toString().trim(),
-      );
-    },
-  );
+  search.stderr.on("data", (data) => {
+    console.log("yt-dlp:", data.toString().trim());
+  });
 
-  search.on(
-    "close",
-    (code) => {
-      if (code !== 0) {
+  search.on("close", (code) => {
+    if (code !== 0) {
+      return res.status(500).json({
+        message: "YouTube search failed",
+      });
+    }
+
+    const results = outputData
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [id, title, uploader, url] = line.split("|");
+
+        return {
+          id,
+          title,
+          uploader,
+          url,
+        };
+      });
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: "Song not found",
+      });
+    }
+
+    const matchedVideo = results.find((video) =>
+      video.uploader.toLowerCase().includes(artist.toLowerCase()),
+    );
+
+    const video = matchedVideo || results[0];
+
+    const safeArtist = sanitizeFilename(artist);
+
+    const safeName = sanitizeFilename(name);
+
+    let filename = `${safeArtist} - ${safeName}.mp3`;
+
+    let mp3File = path.join(DOWNLOAD_DIR, filename);
+
+    if (fs.existsSync(mp3File)) {
+      filename = `${safeArtist} - ${safeName} [${video.id}].mp3`;
+
+      mp3File = path.join(DOWNLOAD_DIR, filename);
+    }
+
+    const outputTemplate = path.join(
+      DOWNLOAD_DIR,
+      filename.replace(/\.mp3$/i, ".%(ext)s"),
+    );
+
+    const download = spawn("yt-dlp", [
+      "-x",
+      "--audio-format",
+      "mp3",
+      "--audio-quality",
+      "0",
+      "--output",
+      outputTemplate,
+      video.url,
+    ]);
+
+    download.stdout.on("data", (data) => {
+      console.log(data.toString().trim());
+    });
+
+    download.stderr.on("data", (data) => {
+      console.log("yt-dlp:", data.toString().trim());
+    });
+
+    download.on("close", (exitCode) => {
+      if (exitCode !== 0 || !fs.existsSync(mp3File)) {
         return res.status(500).json({
-          message:
-            "YouTube search failed",
+          message: "Download failed",
         });
       }
 
-      const results =
-        outputData
-          .trim()
-          .split("\n")
-          .filter(Boolean)
-          .map((line) => {
-            const [
-              id,
-              title,
-              uploader,
-              url,
-            ] = line.split("|");
+      const downloads = readDownloads();
 
-            return {
-              id,
-              title,
-              uploader,
-              url,
-            };
-          });
+      if (!Array.isArray(downloads[username])) {
+        downloads[username] = [];
+      }
+
+      downloads[username] = [
+        ...downloads[username].filter(
+          (download) => download.trackId !== trackId,
+        ),
+        {
+          trackId,
+          name,
+          artist,
+          file: mp3File,
+          youtubeId: video.id,
+        },
+      ];
+
+      saveDownloads(downloads);
+
+      return res.status(200).json({
+        message: "Download successful",
+        title: video.title,
+        downloaded: true,
+        trackId,
+        file: mp3File,
+      });
+    });
+  });
+});
+
+app.get("/song/stream/:trackId", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Must be logged in",
+    });
+  }
+
+  const username = req.session.user.username;
+
+  const trackId = req.params.trackId;
+
+  const userDownloads = getUserDownloads(username);
+
+  const download = userDownloads.find((item) => item.trackId === trackId);
+
+  if (!download || !download.file) {
+    const { name, artist } = req.query;
+
+    if (!name || !artist) {
+      return res.status(404).json({
+        message: "Downloaded song not found",
+      });
+    }
+
+    const trackQuery = `${name} ${artist}`;
+
+    const onlineSearch = spawn("yt-dlp", [
+      "--skip-download",
+      "--flat-playlist",
+      "--print",
+      "%(id)s|%(title)s|%(uploader)s|%(webpage_url)s",
+      `ytsearch5:${trackQuery}`,
+    ]);
+
+    let onlineSearchOutput = "";
+
+    onlineSearch.stdout.on("data", (data) => {
+      onlineSearchOutput += data.toString();
+    });
+
+    onlineSearch.stderr.on("data", (data) => {
+      console.log("yt-dlp:", data.toString().trim());
+    });
+
+    onlineSearch.on("close", (code) => {
+      if (code !== 0) {
+        return res.status(500).json({
+          message: "YouTube search failed",
+        });
+      }
+
+      const results = onlineSearchOutput
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          const [id, title, uploader, url] = line.split("|");
+          return { id, title, uploader, url };
+        });
 
       if (results.length === 0) {
         return res.status(404).json({
-          message:
-            "Song not found",
+          message: "Song not found",
         });
       }
 
-      const matchedVideo =
-        results.find((video) =>
-          video.uploader
-            .toLowerCase()
-            .includes(
-              artist.toLowerCase(),
-            ),
-        );
-
-      const video =
-        matchedVideo || results[0];
-
-      const safeArtist =
-        sanitizeFilename(artist);
-
-      const safeName =
-        sanitizeFilename(name);
-
-      let filename =
-        `${safeArtist} - ${safeName}.mp3`;
-
-      let mp3File =
-        path.join(
-          DOWNLOAD_DIR,
-          filename,
-        );
-
-      if (fs.existsSync(mp3File)) {
-        filename =
-          `${safeArtist} - ${safeName} [${video.id}].mp3`;
-
-        mp3File =
-          path.join(
-            DOWNLOAD_DIR,
-            filename,
-          );
-      }
-
-      const outputTemplate =
-        path.join(
-          DOWNLOAD_DIR,
-          filename.replace(
-            /\.mp3$/i,
-            ".%(ext)s",
-          ),
-        );
-
-      const download =
-        spawn("yt-dlp", [
-          "-x",
-          "--audio-format",
-          "mp3",
-          "--audio-quality",
-          "0",
-          "--output",
-          outputTemplate,
-          video.url,
-        ]);
-
-      download.stdout.on(
-        "data",
-        (data) => {
-          console.log(
-            data.toString().trim(),
-          );
-        },
+      const matchedVideo = results.find((video) =>
+        video.uploader.toLowerCase().includes(artist.toLowerCase()),
       );
 
-      download.stderr.on(
-        "data",
-        (data) => {
-          console.log(
-            "yt-dlp:",
-            data.toString().trim(),
-          );
-        },
-      );
+      const video = matchedVideo || results[0];
 
-      download.on(
-        "close",
-        (exitCode) => {
-          if (
-            exitCode !== 0 ||
-            !fs.existsSync(mp3File)
-          ) {
-            return res.status(500).json({
-              message:
-                "Download failed",
-            });
-          }
+      // Stream straight to the response via stdout ("-o -").
+      // Nothing is written to DOWNLOAD_DIR and downloads.json is
+      // never touched, so this is never saved as a permanent download.
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Cache-Control", "no-store");
 
-          const downloads =
-            readDownloads();
-
-          if (
-            !Array.isArray(
-              downloads[username],
-            )
-          ) {
-            downloads[username] = [];
-          }
-
-          downloads[username] = [
-            ...downloads[
-              username
-            ].filter(
-              (download) =>
-                download.trackId !==
-                trackId,
-            ),
-            {
-              trackId,
-              name,
-              artist,
-              file: mp3File,
-              youtubeId: video.id,
-            },
-          ];
-
-          saveDownloads(
-            downloads,
-          );
-
-          return res.status(200).json({
-            message:
-              "Download successful",
-            title: video.title,
-            downloaded: true,
-            trackId,
-            file: mp3File,
-          });
-        },
-      );
-    },
-  );
-});
-
-app.get(
-  "/song/stream/:trackId",
-  (req, res) => {
-    if (!req.session.user) {
-      return res.status(401).json({
-        message:
-          "Must be logged in",
-      });
-    }
-
-    const username =
-      req.session.user.username;
-
-    const trackId =
-      req.params.trackId;
-
-    const userDownloads =
-      getUserDownloads(username);
-
-    const download =
-      userDownloads.find(
-        (item) =>
-          item.trackId === trackId,
-      );
-
-    if (
-      !download ||
-      !download.file
-    ) {
-      const { name, artist } = req.query;
-
-      if (!name || !artist) {
-        return res.status(404).json({
-          message:
-            "Downloaded song not found",
-        });
-      }
-
-      const trackQuery = `${name} ${artist}`;
-
-      const onlineSearch = spawn("yt-dlp", [
-        "--skip-download",
-        "--flat-playlist",
-        "--print",
-        "%(id)s|%(title)s|%(uploader)s|%(webpage_url)s",
-        `ytsearch5:${trackQuery}`,
+      const liveStream = spawn("yt-dlp", [
+        "-x",
+        "--audio-format",
+        "mp3",
+        "--audio-quality",
+        "0",
+        "-o",
+        "-",
+        "--quiet",
+        "--no-warnings",
+        video.url,
       ]);
 
-      let onlineSearchOutput = "";
+      liveStream.stdout.pipe(res);
 
-      onlineSearch.stdout.on("data", (data) => {
-        onlineSearchOutput += data.toString();
-      });
-
-      onlineSearch.stderr.on("data", (data) => {
+      liveStream.stderr.on("data", (data) => {
         console.log("yt-dlp:", data.toString().trim());
       });
 
-      onlineSearch.on("close", (code) => {
-        if (code !== 0) {
-          return res.status(500).json({
-            message: "YouTube search failed",
+      liveStream.on("error", (error) => {
+        console.error("ONLINE STREAM ERROR:", error);
+
+        if (!res.headersSent) {
+          res.status(500).json({
+            message: "Streaming failed",
           });
         }
+      });
 
-        const results = onlineSearchOutput
-          .trim()
-          .split("\n")
-          .filter(Boolean)
-          .map((line) => {
-            const [id, title, uploader, url] = line.split("|");
-            return { id, title, uploader, url };
-          });
-
-        if (results.length === 0) {
-          return res.status(404).json({
-            message: "Song not found",
+      liveStream.on("close", (exitCode) => {
+        if (exitCode !== 0 && !res.headersSent) {
+          res.status(500).json({
+            message: "Streaming failed",
           });
         }
-
-        const matchedVideo = results.find((video) =>
-          video.uploader
-            .toLowerCase()
-            .includes(artist.toLowerCase()),
-        );
-
-        const video = matchedVideo || results[0];
-
-        // Stream straight to the response via stdout ("-o -").
-        // Nothing is written to DOWNLOAD_DIR and downloads.json is
-        // never touched, so this is never saved as a permanent download.
-        res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Cache-Control", "no-store");
-
-        const liveStream = spawn("yt-dlp", [
-          "-x",
-          "--audio-format",
-          "mp3",
-          "--audio-quality",
-          "0",
-          "-o",
-          "-",
-          "--quiet",
-          "--no-warnings",
-          video.url,
-        ]);
-
-        liveStream.stdout.pipe(res);
-
-        liveStream.stderr.on("data", (data) => {
-          console.log("yt-dlp:", data.toString().trim());
-        });
-
-        liveStream.on("error", (error) => {
-          console.error("ONLINE STREAM ERROR:", error);
-
-          if (!res.headersSent) {
-            res.status(500).json({
-              message: "Streaming failed",
-            });
-          }
-        });
-
-        liveStream.on("close", (exitCode) => {
-          if (exitCode !== 0 && !res.headersSent) {
-            res.status(500).json({
-              message: "Streaming failed",
-            });
-          }
-        });
-
-        // If the client switches tracks or pauses, the browser aborts
-        // this request — kill the subprocess instead of leaving it
-        // running in the background.
-        req.on("close", () => {
-          if (!liveStream.killed) {
-            liveStream.kill("SIGKILL");
-          }
-        });
       });
 
-      return;
-    }
-
-    const downloadDir =
-      path.resolve(
-        DOWNLOAD_DIR,
-      );
-
-    const filePath =
-      path.resolve(
-        download.file,
-      );
-
-    if (
-      filePath !== downloadDir &&
-      !filePath.startsWith(
-        `${downloadDir}${path.sep}`,
-      )
-    ) {
-      return res.status(403).json({
-        message:
-          "Invalid download path",
+      // If the client switches tracks or pauses, the browser aborts
+      // this request — kill the subprocess instead of leaving it
+      // running in the background.
+      req.on("close", () => {
+        if (!liveStream.killed) {
+          liveStream.kill("SIGKILL");
+        }
       });
-    }
+    });
 
-    if (
-      !fs.existsSync(filePath)
-    ) {
-      return res.status(404).json({
-        message:
-          "Downloaded file not found",
-      });
-    }
+    return;
+  }
 
-    const stats =
-      fs.statSync(filePath);
+  const downloadDir = path.resolve(DOWNLOAD_DIR);
 
-    const fileSize =
-      stats.size;
+  const filePath = path.resolve(download.file);
 
-    const range =
-      req.headers.range;
+  if (
+    filePath !== downloadDir &&
+    !filePath.startsWith(`${downloadDir}${path.sep}`)
+  ) {
+    return res.status(403).json({
+      message: "Invalid download path",
+    });
+  }
 
-    res.setHeader(
-      "Accept-Ranges",
-      "bytes",
-    );
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      message: "Downloaded file not found",
+    });
+  }
 
-    res.setHeader(
-      "Content-Type",
-      "audio/mpeg",
-    );
+  const stats = fs.statSync(filePath);
 
-    if (!range) {
-      res.setHeader(
-        "Content-Length",
-        fileSize,
-      );
+  const fileSize = stats.size;
 
-      return fs
-        .createReadStream(filePath)
-        .pipe(res);
-    }
+  const range = req.headers.range;
 
-    const match =
-      range.match(
-        /^bytes=(\d*)-(\d*)$/,
-      );
+  res.setHeader("Accept-Ranges", "bytes");
 
-    if (!match) {
-      res
-        .status(416)
-        .setHeader(
-          "Content-Range",
-          `bytes */${fileSize}`,
-        );
+  res.setHeader("Content-Type", "audio/mpeg");
+
+  if (!range) {
+    res.setHeader("Content-Length", fileSize);
+
+    return fs.createReadStream(filePath).pipe(res);
+  }
+
+  const match = range.match(/^bytes=(\d*)-(\d*)$/);
+
+  if (!match) {
+    res.status(416).setHeader("Content-Range", `bytes */${fileSize}`);
+
+    return res.end();
+  }
+
+  let start;
+  let end;
+
+  if (match[1] === "") {
+    const suffixLength = Number(match[2]);
+
+    if (!suffixLength) {
+      res.status(416).setHeader("Content-Range", `bytes */${fileSize}`);
 
       return res.end();
     }
 
-    let start;
-    let end;
+    start = Math.max(fileSize - suffixLength, 0);
 
-    if (match[1] === "") {
-      const suffixLength =
-        Number(match[2]);
+    end = fileSize - 1;
+  } else {
+    start = Number(match[1]);
 
-      if (!suffixLength) {
-        res
-          .status(416)
-          .setHeader(
-            "Content-Range",
-            `bytes */${fileSize}`,
-          );
+    const requestedEnd = match[2] === "" ? fileSize - 1 : Number(match[2]);
 
-        return res.end();
-      }
+    end = Math.min(requestedEnd, fileSize - 1);
+  }
 
-      start = Math.max(
-        fileSize -
-          suffixLength,
-        0,
-      );
+  if (
+    Number.isNaN(start) ||
+    Number.isNaN(end) ||
+    start < 0 ||
+    start >= fileSize ||
+    end < start
+  ) {
+    res.status(416).setHeader("Content-Range", `bytes */${fileSize}`);
 
-      end = fileSize - 1;
-    } else {
-      start = Number(
-        match[1],
-      );
+    return res.end();
+  }
 
-      const requestedEnd =
-        match[2] === ""
-          ? fileSize - 1
-          : Number(match[2]);
+  const chunkSize = end - start + 1;
 
-      end = Math.min(
-        requestedEnd,
-        fileSize - 1,
-      );
-    }
+  res.status(206);
 
-    if (
-      Number.isNaN(start) ||
-      Number.isNaN(end) ||
-      start < 0 ||
-      start >= fileSize ||
-      end < start
-    ) {
-      res
-        .status(416)
-        .setHeader(
-          "Content-Range",
-          `bytes */${fileSize}`,
-        );
+  res.setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
 
-      return res.end();
-    }
+  res.setHeader("Content-Length", chunkSize);
 
-    const chunkSize =
-      end - start + 1;
+  return fs
+    .createReadStream(filePath, {
+      start,
+      end,
+    })
+    .pipe(res);
+});
 
-    res.status(206);
-
-    res.setHeader(
-      "Content-Range",
-      `bytes ${start}-${end}/${fileSize}`,
-    );
-
-    res.setHeader(
-      "Content-Length",
-      chunkSize,
-    );
-
-    return fs
-      .createReadStream(
-        filePath,
-        {
-          start,
-          end,
-        },
-      )
-      .pipe(res);
-  },
-);
-
-app.delete(
-  "/song/download/:trackId",
-  (req, res) => {
-    if (!req.session.user) {
-      return res.status(401).json({
-        message:
-          "Must be logged in",
-      });
-    }
-
-    const username =
-      req.session.user.username;
-
-    const trackId =
-      req.params.trackId;
-
-    const downloads =
-      readDownloads();
-
-    const userDownloads =
-      Array.isArray(
-        downloads[username],
-      )
-        ? downloads[username]
-        : [];
-
-    const download =
-      userDownloads.find(
-        (item) =>
-          item.trackId === trackId,
-      );
-
-    if (!download) {
-      return res.status(404).json({
-        message:
-          "Downloaded song not found",
-      });
-    }
-
-    downloads[username] =
-      userDownloads.filter(
-        (item) =>
-          item.trackId !==
-          trackId,
-      );
-
-    const stillUsed =
-      Object.values(
-        downloads,
-      ).some(
-        (userDownloads) =>
-          Array.isArray(
-            userDownloads,
-          ) &&
-          userDownloads.some(
-            (item) =>
-              item.file ===
-              download.file,
-          ),
-      );
-
-    if (
-      !stillUsed &&
-      fs.existsSync(
-        download.file,
-      )
-    ) {
-      fs.unlinkSync(
-        download.file,
-      );
-    }
-
-    saveDownloads(
-      downloads,
-    );
-
-    const playlistsData =
-      fs.readFileSync(
-        "./playlists.json",
-        "utf-8",
-      );
-
-    const playlists =
-      JSON.parse(
-        playlistsData,
-      );
-
-    for (
-      const playlist of playlists
-    ) {
-      if (
-        playlist.owner !==
-        username
-      ) {
-        continue;
-      }
-
-      if (
-        Array.isArray(
-          playlist.downloaded,
-        )
-      ) {
-        playlist.downloaded =
-          playlist.downloaded.filter(
-            (id) =>
-              id !== trackId,
-          );
-      }
-    }
-
-    fs.writeFileSync(
-      "./playlists.json",
-      JSON.stringify(
-        playlists,
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-
-    return res.status(200).json({
-      message:
-        "Download deleted",
-      downloaded: false,
-      trackId,
+app.delete("/song/download/:trackId", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Must be logged in",
     });
-  },
-);
+  }
 
-app.post(
-  "/forgotPassword",
-  (req, res) => {
-    const { email } =
-      req.body;
+  const username = req.session.user.username;
 
-    if (
-      !email ||
-      !validator.isEmail(email)
-    ) {
-      return res.status(422).json({
-        message:
-          "Must be a valid email",
-      });
-    }
+  const trackId = req.params.trackId;
 
-    const usersData =
-      fs.readFileSync(
-        "./users.json",
-        "utf-8",
-      );
+  const downloads = readDownloads();
 
-    const users =
-      JSON.parse(
-        usersData,
-      );
+  const userDownloads = Array.isArray(downloads[username])
+    ? downloads[username]
+    : [];
 
-    const user =
-      users.find(
-        (candidate) =>
-          candidate.email ===
-          email,
-      );
+  const download = userDownloads.find((item) => item.trackId === trackId);
 
-    if (!user) {
-      return res.status(200).json({
-        message:
-          "If that email exists, a reset link has been generated.",
-      });
-    }
-
-    const token =
-      crypto.randomBytes(24)
-        .toString("hex");
-
-    const resets =
-      readPasswordResets();
-
-    resets[token] = {
-      username:
-        user.identifier,
-      expiresAt:
-        Date.now() +
-        15 * 60 * 1000,
-    };
-
-    savePasswordResets(
-      resets,
-    );
-
-    return res.status(200).json({
-      message:
-        "Reset link generated. This local development build does not send email.",
-      resetUrl:
-        `http://localhost:5173/resetPasswordPage?token=${token}`,
+  if (!download) {
+    return res.status(404).json({
+      message: "Downloaded song not found",
     });
-  },
-);
+  }
 
-app.post(
-  "/resetPassword",
-  (req, res) => {
-    const {
-      token,
-      password,
-    } = req.body;
+  downloads[username] = userDownloads.filter(
+    (item) => item.trackId !== trackId,
+  );
 
-    if (
-      !token ||
-      !password ||
-      password.length < 6
-    ) {
-      return res.status(400).json({
-        message:
-          "A valid token and a password of at least 6 characters are required",
-      });
+  const stillUsed = Object.values(downloads).some(
+    (userDownloads) =>
+      Array.isArray(userDownloads) &&
+      userDownloads.some((item) => item.file === download.file),
+  );
+
+  if (!stillUsed && fs.existsSync(download.file)) {
+    fs.unlinkSync(download.file);
+  }
+
+  saveDownloads(downloads);
+
+  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
+
+  const playlists = JSON.parse(playlistsData);
+
+  for (const playlist of playlists) {
+    if (playlist.owner !== username) {
+      continue;
     }
 
-    const resets =
-      readPasswordResets();
-
-    const reset =
-      resets[token];
-
-    if (
-      !reset ||
-      reset.expiresAt <
-        Date.now()
-    ) {
-      if (reset) {
-        delete resets[token];
-        savePasswordResets(
-          resets,
-        );
-      }
-
-      return res.status(400).json({
-        message:
-          "Reset link is invalid or expired",
-      });
+    if (Array.isArray(playlist.downloaded)) {
+      playlist.downloaded = playlist.downloaded.filter((id) => id !== trackId);
     }
+  }
 
-    const usersData =
-      fs.readFileSync(
-        "./users.json",
-        "utf-8",
-      );
+  fs.writeFileSync(
+    "./playlists.json",
+    JSON.stringify(playlists, null, 2),
+    "utf-8",
+  );
 
-    const users =
-      JSON.parse(
-        usersData,
-      );
+  return res.status(200).json({
+    message: "Download deleted",
+    downloaded: false,
+    trackId,
+  });
+});
 
-    const user =
-      users.find(
-        (candidate) =>
-          candidate.identifier ===
-          reset.username,
-      );
+app.post("/forgotPassword", (req, res) => {
+  const { email } = req.body;
 
-    if (!user) {
+  if (!email || !validator.isEmail(email)) {
+    return res.status(422).json({
+      message: "Must be a valid email",
+    });
+  }
+
+  const usersData = fs.readFileSync("./users.json", "utf-8");
+
+  const users = JSON.parse(usersData);
+
+  const user = users.find((candidate) => candidate.email === email);
+
+  if (!user) {
+    return res.status(200).json({
+      message: "If that email exists, a reset link has been generated.",
+    });
+  }
+
+  const token = crypto.randomBytes(24).toString("hex");
+
+  const resets = readPasswordResets();
+
+  resets[token] = {
+    username: user.identifier,
+    expiresAt: Date.now() + 15 * 60 * 1000,
+  };
+
+  savePasswordResets(resets);
+
+  return res.status(200).json({
+    message:
+      "Reset link generated. This local development build does not send email.",
+    resetUrl: `http://localhost:5173/resetPasswordPage?token=${token}`,
+  });
+});
+
+app.post("/resetPassword", (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password || password.length < 6) {
+    return res.status(400).json({
+      message:
+        "A valid token and a password of at least 6 characters are required",
+    });
+  }
+
+  const resets = readPasswordResets();
+
+  const reset = resets[token];
+
+  if (!reset || reset.expiresAt < Date.now()) {
+    if (reset) {
       delete resets[token];
-
-      savePasswordResets(
-        resets,
-      );
-
-      return res.status(404).json({
-        message:
-          "User not found",
-      });
+      savePasswordResets(resets);
     }
 
-    user.password =
-      password;
+    return res.status(400).json({
+      message: "Reset link is invalid or expired",
+    });
+  }
 
-    fs.writeFileSync(
-      "./users.json",
-      JSON.stringify(
-        users,
-        null,
-        2,
-      ),
-      "utf-8",
-    );
+  const usersData = fs.readFileSync("./users.json", "utf-8");
 
+  const users = JSON.parse(usersData);
+
+  const user = users.find(
+    (candidate) => candidate.identifier === reset.username,
+  );
+
+  if (!user) {
     delete resets[token];
 
-    savePasswordResets(
-      resets,
-    );
+    savePasswordResets(resets);
+
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
+  user.password = password;
+
+  fs.writeFileSync("./users.json", JSON.stringify(users, null, 2), "utf-8");
+
+  delete resets[token];
+
+  savePasswordResets(resets);
+
+  return res.status(200).json({
+    message: "Password reset successful",
+  });
+});
+
+app.post("/logout", (req, res) => {
+  req.session.destroy((error) => {
+    if (error) {
+      return res.status(500).json({
+        message: "Logout failed",
+      });
+    }
+
+    res.clearCookie("connect.sid");
 
     return res.status(200).json({
-      message:
-        "Password reset successful",
+      message: "Logout successful",
     });
-  },
-);
-
-app.post(
-  "/logout",
-  (req, res) => {
-    req.session.destroy(
-      (error) => {
-        if (error) {
-          return res.status(500).json({
-            message:
-              "Logout failed",
-          });
-        }
-
-        res.clearCookie(
-          "connect.sid",
-        );
-
-        return res.status(200).json({
-          message:
-            "Logout successful",
-        });
-      },
-    );
-  },
-);
+  });
+});
 
 let playing = null;
 let mpvProcess = null;
@@ -1881,35 +1384,25 @@ app.post("/stream", (req, res) => {
     mpvProcess.kill;
   }
 
-  const ytdlp = spawn(
-    "yt-dlp",
-    [
-      "-f",
-      "bestaudio",
-      "o",
-      "-",
-      "--quiet",
-      "--no-warnings",
-    ],
-  );
+  const ytdlp = spawn("yt-dlp", [
+    "-f",
+    "bestaudio",
+    "o",
+    "-",
+    "--quiet",
+    "--no-warnings",
+  ]);
 
-  const mpv = spawn(
-    "mpv",
-    [
-      "--no-videp",
-      "cache=yes",
-      "--input-ipc-server=/tmp/mpv-socket",
-      "-",
-    ],
-  );
+  const mpv = spawn("mpv", [
+    "--no-videp",
+    "cache=yes",
+    "--input-ipc-server=/tmp/mpv-socket",
+    "-",
+  ]);
 
-  ytdlp.stdout.pipe(
-    mpv.stdin,
-  );
+  ytdlp.stdout.pipe(mpv.stdin);
 });
 
 app.listen(PORT, () => {
-  console.log(
-    `Server running on http://localhost:${PORT}`,
-  );
+  console.log(`Server running on http://localhost:${PORT}`);
 });

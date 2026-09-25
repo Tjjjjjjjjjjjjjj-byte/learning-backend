@@ -4,9 +4,10 @@ import Nav from "../home-components/nav";
 import TrackCard from "../searchpagecomponents/Trackcard";
 import AlbumCard from "../searchpagecomponents/AlbumCard";
 import ArtistCard from "../searchpagecomponents/ArtistCard";
+import { SEARCH_QUEUE_ID } from "../App";
 import "../styling/search.css";
 
-function SearchPage() {
+function SearchPage({ player }) {
   const [searchParams] = useSearchParams();
   const searchValue = searchParams.get("q") || "";
 
@@ -14,6 +15,35 @@ function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const navigate = useNavigate();
+
+  const {
+    current,
+    setCurrent,
+    currentPlaylistId,
+    setCurrentPlaylistId,
+    isPlaying,
+    setIsPlaying,
+    setPlaybackTracks,
+    setPlaybackPlaylistId,
+  } = player;
+
+  // Clicking play on a search result queues up the rest of the current
+  // search results as the playback queue, so auto-next moves through
+  // them the same way it moves through a real playlist.
+  function playFromSearch(track) {
+    if (current === track.id && currentPlaylistId === SEARCH_QUEUE_ID) {
+      setIsPlaying(!isPlaying);
+      return;
+    }
+
+    const queue = results?.tracks?.items || [];
+
+    setPlaybackTracks(queue);
+    setPlaybackPlaylistId(SEARCH_QUEUE_ID);
+    setCurrentPlaylistId(SEARCH_QUEUE_ID);
+    setCurrent(track.id);
+    setIsPlaying(true);
+  }
 
   useEffect(() => {
     async function checkLogIn() {
@@ -115,6 +145,13 @@ function SearchPage() {
                         key={track.id}
                         track={track}
                         playlists={playlists}
+                        isCurrentTrack={
+                          current === track.id &&
+                          currentPlaylistId === SEARCH_QUEUE_ID
+                        }
+                        isPlaying={isPlaying}
+                        setIsPlaying={setIsPlaying}
+                        onPlay={playFromSearch}
                       />
                     ))}
                   </div>

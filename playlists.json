@@ -7,7 +7,9 @@
     "status": "private",
     "songs": [
       "5mEqD00bdFcsiVd0MfvEeF",
-      "6CRX3ENpLq42r0iBSjOqr1"
+      "6CRX3ENpLq42r0iBSjOqr1",
+      "3A4FRzgve9BjfKbvVXRIFO",
+      "41tYgm5VUu1awE3Cp36LIm"
     ],
     "downloaded": []
   },
@@ -17,8 +19,23 @@
     "cover": "https://picsum.photos/seed/picsum/200/300",
     "owner": "test",
     "status": "private",
-    "songs": [],
+    "songs": [
+      "5mEqD00bdFcsiVd0MfvEeF",
+      "6CRX3ENpLq42r0iBSjOqr1",
+      "3A4FRzgve9BjfKbvVXRIFO",
+      "41tYgm5VUu1awE3Cp36LIm"
+    ],
     "downloaded": [],
     "description": "asf"
+  },
+  {
+    "name": "My Playlist",
+    "id": 7,
+    "cover": "https://picsum.photos/seed/picsum/200/300",
+    "owner": "testtttt",
+    "status": "private",
+    "songs": [],
+    "downloaded": [],
+    "description": "de"
   }
 ]

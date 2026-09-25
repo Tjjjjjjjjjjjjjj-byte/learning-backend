@@ -13,6 +13,9 @@ function Song({
   downloadingTrackId,
   setDownloadingTrackId,
   setPlaybackTracks,
+  selectMode,
+  isSelected,
+  onToggleSelect,
 }) {
   const [
     confirmOpen,
@@ -61,6 +64,16 @@ function Song({
 
       setIsPlaying(true);
     }
+  }
+
+  function handleRowClick(e) {
+    if (selectMode) {
+      if (e) e.stopPropagation();
+      onToggleSelect?.(track.id);
+      return;
+    }
+
+    togglePlay(e);
   }
 
   function formatDuration(
@@ -316,15 +329,38 @@ function Song({
   return (
     <>
       <div
-        className={
-          isCurrentTrack
-            ? "song-card current"
-            : "song-card"
-        }
-        onClick={togglePlay}
+        className={`song-card${
+          isCurrentTrack ? " current" : ""
+        }${isSelected ? " selected" : ""}`}
+        onClick={handleRowClick}
       >
         <div className="song-number">
-          {track.downloaded ? (
+          {selectMode ? (
+            <button
+              type="button"
+              className={
+                isSelected
+                  ? "song-select-checkbox checked"
+                  : "song-select-checkbox"
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelect?.(track.id);
+              }}
+              aria-pressed={isSelected}
+              title={
+                isSelected
+                  ? "Deselect"
+                  : "Select"
+              }
+            >
+              <span className="material-symbols-outlined">
+                {isSelected
+                  ? "check_box"
+                  : "check_box_outline_blank"}
+              </span>
+            </button>
+          ) : track.downloaded ? (
             <button
               className="song-download-indicator downloaded"
               type="button"
@@ -369,10 +405,13 @@ function Song({
             </button>
           )}
 
+          {!selectMode && (
           <span className="song-index">
             {index + 1}
           </span>
+          )}
 
+          {!selectMode && (
           <button
             className="song-row-play"
             type="button"
@@ -387,6 +426,7 @@ function Song({
                 : "play_arrow"}
             </span>
           </button>
+          )}
         </div>
 
         <div className="song-title">

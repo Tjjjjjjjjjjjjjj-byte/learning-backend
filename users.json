@@ -23,5 +23,10 @@
     "identifier": "test3",
     "email": "test1@gmail.com",
     "password": "1234"
+  },
+  {
+    "identifier": "testtttt",
+    "email": "tjdanielaliado606@gmail.com",
+    "password": "cramon"
   }
 ]

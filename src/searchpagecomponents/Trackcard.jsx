@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import Playlist from "../home-components/playlists/playlistComponent";
 
-function TrackCard({ track, playlists }) {
+function TrackCard({
+  track,
+  playlists,
+  isCurrentTrack,
+  isPlaying,
+  onPlay,
+  setIsPlaying
+}) {
   const [hidden, setHidden] = useState(true);
   const [exists, setExists] = useState([]);
   const [downloaded, setDownloaded] = useState(!!track.downloaded);
@@ -9,6 +16,32 @@ function TrackCard({ track, playlists }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletingDownload, setDeletingDownload] = useState(false);
   const containerRef = useRef(null);
+  
+  function togglePlay(e) {
+    if (e) {
+      e.stopPropagation();
+    }
+
+    if (isCurrentTrack) {
+      setIsPlaying(!isPlaying);
+    } else {
+      setCurrent(track.id);
+
+      setCurrentPlaylistId(selectedPlaylist.id);
+
+      setIsPlaying(true);
+    }
+  }
+
+  function handleRowClick(e) {
+    if (selectMode) {
+      if (e) e.stopPropagation();
+      onToggleSelect?.(track.id);
+      return;
+    }
+
+    togglePlay(e);
+  }
 
   useEffect(() => {
     setDownloaded(!!track.downloaded);
@@ -127,13 +160,34 @@ function TrackCard({ track, playlists }) {
 
   return (
     <article
-      className={`search-result-card${!hidden ? " playlist-open" : ""}`}
+      className={`search-result-card${!hidden ? " playlist-open" : ""}${
+        isCurrentTrack ? " playing" : ""
+      }`}
       ref={containerRef}
+      onClick={togglePlay}
     >
-      <img
-        src={track.album?.images?.[0]?.url}
-        alt={track.album?.name || track.name}
-      />
+      <div className="search-result-cover">
+        <img
+          src={track.album?.images?.[0]?.url}
+          alt={track.album?.name || track.name}
+        />
+
+        <button
+          className={
+            isCurrentTrack ? "track-play playing" : "track-play"
+          }
+          type="button"
+          title={isCurrentTrack && isPlaying ? "Pause" : "Play"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlay?.(track);
+          }}
+        >
+          <span className="material-symbols-outlined">
+            {isCurrentTrack && isPlaying ? "pause" : "play_arrow"}
+          </span>
+        </button>
+      </div>
 
       <div className="search-result-info">
         <h3>{track.name}</h3>
