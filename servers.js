@@ -1044,6 +1044,31 @@ app.post("/logout", (req, res) => {
   });
 });
 
+let playing = null;
+let mpvProcess = null;
+
+app.post("/stream", (req, res) => {
+  const { track } = req.body
+  if (mpvProcess) {
+    mpvProcess.kill
+  }
+  const ytdlp = spawn('yt-dlp', ['-f', 'bestaudio', 'o', '-', '--quiet', '--no-warnings'])
+  const mpv = spawn('mpv', ['--no-videp', 'cache=yes', '--input-ipc-server=/tmp/mpv-socket', '-'])
+  ytdlp.stdout.pipe(mpv.stdin)
+
+})
+
+
+
+
+
+
+
+
+
+
+
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
