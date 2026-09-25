@@ -1271,10 +1271,119 @@ app.get(
       !download ||
       !download.file
     ) {
-      return res.status(404).json({
-        message:
-          "Downloaded song not found",
+      const { name, artist } = req.query;
+
+      if (!name || !artist) {
+        return res.status(404).json({
+          message:
+            "Downloaded song not found",
+        });
+      }
+
+      const trackQuery = `${name} ${artist}`;
+
+      const onlineSearch = spawn("yt-dlp", [
+        "--skip-download",
+        "--flat-playlist",
+        "--print",
+        "%(id)s|%(title)s|%(uploader)s|%(webpage_url)s",
+        `ytsearch5:${trackQuery}`,
+      ]);
+
+      let onlineSearchOutput = "";
+
+      onlineSearch.stdout.on("data", (data) => {
+        onlineSearchOutput += data.toString();
       });
+
+      onlineSearch.stderr.on("data", (data) => {
+        console.log("yt-dlp:", data.toString().trim());
+      });
+
+      onlineSearch.on("close", (code) => {
+        if (code !== 0) {
+          return res.status(500).json({
+            message: "YouTube search failed",
+          });
+        }
+
+        const results = onlineSearchOutput
+          .trim()
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => {
+            const [id, title, uploader, url] = line.split("|");
+            return { id, title, uploader, url };
+          });
+
+        if (results.length === 0) {
+          return res.status(404).json({
+            message: "Song not found",
+          });
+        }
+
+        const matchedVideo = results.find((video) =>
+          video.uploader
+            .toLowerCase()
+            .includes(artist.toLowerCase()),
+        );
+
+        const video = matchedVideo || results[0];
+
+        // Stream straight to the response via stdout ("-o -").
+        // Nothing is written to DOWNLOAD_DIR and downloads.json is
+        // never touched, so this is never saved as a permanent download.
+        res.setHeader("Content-Type", "audio/mpeg");
+        res.setHeader("Cache-Control", "no-store");
+
+        const liveStream = spawn("yt-dlp", [
+          "-x",
+          "--audio-format",
+          "mp3",
+          "--audio-quality",
+          "0",
+          "-o",
+          "-",
+          "--quiet",
+          "--no-warnings",
+          video.url,
+        ]);
+
+        liveStream.stdout.pipe(res);
+
+        liveStream.stderr.on("data", (data) => {
+          console.log("yt-dlp:", data.toString().trim());
+        });
+
+        liveStream.on("error", (error) => {
+          console.error("ONLINE STREAM ERROR:", error);
+
+          if (!res.headersSent) {
+            res.status(500).json({
+              message: "Streaming failed",
+            });
+          }
+        });
+
+        liveStream.on("close", (exitCode) => {
+          if (exitCode !== 0 && !res.headersSent) {
+            res.status(500).json({
+              message: "Streaming failed",
+            });
+          }
+        });
+
+        // If the client switches tracks or pauses, the browser aborts
+        // this request — kill the subprocess instead of leaving it
+        // running in the background.
+        req.on("close", () => {
+          if (!liveStream.killed) {
+            liveStream.kill("SIGKILL");
+          }
+        });
+      });
+
+      return;
     }
 
     const downloadDir =
