@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatRelativeDate } from "../../utils/dateUtils.js";
 
 function Song({
   track,
@@ -306,7 +307,7 @@ function Song({
 
         <p className="song-album">{track.album?.name}</p>
 
-        <p className="song-date">4 days ago</p>
+        <p className="song-date">{formatRelativeDate(track.addedAt)}</p>
 
         <p className="song-duration">{formatDuration(track.duration_ms)}</p>
 

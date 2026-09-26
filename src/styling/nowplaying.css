@@ -887,3 +887,44 @@
   position: relative;
   z-index: 1;
 }
+
+
+.lyrics-lines {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 20px 4px 12px;
+  scroll-behavior: smooth;
+}
+
+.lyrics-line {
+  margin: 0;
+  padding: 8px 12px;
+  color: rgba(255,255,255,.48);
+  font-size: clamp(18px, 2vw, 26px);
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  transition:
+    color .2s ease,
+    opacity .2s ease,
+    transform .2s ease;
+}
+
+.lyrics-line.active {
+  color: #fff;
+  opacity: 1;
+  transform: scale(1.015);
+}
+
+.lyrics-lines::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lyrics-lines::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.18);
+  border-radius: 999px;
+}
+
+.lyrics-lines::-webkit-scrollbar-track {
+  background: transparent;
+}

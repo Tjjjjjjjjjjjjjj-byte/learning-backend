@@ -11,7 +11,15 @@
       "3A4FRzgve9BjfKbvVXRIFO",
       "41tYgm5VUu1awE3Cp36LIm"
     ],
-    "downloaded": []
+    "downloaded": [],
+    "createdAt": "2026-09-26T03:05:40.031Z",
+    "updatedAt": "2026-09-26T03:05:40.031Z",
+    "songAddedAt": {
+      "5mEqD00bdFcsiVd0MfvEeF": "2026-09-26T03:05:40.031Z",
+      "6CRX3ENpLq42r0iBSjOqr1": "2026-09-26T03:05:40.031Z",
+      "3A4FRzgve9BjfKbvVXRIFO": "2026-09-26T03:05:40.031Z",
+      "41tYgm5VUu1awE3Cp36LIm": "2026-09-26T03:05:40.031Z"
+    }
   },
   {
     "name": "My Playlist\\",
@@ -25,7 +33,14 @@
       "41tYgm5VUu1awE3Cp36LIm"
     ],
     "downloaded": [],
-    "description": "asf"
+    "description": "asf",
+    "createdAt": "2026-09-26T03:05:40.031Z",
+    "updatedAt": "2026-09-26T03:05:40.031Z",
+    "songAddedAt": {
+      "5mEqD00bdFcsiVd0MfvEeF": "2026-09-26T03:05:40.031Z",
+      "3A4FRzgve9BjfKbvVXRIFO": "2026-09-26T03:05:40.031Z",
+      "41tYgm5VUu1awE3Cp36LIm": "2026-09-26T03:05:40.031Z"
+    }
   },
   {
     "name": "My Playlist",
@@ -35,6 +50,9 @@
     "status": "private",
     "songs": [],
     "downloaded": [],
-    "description": "de"
+    "description": "de",
+    "createdAt": "2026-09-26T03:05:40.031Z",
+    "updatedAt": "2026-09-26T03:05:40.031Z",
+    "songAddedAt": {}
   }
 ]

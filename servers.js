@@ -11,6 +11,433 @@ const PORT = 3000;
 const DOWNLOADS_FILE = "./downloads.json";
 const DOWNLOAD_DIR = "./downloads";
 const PASSWORD_RESETS_FILE = "./passwordResets.json";
+const PLAYBACK_CACHE_DIR = "./temp/playback-cache";
+const PLAYBACK_CACHE_TTL_MS = 30 * 60 * 1000;
+const PLAYBACK_PRELOAD_CONCURRENCY = 3;
+const LYRICSTIFY_API_URL = "https://api.lyricstify.vercel.app/v1/lyrics";
+const LYRIC_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+
+fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
+fs.mkdirSync(PLAYBACK_CACHE_DIR, { recursive: true });
+
+const playbackExtractionPromises = new Map();
+const lyricsCache = new Map();
+
+function getPlaybackCacheFile(trackId) {
+  const safeId = crypto
+    .createHash("sha256")
+    .update(String(trackId))
+    .digest("hex");
+
+  return path.join(PLAYBACK_CACHE_DIR, `${safeId}.json`);
+}
+
+function readPlaybackCache(trackId) {
+  const cacheFile = getPlaybackCacheFile(trackId);
+
+  if (!fs.existsSync(cacheFile)) {
+    return null;
+  }
+
+  try {
+    const cached = JSON.parse(fs.readFileSync(cacheFile, "utf-8"));
+
+    if (
+      !cached ||
+      cached.trackId !== trackId ||
+      typeof cached.url !== "string" ||
+      !cached.expiresAt ||
+      Date.parse(cached.expiresAt) <= Date.now()
+    ) {
+      fs.unlinkSync(cacheFile);
+      return null;
+    }
+
+    return cached;
+  } catch {
+    try {
+      fs.unlinkSync(cacheFile);
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+}
+
+function savePlaybackCache(trackId, url) {
+  const createdAt = new Date();
+  const expiresAt = new Date(
+    createdAt.getTime() + PLAYBACK_CACHE_TTL_MS,
+  );
+
+  const cacheFile = getPlaybackCacheFile(trackId);
+
+  fs.writeFileSync(
+    cacheFile,
+    JSON.stringify(
+      {
+        trackId,
+        url,
+        createdAt: createdAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+      },
+      null,
+      2,
+    ),
+    "utf-8",
+  );
+}
+
+function invalidatePlaybackCache(trackId) {
+  const cacheFile = getPlaybackCacheFile(trackId);
+
+  if (fs.existsSync(cacheFile)) {
+    try {
+      fs.unlinkSync(cacheFile);
+    } catch {
+      return;
+    }
+  }
+}
+
+function cleanupPlaybackCache() {
+  if (!fs.existsSync(PLAYBACK_CACHE_DIR)) {
+    return;
+  }
+
+  for (const filename of fs.readdirSync(PLAYBACK_CACHE_DIR)) {
+    if (!filename.endsWith(".json")) {
+      continue;
+    }
+
+    const cacheFile = path.join(PLAYBACK_CACHE_DIR, filename);
+
+    try {
+      const cached = JSON.parse(fs.readFileSync(cacheFile, "utf-8"));
+
+      if (
+        !cached?.expiresAt ||
+        Date.parse(cached.expiresAt) <= Date.now()
+      ) {
+        fs.unlinkSync(cacheFile);
+      }
+    } catch {
+      try {
+        fs.unlinkSync(cacheFile);
+      } catch {
+        continue;
+      }
+    }
+  }
+}
+
+cleanupPlaybackCache();
+
+function runYtDlp(args, timeoutMs = 30000) {
+  return new Promise((resolve, reject) => {
+    const process = spawn("yt-dlp", args);
+
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if (settled) return;
+
+      settled = true;
+
+      if (!process.killed) {
+        process.kill("SIGKILL");
+      }
+
+      reject(new Error("yt-dlp process timed out"));
+    }, timeoutMs);
+
+    process.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    process.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    process.on("error", (error) => {
+      if (settled) return;
+
+      settled = true;
+      clearTimeout(timeout);
+      reject(error);
+    });
+
+    process.on("close", (code) => {
+      if (settled) return;
+
+      settled = true;
+      clearTimeout(timeout);
+
+      if (code !== 0) {
+        reject(
+          new Error(
+            stderr.trim() || `yt-dlp exited with code ${code}`,
+          ),
+        );
+        return;
+      }
+
+      resolve({
+        stdout,
+        stderr,
+      });
+    });
+  });
+}
+
+async function findYoutubeVideo(name, artist) {
+  const trackQuery = `${name} ${artist}`;
+
+  const result = await runYtDlp([
+    "--skip-download",
+    "--flat-playlist",
+    "--dump-single-json",
+    `ytsearch5:${trackQuery}`,
+  ]);
+
+  let searchData;
+
+  try {
+    searchData = JSON.parse(result.stdout);
+  } catch {
+    throw new Error("YouTube search returned invalid data");
+  }
+
+  const results = (searchData.entries || [])
+    .map((entry) => {
+      const rawId = entry.id || entry.url;
+
+      const id =
+        typeof rawId === "string"
+          ? rawId.replace(
+              /^https?:\/\/(www\.)?youtube\.com\/watch\?v=/,
+              "",
+            )
+          : "";
+
+      return {
+        id,
+        title: entry.title || "",
+        uploader: entry.uploader || entry.channel || "",
+        url:
+          entry.webpage_url ||
+          (typeof rawId === "string" &&
+          rawId.startsWith("http")
+            ? rawId
+            : id
+              ? `https://www.youtube.com/watch?v=${id}`
+              : ""),
+      };
+    })
+    .filter((video) => video.id && video.url);
+
+  if (!results.length) {
+    throw new Error("Song not found on YouTube");
+  }
+
+  const normalizedArtist = String(artist).toLowerCase();
+
+  return (
+    results.find((video) =>
+      video.uploader?.toLowerCase().includes(normalizedArtist),
+    ) || results[0]
+  );
+}
+
+async function extractPlayableAudioUrl(name, artist) {
+  const video = await findYoutubeVideo(name, artist);
+
+  const result = await runYtDlp([
+    "--no-playlist",
+    "--format",
+    "bestaudio/best",
+    "--get-url",
+    video.url,
+  ]);
+
+  const audioUrl = result.stdout
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(
+      (line) =>
+        line.startsWith("http://") ||
+        line.startsWith("https://"),
+    );
+
+  if (!audioUrl) {
+    throw new Error("yt-dlp returned no playable audio URL");
+  }
+
+  try {
+    const parsedUrl = new URL(audioUrl);
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      throw new Error("Unsupported audio URL protocol");
+    }
+  } catch {
+    throw new Error("yt-dlp returned an invalid audio URL");
+  }
+
+  return audioUrl;
+}
+
+async function getOrCreatePlaybackUrl(
+  trackId,
+  name,
+  artist,
+  forceRefresh = false,
+) {
+  if (!forceRefresh) {
+    const cached = readPlaybackCache(trackId);
+
+    if (cached) {
+      return {
+        url: cached.url,
+        cached: true,
+      };
+    }
+  }
+
+  if (forceRefresh) {
+    invalidatePlaybackCache(trackId);
+  }
+
+  const existingPromise = playbackExtractionPromises.get(trackId);
+
+  if (existingPromise) {
+    return {
+      url: await existingPromise,
+      cached: false,
+    };
+  }
+
+  const extractionPromise = extractPlayableAudioUrl(name, artist)
+    .then((url) => {
+      savePlaybackCache(trackId, url);
+      return url;
+    })
+    .finally(() => {
+      playbackExtractionPromises.delete(trackId);
+    });
+
+  playbackExtractionPromises.set(
+    trackId,
+    extractionPromise,
+  );
+
+  return {
+    url: await extractionPromise,
+    cached: false,
+  };
+}
+
+async function runWithConcurrency(items, concurrency, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function consume() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+
+      if (index >= items.length) {
+        return;
+      }
+
+      try {
+        results[index] = await worker(items[index], index);
+      } catch (error) {
+        results[index] = {
+          ok: false,
+          error: error.message,
+        };
+      }
+    }
+  }
+
+  const workers = Array.from(
+    {
+      length: Math.min(concurrency, items.length),
+    },
+    () => consume(),
+  );
+
+  await Promise.all(workers);
+
+  return results;
+}
+
+function ensurePlaylistMetadata(playlists) {
+  let changed = false;
+  let fallbackTimestamp = null;
+
+  try {
+    fallbackTimestamp = fs.statSync("./playlists.json").mtime.toISOString();
+  } catch {
+    fallbackTimestamp = new Date(0).toISOString();
+  }
+
+  for (const playlist of playlists) {
+    if (!playlist.createdAt) {
+      playlist.createdAt = fallbackTimestamp;
+      changed = true;
+    }
+
+    if (!playlist.updatedAt) {
+      playlist.updatedAt = playlist.createdAt;
+      changed = true;
+    }
+
+    if (
+      !playlist.songAddedAt ||
+      typeof playlist.songAddedAt !== "object" ||
+      Array.isArray(playlist.songAddedAt)
+    ) {
+      playlist.songAddedAt = {};
+      changed = true;
+    }
+
+    for (const trackId of Array.isArray(playlist.songs)
+      ? playlist.songs
+      : []) {
+      if (!playlist.songAddedAt[trackId]) {
+        playlist.songAddedAt[trackId] = playlist.createdAt;
+        changed = true;
+      }
+    }
+  }
+
+  return changed;
+}
+
+function savePlaylists(playlists) {
+  fs.writeFileSync(
+    "./playlists.json",
+    JSON.stringify(playlists, null, 2),
+    "utf-8",
+  );
+}
+
+function loadPlaylists() {
+  const playlists = JSON.parse(
+    fs.readFileSync("./playlists.json", "utf-8"),
+  );
+
+  if (ensurePlaylistMetadata(playlists)) {
+    savePlaylists(playlists);
+  }
+
+  return playlists;
+}
 
 function readDownloads() {
   if (!fs.existsSync(DOWNLOADS_FILE)) {
@@ -193,9 +620,7 @@ app.get("/home", (req, res) => {
     });
   }
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-  const playlists = JSON.parse(playlistsData);
-
+  const playlists = loadPlaylists();
   const username = req.session.user.username;
 
   const userPlaylists = playlists.filter(
@@ -214,30 +639,30 @@ app.post("/create", (req, res) => {
     });
   }
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-  const playlists = JSON.parse(playlistsData);
+  const playlists = loadPlaylists();
   const username = req.session.user.username;
 
-  let id = playlists[playlists.length - 1].id;
-  id = Number(id) + 1;
+  let id = playlists.length
+    ? Number(playlists[playlists.length - 1].id) + 1
+    : 1;
+
+  const now = new Date().toISOString();
 
   const newPlaylist = {
     name: "My Playlist",
-    id: id,
+    id,
     cover: "https://picsum.photos/seed/picsum/200/300",
     owner: username,
     status: "private",
     songs: [],
     downloaded: [],
+    createdAt: now,
+    updatedAt: now,
+    songAddedAt: {},
   };
 
   playlists.push(newPlaylist);
-
-  fs.writeFileSync(
-    "./playlists.json",
-    JSON.stringify(playlists, null, 2),
-    "utf-8",
-  );
+  savePlaylists(playlists);
 
   return res.status(200).json({
     message: "creation successful",
@@ -252,14 +677,13 @@ app.patch("/home/playlist/:id", (req, res) => {
     });
   }
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-  const playlists = JSON.parse(playlistsData);
+  const playlists = loadPlaylists();
   const reqId = Number(req.params.id);
-
   const username = req.session.user.username;
 
   const playlist = playlists.find(
-    (playlist) => playlist.id === reqId && playlist.owner === username,
+    (playlist) =>
+      playlist.id === reqId && playlist.owner === username,
   );
 
   if (!playlist) {
@@ -286,9 +710,11 @@ app.patch("/home/playlist/:id", (req, res) => {
     playlist.cover = cover;
   }
 
-  fs.writeFileSync("./playlists.json", JSON.stringify(playlists, null, 2));
+  playlist.updatedAt = new Date().toISOString();
 
-  res.status(200).json(playlist);
+  savePlaylists(playlists);
+
+  return res.status(200).json(playlist);
 });
 
 app.delete("/home/playlist/:id", (req, res) => {
@@ -298,14 +724,13 @@ app.delete("/home/playlist/:id", (req, res) => {
     });
   }
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-  const playlists = JSON.parse(playlistsData);
-
+  const playlists = loadPlaylists();
   const reqId = Number(req.params.id);
   const username = req.session.user.username;
 
   const playlistExists = playlists.some(
-    (playlist) => playlist.id === reqId && playlist.owner === username,
+    (playlist) =>
+      playlist.id === reqId && playlist.owner === username,
   );
 
   if (!playlistExists) {
@@ -314,13 +739,11 @@ app.delete("/home/playlist/:id", (req, res) => {
     });
   }
 
-  const newPlaylists = playlists.filter((playlist) => playlist.id !== reqId);
-
-  fs.writeFileSync(
-    "./playlists.json",
-    JSON.stringify(newPlaylists, null, 2),
-    "utf-8",
+  const newPlaylists = playlists.filter(
+    (playlist) => playlist.id !== reqId,
   );
+
+  savePlaylists(newPlaylists);
 
   return res.status(200).json({
     message: "Playlist deleted successfully",
@@ -468,12 +891,11 @@ app.post("/add/:id", (req, res) => {
   const { trackId } = req.body;
   const username = req.session.user.username;
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-
-  const playlists = JSON.parse(playlistsData);
+  const playlists = loadPlaylists();
 
   const targetPlaylist = playlists.find(
-    (playlist) => playlist.id === reqId && playlist.owner === username,
+    (playlist) =>
+      playlist.id === reqId && playlist.owner === username,
   );
 
   if (!targetPlaylist) {
@@ -488,19 +910,30 @@ app.post("/add/:id", (req, res) => {
     });
   }
 
-  const songs = targetPlaylist.songs;
-
-  if (songs.includes(trackId)) {
+  if (targetPlaylist.songs.includes(trackId)) {
     return res.status(409).json({
       message: "Song already in the playlist",
     });
   }
 
-  songs.push(trackId);
+  targetPlaylist.songs.push(trackId);
+
+  if (!targetPlaylist.songAddedAt) {
+    targetPlaylist.songAddedAt = {};
+  }
+
+  targetPlaylist.songAddedAt[trackId] =
+    new Date().toISOString();
+
+  targetPlaylist.updatedAt = new Date().toISOString();
 
   const userDownloads = getUserDownloads(username);
 
-  if (userDownloads.some((download) => download.trackId === trackId)) {
+  if (
+    userDownloads.some(
+      (download) => download.trackId === trackId,
+    )
+  ) {
     if (!Array.isArray(targetPlaylist.downloaded)) {
       targetPlaylist.downloaded = [];
     }
@@ -510,14 +943,11 @@ app.post("/add/:id", (req, res) => {
     }
   }
 
-  fs.writeFileSync(
-    "./playlists.json",
-    JSON.stringify(playlists, null, 2),
-    "utf-8",
-  );
+  savePlaylists(playlists);
 
   return res.status(200).json({
     message: "Added successfully",
+    addedAt: targetPlaylist.songAddedAt[trackId],
   });
 });
 
@@ -530,15 +960,13 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
 
   try {
     const reqId = Number(req.params.id);
-
     const username = req.session.user.username;
-
-    const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-
-    const playlists = JSON.parse(playlistsData);
+    const playlists = loadPlaylists();
 
     const targetPlaylist = playlists.find(
-      (playlist) => playlist.id === reqId && playlist.owner === username,
+      (playlist) =>
+        playlist.id === reqId &&
+        playlist.owner === username,
     );
 
     if (!targetPlaylist) {
@@ -547,14 +975,15 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
       });
     }
 
-    const songs = targetPlaylist.songs;
+    const songs = Array.isArray(targetPlaylist.songs)
+      ? targetPlaylist.songs
+      : [];
 
-    if (!songs || songs.length === 0) {
+    if (songs.length === 0) {
       return res.status(200).json([]);
     }
 
     const token = await getSpotifyToken();
-
     const userDownloads = getUserDownloads(username);
 
     const downloadedIds = new Set(
@@ -564,16 +993,24 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
     const tracks = [];
 
     for (const id of songs) {
-      const response = await fetch(`https://api.spotify.com/v1/tracks/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `https://api.spotify.com/v1/tracks/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await response.json();
 
       if (!response.ok || !data || !data.id) {
-        console.error("SPOTIFY TRACK ERROR:", id, response.status, data);
+        console.error(
+          "SPOTIFY TRACK ERROR:",
+          id,
+          response.status,
+          data,
+        );
 
         continue;
       }
@@ -581,14 +1018,20 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
       tracks.push({
         ...data,
         downloaded: downloadedIds.has(id),
+        addedAt:
+          targetPlaylist.songAddedAt?.[id] ||
+          targetPlaylist.createdAt,
       });
     }
 
-    res.json(tracks);
+    return res.json(tracks);
   } catch (error) {
-    console.error("Failed to get playlist tracks:", error);
+    console.error(
+      "Failed to get playlist tracks:",
+      error,
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message,
     });
   }
@@ -605,9 +1048,7 @@ app.delete("/add/:id", (req, res) => {
   const { trackId } = req.body;
   const username = req.session.user.username;
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-
-  const playlists = JSON.parse(playlistsData);
+  const playlists = loadPlaylists();
 
   const targetPlaylist = playlists.find(
     (playlist) => playlist.id === reqId && playlist.owner === username,
@@ -634,6 +1075,12 @@ app.delete("/add/:id", (req, res) => {
   }
 
   targetPlaylist.songs.splice(songIndex, 1);
+
+  if (targetPlaylist.songAddedAt) {
+    delete targetPlaylist.songAddedAt[trackId];
+  }
+
+  targetPlaylist.updatedAt = new Date().toISOString();
 
   if (Array.isArray(targetPlaylist.downloaded)) {
     targetPlaylist.downloaded = targetPlaylist.downloaded.filter(
@@ -664,9 +1111,7 @@ app.delete("/playlist/:id", (req, res) => {
 
   const { trackId } = req.body;
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-
-  const playlists = JSON.parse(playlistsData);
+  const playlists = loadPlaylists();
 
   const targetPlaylist = playlists.find(
     (playlist) => playlist.id === reqId && playlist.owner === username,
@@ -687,6 +1132,12 @@ app.delete("/playlist/:id", (req, res) => {
   }
 
   targetPlaylist.songs.splice(songIndex, 1);
+
+  if (targetPlaylist.songAddedAt) {
+    delete targetPlaylist.songAddedAt[trackId];
+  }
+
+  targetPlaylist.updatedAt = new Date().toISOString();
 
   if (Array.isArray(targetPlaylist.downloaded)) {
     targetPlaylist.downloaded = targetPlaylist.downloaded.filter(
@@ -718,9 +1169,7 @@ app.patch("/playlist/:id/downloaded", (req, res) => {
 
   const { trackId, trackIds, all } = req.body;
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-
-  const playlists = JSON.parse(playlistsData);
+  const playlists = loadPlaylists();
 
   const targetPlaylist = playlists.find(
     (playlist) => playlist.id === reqId && playlist.owner === username,
@@ -756,11 +1205,9 @@ app.patch("/playlist/:id/downloaded", (req, res) => {
     targetPlaylist.songs.includes(id),
   );
 
-  fs.writeFileSync(
-    "./playlists.json",
-    JSON.stringify(playlists, null, 2),
-    "utf-8",
-  );
+  targetPlaylist.updatedAt = new Date().toISOString();
+
+  savePlaylists(playlists);
 
   return res.status(200).json({
     downloaded: targetPlaylist.downloaded,
@@ -972,7 +1419,90 @@ app.post("/song/download", (req, res) => {
     });
   });
 });
-app.get("/song/stream/:trackId", (req, res) => {
+app.post("/song/preload", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Must be logged in",
+    });
+  }
+
+  const tracks = Array.isArray(req.body?.tracks)
+    ? req.body.tracks
+    : [];
+
+  const normalizedTracks = tracks
+    .map((track) => ({
+      id: String(track?.id || ""),
+      name: String(track?.name || ""),
+      artist: String(
+        track?.artist ||
+          track?.artists?.[0]?.name ||
+          "",
+      ),
+      downloaded: Boolean(track?.downloaded),
+    }))
+    .filter(
+      (track) =>
+        track.id &&
+        track.name &&
+        track.artist &&
+        !track.downloaded,
+    );
+
+  if (!normalizedTracks.length) {
+    return res.status(200).json({
+      results: [],
+    });
+  }
+
+  const results = await runWithConcurrency(
+    normalizedTracks,
+    PLAYBACK_PRELOAD_CONCURRENCY,
+    async (track) => {
+      const cached = readPlaybackCache(track.id);
+
+      if (cached) {
+        return {
+          trackId: track.id,
+          ok: true,
+          cached: true,
+        };
+      }
+
+      try {
+        await getOrCreatePlaybackUrl(
+          track.id,
+          track.name,
+          track.artist,
+        );
+
+        return {
+          trackId: track.id,
+          ok: true,
+          cached: false,
+        };
+      } catch (error) {
+        console.error(
+          "PLAYBACK PRELOAD FAILED:",
+          track.id,
+          error.message,
+        );
+
+        return {
+          trackId: track.id,
+          ok: false,
+          error: error.message,
+        };
+      }
+    },
+  );
+
+  return res.status(200).json({
+    results,
+  });
+});
+
+app.get("/song/stream/:trackId", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({
       message: "Must be logged in",
@@ -983,11 +1513,15 @@ app.get("/song/stream/:trackId", (req, res) => {
   const trackId = req.params.trackId;
   const userDownloads = getUserDownloads(username);
 
-  const download = userDownloads.find((item) => item.trackId === trackId);
+  const download = userDownloads.find(
+    (item) => item.trackId === trackId,
+  );
 
   if (download?.file) {
     return res.status(200).json({
-      url: `http://localhost:${PORT}/song/file/${encodeURIComponent(trackId)}`,
+      url: `http://localhost:${PORT}/song/file/${encodeURIComponent(
+        trackId,
+      )}`,
       downloaded: true,
     });
   }
@@ -996,238 +1530,138 @@ app.get("/song/stream/:trackId", (req, res) => {
 
   if (!name || !artist) {
     return res.status(400).json({
-      message: "Track name and artist are required for online playback",
+      message:
+        "Track name and artist are required for online playback",
     });
   }
 
-  const trackQuery = `${name} ${artist}`;
+  try {
+    const forceRefresh = req.query.refresh === "1";
 
-  let onlineSearch = null;
-  let extractionProcess = null;
-  let finished = false;
-  let timeout = null;
-
-  function cleanupProcesses() {
-    if (timeout) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-
-    if (onlineSearch && !onlineSearch.killed) {
-      onlineSearch.kill("SIGKILL");
-    }
-
-    if (extractionProcess && !extractionProcess.killed) {
-      extractionProcess.kill("SIGKILL");
-    }
-  }
-
-  function sendJson(status, body) {
-    if (finished || res.headersSent) {
-      return;
-    }
-
-    finished = true;
-    cleanupProcesses();
-
-    res.status(status).json(body);
-  }
-
-  timeout = setTimeout(() => {
-    sendJson(504, {
-      message: "Timed out while preparing audio playback",
-    });
-  }, 30000);
-
-  onlineSearch = spawn("yt-dlp", [
-    "--skip-download",
-    "--flat-playlist",
-    "--dump-single-json",
-    `ytsearch5:${trackQuery}`,
-  ]);
-
-  let onlineSearchOutput = "";
-  let onlineSearchError = "";
-
-  onlineSearch.stdout.on("data", (data) => {
-    onlineSearchOutput += data.toString();
-  });
-
-  onlineSearch.stderr.on("data", (data) => {
-    onlineSearchError += data.toString();
-  });
-
-  onlineSearch.on("error", (error) => {
-    console.error("ONLINE SEARCH ERROR:", error);
-
-    sendJson(500, {
-      message: "Failed to start YouTube search",
-    });
-  });
-
-  onlineSearch.on("close", (code) => {
-    if (finished) return;
-
-    if (code !== 0) {
-      console.error(
-        "ONLINE SEARCH FAILED:",
-        onlineSearchError.trim() || `yt-dlp exited with code ${code}`,
-      );
-
-      return sendJson(500, {
-        message: "YouTube search failed",
-        error: onlineSearchError.trim() || `yt-dlp exited with code ${code}`,
-      });
-    }
-
-    if (onlineSearchError.trim()) {
-      console.warn("ONLINE SEARCH WARNING:", onlineSearchError.trim());
-    }
-
-    let searchData;
-
-    try {
-      searchData = JSON.parse(onlineSearchOutput);
-    } catch (error) {
-      console.error("ONLINE SEARCH JSON PARSE ERROR:", error);
-
-      return sendJson(502, {
-        message: "YouTube search returned invalid data",
-      });
-    }
-
-    const results = (searchData.entries || [])
-      .map((entry) => {
-        const rawId = entry.id || entry.url;
-
-        const id =
-          typeof rawId === "string"
-            ? rawId.replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, "")
-            : "";
-
-        return {
-          id,
-          title: entry.title || "",
-          uploader: entry.uploader || entry.channel || "",
-          url:
-            entry.webpage_url ||
-            (typeof rawId === "string" && rawId.startsWith("http")
-              ? rawId
-              : id
-                ? `https://www.youtube.com/watch?v=${id}`
-                : ""),
-        };
-      })
-      .filter((video) => video.id && video.url);
-
-    if (!results.length) {
-      return sendJson(404, {
-        message: "Song not found on YouTube",
-      });
-    }
-
-    const normalizedArtist = artist.toLowerCase();
-
-    const matchedVideo = results.find((video) =>
-      video.uploader?.toLowerCase().includes(normalizedArtist),
+    const result = await getOrCreatePlaybackUrl(
+      trackId,
+      name,
+      artist,
+      forceRefresh,
     );
 
-    const video = matchedVideo || results[0];
-
-    extractionProcess = spawn("yt-dlp", [
-      "--no-playlist",
-      "--format",
-      "bestaudio/best",
-      "--get-url",
-      video.url,
-    ]);
-
-    let extractedUrl = "";
-    let extractionError = "";
-
-    extractionProcess.stdout.on("data", (data) => {
-      extractedUrl += data.toString();
+    return res.status(200).json({
+      url: result.url,
+      downloaded: false,
+      cached: result.cached,
     });
+  } catch (error) {
+    console.error(
+      "PLAYBACK URL ERROR:",
+      error,
+    );
 
-    extractionProcess.stderr.on("data", (data) => {
-      extractionError += data.toString();
+    return res.status(500).json({
+      message: "Failed to prepare audio playback",
+      error: error.message,
     });
-
-    extractionProcess.on("error", (error) => {
-      console.error("ONLINE URL EXTRACTION ERROR:", error);
-
-      sendJson(500, {
-        message: "Failed to start audio URL extraction",
-      });
-    });
-
-    extractionProcess.on("close", (exitCode) => {
-      if (finished) return;
-
-      const audioUrl = extractedUrl
-        .trim()
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .find(
-          (line) => line.startsWith("http://") || line.startsWith("https://"),
-        );
-
-      if (extractionError.trim()) {
-        if (exitCode === 0) {
-          console.warn(
-            "ONLINE URL EXTRACTION WARNING:",
-            extractionError.trim(),
-          );
-        } else {
-          console.error("ONLINE URL EXTRACTION ERROR:", extractionError.trim());
-        }
-      }
-
-      if (exitCode !== 0) {
-        return sendJson(500, {
-          message: "Failed to extract playable audio URL",
-          error:
-            extractionError.trim() || `yt-dlp exited with code ${exitCode}`,
-        });
-      }
-
-      if (!audioUrl) {
-        return sendJson(502, {
-          message: "yt-dlp returned no playable audio URL",
-        });
-      }
-
-      try {
-        const parsedUrl = new URL(audioUrl);
-
-        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-          throw new Error("Unsupported audio URL protocol");
-        }
-      } catch {
-        return sendJson(502, {
-          message: "yt-dlp returned an invalid audio URL",
-        });
-      }
-
-      sendJson(200, {
-        url: audioUrl,
-        downloaded: false,
-      });
-    });
-  });
-
-  req.once("aborted", () => {
-    finished = true;
-    cleanupProcesses();
-  });
-
-  res.once("close", () => {
-    if (!finished && !res.writableEnded) {
-      finished = true;
-      cleanupProcesses();
-    }
-  });
+  }
 });
+
+app.get("/song/file/:trackId", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Must be logged in",
+    });
+  }
+
+  const username = req.session.user.username;
+  const trackId = req.params.trackId;
+  const userDownloads = getUserDownloads(username);
+
+  const download = userDownloads.find(
+    (item) => item.trackId === trackId,
+  );
+
+  if (!download?.file) {
+    return res.status(404).json({
+      message: "Downloaded song not found",
+    });
+  }
+
+  const resolvedFile = path.resolve(download.file);
+  const resolvedDownloadDir = path.resolve(DOWNLOAD_DIR);
+
+  if (
+    resolvedFile !== resolvedDownloadDir &&
+    !resolvedFile.startsWith(
+      `${resolvedDownloadDir}${path.sep}`,
+    )
+  ) {
+    return res.status(403).json({
+      message: "Invalid download path",
+    });
+  }
+
+  if (!fs.existsSync(resolvedFile)) {
+    return res.status(404).json({
+      message: "Downloaded file no longer exists",
+    });
+  }
+
+  return res.sendFile(resolvedFile);
+});
+
+app.get("/lyrics/:trackId", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({
+      message: "Must be logged in",
+    });
+  }
+
+  const trackId = req.params.trackId;
+  const cached = lyricsCache.get(trackId);
+
+  if (
+    cached &&
+    cached.expiresAt > Date.now()
+  ) {
+    return res.status(200).json(cached.data);
+  }
+
+  if (cached) {
+    lyricsCache.delete(trackId);
+  }
+
+  try {
+    const response = await fetch(
+      `${LYRICSTIFY_API_URL}/${encodeURIComponent(trackId)}`,
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        message:
+          data?.message ||
+          "Lyrics unavailable",
+      });
+    }
+
+    lyricsCache.set(trackId, {
+      data,
+      expiresAt:
+        Date.now() + LYRIC_CACHE_TTL_MS,
+    });
+
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error(
+      "LYRICSTIFY ERROR:",
+      error,
+    );
+
+    return res.status(502).json({
+      message: "Lyrics service unavailable",
+    });
+  }
+});
+
 app.delete("/song/download/:trackId", (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({
@@ -1269,9 +1703,7 @@ app.delete("/song/download/:trackId", (req, res) => {
 
   saveDownloads(downloads);
 
-  const playlistsData = fs.readFileSync("./playlists.json", "utf-8");
-
-  const playlists = JSON.parse(playlistsData);
+  const playlists = loadPlaylists();
 
   for (const playlist of playlists) {
     if (playlist.owner !== username) {
@@ -1280,14 +1712,11 @@ app.delete("/song/download/:trackId", (req, res) => {
 
     if (Array.isArray(playlist.downloaded)) {
       playlist.downloaded = playlist.downloaded.filter((id) => id !== trackId);
+      playlist.updatedAt = new Date().toISOString();
     }
   }
 
-  fs.writeFileSync(
-    "./playlists.json",
-    JSON.stringify(playlists, null, 2),
-    "utf-8",
-  );
+  savePlaylists(playlists);
 
   return res.status(200).json({
     message: "Download deleted",

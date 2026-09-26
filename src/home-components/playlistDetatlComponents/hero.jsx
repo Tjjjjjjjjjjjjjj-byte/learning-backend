@@ -1,4 +1,5 @@
 import "../../styling/hero.css";
+import { formatRelativeDate } from "../../utils/dateUtils.js";
 
 function Hero({
   selectedPlaylist,
@@ -43,6 +44,12 @@ function Hero({
 
           <span>
             {trackCount} {trackCount === 1 ? "song" : "songs"}
+          </span>
+
+          <span>•</span>
+
+          <span>
+            Created {formatRelativeDate(selectedPlaylist.createdAt)}
           </span>
 
           {trackCount > 0 && (

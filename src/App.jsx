@@ -36,6 +36,7 @@ function App() {
   const [playbackPlaylistId, setPlaybackPlaylistId] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [sourceRetry, setSourceRetry] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState("off");
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState(0);
@@ -46,6 +47,8 @@ function App() {
   const currentRef = useRef(null);
   const tracksRef = useRef([]);
   const sourceRequestRef = useRef(0);
+  const sourceRetryAttemptedRef = useRef(false);
+  const sourceRetryInProgressRef = useRef(false);
   const isPlayingRef = useRef(false);
   const repeatModeRef = useRef(repeatMode);
   const originalQueueRef = useRef([]);
@@ -55,12 +58,83 @@ function App() {
   }, [current]);
 
   useEffect(() => {
+    sourceRetryAttemptedRef.current = false;
+  }, [current]);
+
+  useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
 
   useEffect(() => {
     tracksRef.current = playbackTracks;
   }, [playbackTracks]);
+
+  const playbackPreloadKey = playbackTracks
+    .map((track) => track?.id)
+    .filter(Boolean)
+    .sort()
+    .join("|");
+
+  useEffect(() => {
+    const tracks = playbackTracks
+      .filter(
+        (track) =>
+          track?.id &&
+          track?.name &&
+          track?.artists?.[0]?.name &&
+          !track.downloaded,
+      )
+      .map((track) => ({
+        id: track.id,
+        name: track.name,
+        artist: track.artists[0].name,
+      }));
+
+    if (!tracks.length) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function preloadPlaybackUrls() {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/song/preload",
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ tracks }),
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+
+          throw new Error(
+            data.message ||
+              "Failed to preload playback URLs",
+          );
+        }
+      } catch (error) {
+        if (error.name === "AbortError") {
+          return;
+        }
+
+        console.error(
+          "PLAYBACK URL PRELOAD ERROR:",
+          error,
+        );
+      }
+    }
+
+    preloadPlaybackUrls();
+
+    return () => controller.abort();
+  }, [playbackPreloadKey]);
 
   useEffect(() => {
     if (
@@ -156,7 +230,30 @@ function App() {
     }
 
     function handleError() {
-      console.error("AUDIO PLAYBACK ERROR:", audio.error);
+      const currentId = currentRef.current;
+      const track = tracksRef.current.find(
+        (item) => item?.id === currentId,
+      );
+
+      if (
+        track &&
+        !track.downloaded &&
+        !sourceRetryAttemptedRef.current
+      ) {
+        sourceRetryAttemptedRef.current = true;
+        sourceRetryInProgressRef.current = true;
+        console.warn(
+          "AUDIO SOURCE FAILED. RETRYING WITH A FRESH URL.",
+        );
+        setSourceRetry((value) => value + 1);
+        setIsPlaying(true);
+        return;
+      }
+
+      console.error(
+        "AUDIO PLAYBACK ERROR:",
+        audio.error,
+      );
       setIsPlaying(false);
     }
 
@@ -265,15 +362,26 @@ function App() {
 
     async function loadAudioSource() {
       try {
+        const refreshQuery =
+          sourceRetryAttemptedRef.current
+            ? "&refresh=1"
+            : "";
+
         const endpoint = selectedTrack.downloaded
           ? `http://localhost:3000/song/file/${encodeURIComponent(
               selectedTrack.id,
             )}`
           : `http://localhost:3000/song/stream/${encodeURIComponent(
               selectedTrack.id,
-            )}?name=${name}&artist=${artist}`;
+            )}?name=${name}&artist=${artist}${refreshQuery}`;
 
         let source = endpoint;
+
+        if (selectedTrack.downloaded) {
+          audio.crossOrigin = "use-credentials";
+        } else {
+          audio.removeAttribute("crossorigin");
+        }
 
         if (!selectedTrack.downloaded) {
           const response = await fetch(endpoint, {
@@ -307,6 +415,7 @@ function App() {
 
         audio.src = source;
         audio.load();
+        sourceRetryInProgressRef.current = false;
 
         if (!isPlayingRef.current) return;
 
@@ -364,6 +473,15 @@ function App() {
       } catch (error) {
         if (controller.signal.aborted) return;
 
+        if (
+          sourceRetryInProgressRef.current &&
+          sourceRequestRef.current !== requestId
+        ) {
+          return;
+        }
+
+        sourceRetryInProgressRef.current = false;
+
         console.error(
           "AUDIO SOURCE/PLAY FAILED:",
           error,
@@ -376,7 +494,7 @@ function App() {
     loadAudioSource();
 
     return () => controller.abort();
-  }, [current]);
+  }, [current, sourceRetry]);
 
   useEffect(() => {
     const audio = audioRef.current;

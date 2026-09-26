@@ -456,7 +456,7 @@ function ExpandedPlayer({
 
             </div>
 
-            <LyricsSection />
+            <LyricsSection currentTrack={currentTrack} currentTime={currentTime} />
 
             <div className="sleep-timer">
               <div>
