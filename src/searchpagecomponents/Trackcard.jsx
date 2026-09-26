@@ -75,6 +75,7 @@ function TrackCard({
             artist:
               track.artists?.[0]
                 ?.name,
+            duration_ms: Number(track.duration_ms) || null,
           }),
         },
       );

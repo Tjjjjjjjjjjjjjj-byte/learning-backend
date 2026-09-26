@@ -8,7 +8,7 @@
   --auth-text-muted: #b3b3b3;
   --auth-accent: #1db954;
   --auth-accent-hover: #1ed760;
-  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --auth-font: "Times New Roman", Times, serif;
 }
 
 .search-page {

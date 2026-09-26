@@ -18,7 +18,7 @@
   --auth-text-muted: #b3b3b3;
   --auth-accent: #1db954;
   --auth-accent-soft: rgba(29, 185, 84, 0.18);
-  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --auth-font: "Times New Roman", Times, serif;
   /* Distance from viewport top to where the sidebar starts:
      top page-margin + nav height + gap between nav and sidebar. */
   --sidebar-top: calc(var(--page-margin) * 2 + var(--nav-height));

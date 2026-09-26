@@ -81,6 +81,7 @@ function Song({
           trackId: track.id,
           name: track.name,
           artist: track.artists?.[0]?.name,
+            duration_ms: Number(track.duration_ms) || null,
         }),
       });
 

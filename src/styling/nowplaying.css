@@ -771,11 +771,7 @@
 
 .search-now-playing-bar {
   border-color: rgba(255, 255, 255, .14);
-  background:
-    radial-gradient(circle at 8% 15%, rgba(70, 125, 180, .22), transparent 34%),
-    radial-gradient(circle at 88% 20%, rgba(130, 70, 170, .2), transparent 36%),
-    radial-gradient(circle at 52% 120%, rgba(45, 125, 125, .16), transparent 42%),
-    linear-gradient(115deg, rgba(13, 18, 27, .9), rgba(24, 17, 34, .86), rgba(11, 24, 27, .9));
+  background: rgba(18, 18, 18, .94);
   backdrop-filter: blur(24px) saturate(135%);
   -webkit-backdrop-filter: blur(24px) saturate(135%);
   box-shadow:
@@ -789,14 +785,7 @@
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background:
-    linear-gradient(
-      105deg,
-      rgba(255, 255, 255, .05),
-      transparent 28%,
-      rgba(120, 160, 220, .06) 58%,
-      transparent 82%
-    );
+  background: transparent;
   pointer-events: none;
 }
 

@@ -174,6 +174,7 @@ function Features({
                   artist:
                     song.artists?.[0]
                       ?.name,
+                  duration_ms: Number(song.duration_ms) || null,
                 },
               ),
             },

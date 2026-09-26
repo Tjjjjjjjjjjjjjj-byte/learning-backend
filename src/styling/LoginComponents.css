@@ -25,7 +25,7 @@
   --auth-error-soft: rgba(241, 94, 108, 0.16);
   --auth-radius: 6px;
   --auth-radius-pill: 500px;
-  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --auth-font: "Times New Roman", Times, serif;
   --auth-content-width: 400px;
 }
 

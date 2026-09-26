@@ -36,12 +36,7 @@
   background: #282828;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
   color: #ffffff;
-  font-family:
-    "Roboto",
-    -apple-system,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+  font-family: "Times New Roman", Times, serif;
   animation:
     edit-modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

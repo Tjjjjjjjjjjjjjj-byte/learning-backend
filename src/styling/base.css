@@ -1,4 +1,5 @@
 :root {
+  --app-font: "Times New Roman", Times, serif;
   --page-margin: 8px;
   --panel-radius: 10px;
   --nav-height: 64px;
@@ -9,4 +10,18 @@
   :root {
     --nav-height: 108px;
   }
+}
+
+
+html,
+body,
+#root {
+  font-family: var(--app-font);
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
 }

@@ -88,6 +88,7 @@ function App() {
         id: track.id,
         name: track.name,
         artist: track.artists[0].name,
+        duration_ms: Number(track.duration_ms) || null,
       }));
 
     if (!tracks.length) {
@@ -373,7 +374,9 @@ function App() {
             )}`
           : `http://localhost:3000/song/stream/${encodeURIComponent(
               selectedTrack.id,
-            )}?name=${name}&artist=${artist}${refreshQuery}`;
+            )}?name=${name}&artist=${artist}&durationMs=${encodeURIComponent(
+                selectedTrack.duration_ms || "",
+              )}${refreshQuery}`;
 
         let source = endpoint;
 

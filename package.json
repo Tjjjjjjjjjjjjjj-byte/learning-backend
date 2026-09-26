@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "nodemon --env-file=.env servers.js"
+    "start": "nodemon --env-file=.env backend/server.js"
   },
   "dependencies": {
     "cors": "^2.8.6",

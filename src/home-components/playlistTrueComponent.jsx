@@ -174,6 +174,7 @@ function PlaylistModal({
             trackId: song.id,
             name: song.name,
             artist: song.artists?.[0]?.name,
+            duration_ms: Number(song.duration_ms) || null,
           }),
         });
 

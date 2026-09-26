@@ -17,7 +17,7 @@
   --auth-accent: #1db954;
   --auth-accent-hover: #1ed760;
   --auth-accent-soft: rgba(29, 185, 84, 0.18);
-  --auth-font: "Roboto", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --auth-font: "Times New Roman", Times, serif;
 
   --nav-icon-size: clamp(40px, 4vw, 44px);
   --nav-avatar-size: clamp(34px, 3.5vw, 38px);
