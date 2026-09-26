@@ -982,7 +982,6 @@ app.get("/song/stream/:trackId", (req, res) => {
 
   const username = req.session.user.username;
   const trackId = req.params.trackId;
-
   const userDownloads = getUserDownloads(username);
 
   const download = userDownloads.find(
@@ -1002,7 +1001,8 @@ app.get("/song/stream/:trackId", (req, res) => {
 
   if (!name || !artist) {
     return res.status(400).json({
-      message: "Track name and artist are required for online playback",
+      message:
+        "Track name and artist are required for online playback",
     });
   }
 
@@ -1029,11 +1029,15 @@ app.get("/song/stream/:trackId", (req, res) => {
   });
 
   onlineSearch.on("error", (error) => {
-    console.error("ONLINE SEARCH ERROR:", error);
+    console.error(
+      "ONLINE SEARCH ERROR:",
+      error,
+    );
 
     if (!res.headersSent) {
-      return res.status(500).json({
-        message: "Failed to start YouTube search",
+      res.status(500).json({
+        message:
+          "Failed to start YouTube search",
       });
     }
   });
@@ -1060,7 +1064,8 @@ app.get("/song/stream/:trackId", (req, res) => {
       .split("\n")
       .filter(Boolean)
       .map((line) => {
-        const [id, title, uploader, url] = line.split("|");
+        const [id, title, uploader, url] =
+          line.split("|");
 
         return {
           id,
@@ -1073,103 +1078,135 @@ app.get("/song/stream/:trackId", (req, res) => {
 
     if (results.length === 0) {
       return res.status(404).json({
-        message: "Song not found on YouTube",
+        message:
+          "Song not found on YouTube",
       });
     }
 
-    const normalizedArtist = artist.toLowerCase();
+    const normalizedArtist =
+      artist.toLowerCase();
 
-    const matchedVideo = results.find((video) =>
-      video.uploader
-        ?.toLowerCase()
-        .includes(normalizedArtist),
+    const matchedVideo = results.find(
+      (video) =>
+        video.uploader
+          ?.toLowerCase()
+          .includes(
+            normalizedArtist,
+          ),
     );
 
-    const video = matchedVideo || results[0];
+    const video =
+      matchedVideo || results[0];
 
-    extractionProcess = spawn("yt-dlp", [
-      "-f",
-      "bestaudio",
-      "-g",
-      "--no-playlist",
-      video.url,
-    ]);
+    extractionProcess = spawn(
+      "yt-dlp",
+      [
+        "-f",
+        "bestaudio",
+        "-g",
+        "--no-playlist",
+        video.url,
+      ],
+    );
 
     let extractedUrl = "";
     let extractionError = "";
 
-    extractionProcess.stdout.on("data", (data) => {
-      extractedUrl += data.toString();
-    });
+    extractionProcess.stdout.on(
+      "data",
+      (data) => {
+        extractedUrl +=
+          data.toString();
+      },
+    );
 
-    extractionProcess.stderr.on("data", (data) => {
-      extractionError += data.toString();
-    });
+    extractionProcess.stderr.on(
+      "data",
+      (data) => {
+        extractionError +=
+          data.toString();
+      },
+    );
 
-    extractionProcess.on("error", (error) => {
-      console.error(
-        "ONLINE URL EXTRACTION ERROR:",
-        error,
-      );
-
-      if (!res.headersSent) {
-        return res.status(500).json({
-          message: "Failed to extract audio URL",
-        });
-      }
-    });
-
-    extractionProcess.on("close", (exitCode) => {
-      if (res.headersSent) return;
-
-      const audioUrl = extractedUrl
-        .trim()
-        .split(/\r?\n/)
-        .find(Boolean);
-
-      if (exitCode !== 0) {
+    extractionProcess.on(
+      "error",
+      (error) => {
         console.error(
-          "ONLINE URL EXTRACTION FAILED:",
-          extractionError.trim(),
+          "ONLINE URL EXTRACTION ERROR:",
+          error,
         );
 
-        return res.status(500).json({
-          message: "Failed to extract playable audio URL",
-          error:
-            extractionError.trim() ||
-            "yt-dlp could not extract the audio URL",
-        });
-      }
-
-      if (!audioUrl) {
-        return res.status(502).json({
-          message: "yt-dlp returned no playable audio URL",
-        });
-      }
-
-      try {
-        const parsedUrl = new URL(audioUrl);
-
-        if (
-          !["http:", "https:"].includes(
-            parsedUrl.protocol,
-          )
-        ) {
-          throw new Error(
-            "Unsupported audio URL protocol",
-          );
+        if (!res.headersSent) {
+          res.status(500).json({
+            message:
+              "Failed to extract audio URL",
+          });
         }
-      } catch {
-        return res.status(502).json({
-          message: "yt-dlp returned an invalid audio URL",
-        });
-      }
+      },
+    );
 
-      return res.status(200).json({
-        url: audioUrl,
-        downloaded: false,
-      });
-    });
+    extractionProcess.on(
+      "close",
+      (exitCode) => {
+        if (res.headersSent) return;
+
+        const audioUrl =
+          extractedUrl
+            .trim()
+            .split(/\r?\n/)
+            .find(Boolean);
+
+        if (exitCode !== 0) {
+          console.error(
+            "ONLINE URL EXTRACTION FAILED:",
+            extractionError.trim(),
+          );
+
+          return res.status(500).json({
+            message:
+              "Failed to extract playable audio URL",
+            error:
+              extractionError.trim() ||
+              "yt-dlp could not extract the audio URL",
+          });
+        }
+
+        if (!audioUrl) {
+          return res.status(502).json({
+            message:
+              "yt-dlp returned no playable audio URL",
+          });
+        }
+
+        try {
+          const parsedUrl =
+            new URL(audioUrl);
+
+          if (
+            ![
+              "http:",
+              "https:",
+            ].includes(
+              parsedUrl.protocol,
+            )
+          ) {
+            throw new Error(
+              "Unsupported audio URL protocol",
+            );
+          }
+        } catch {
+          return res.status(502).json({
+            message:
+              "yt-dlp returned an invalid audio URL",
+          });
+        }
+
+        return res.status(200).json({
+          url: audioUrl,
+          downloaded: false,
+        });
+      },
+    );
   });
 
   req.on("close", () => {

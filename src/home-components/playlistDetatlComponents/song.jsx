@@ -17,34 +17,16 @@ function Song({
   isSelected,
   onToggleSelect,
 }) {
-  const [
-    confirmOpen,
-    setConfirmOpen,
-  ] = useState(false);
-
-  const [
-    downloadConfirmOpen,
-    setDownloadConfirmOpen,
-  ] = useState(false);
-
-  const [
-    removing,
-    setRemoving,
-  ] = useState(false);
-
-  const [
-    deletingDownload,
-    setDeletingDownload,
-  ] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [downloadConfirmOpen, setDownloadConfirmOpen] =
+    useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [deletingDownload, setDeletingDownload] = useState(false);
 
   if (!track) return null;
 
-  const isCurrentTrack =
-    current === track.id;
-
-  const isDownloading =
-    downloadingTrackId ===
-    track.id;
+  const isCurrentTrack = current === track.id;
+  const isDownloading = downloadingTrackId === track.id;
 
   function togglePlay(e) {
     if (e) {
@@ -52,18 +34,13 @@ function Song({
     }
 
     if (isCurrentTrack) {
-      setIsPlaying(
-        !isPlaying,
-      );
-    } else {
-      setCurrent(track.id);
-
-      setCurrentPlaylistId(
-        selectedPlaylist.id,
-      );
-
-      setIsPlaying(true);
+      setIsPlaying(!isPlaying);
+      return;
     }
+
+    setCurrent(track.id);
+    setCurrentPlaylistId(selectedPlaylist.id);
+    setIsPlaying(true);
   }
 
   function handleRowClick(e) {
@@ -76,20 +53,12 @@ function Song({
     togglePlay(e);
   }
 
-  function formatDuration(
-    duration,
-  ) {
-    const minutes =
-      Math.floor(
-        duration / 60000,
-      );
+  function formatDuration(duration) {
+    const minutes = Math.floor(duration / 60000);
 
-    const seconds =
-      Math.floor(
-        (duration %
-          60000) /
-          1000,
-      );
+    const seconds = Math.floor(
+      (duration % 60000) / 1000,
+    );
 
     return `${minutes}:${seconds
       .toString()
@@ -97,126 +66,89 @@ function Song({
   }
 
   async function downloadSong() {
-    if (
-      track.downloaded ||
-      isDownloading
-    ) {
+    if (track.downloaded || isDownloading) {
       return;
     }
 
-    setDownloadingTrackId(
-      track.id,
-    );
+    setDownloadingTrackId(track.id);
 
     try {
-      const response =
-        await fetch(
-          "http://localhost:3000/song/download",
-          {
-            method: "POST",
-            credentials:
-              "include",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              trackId:
-                track.id,
-              name:
-                track.name,
-              artist:
-                track.artists?.[0]
-                  ?.name,
-            }),
+      const response = await fetch(
+        "http://localhost:3000/song/download",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            trackId: track.id,
+            name: track.name,
+            artist: track.artists?.[0]?.name,
+          }),
+        },
+      );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            "Download failed",
+          data.message || "Download failed",
         );
       }
 
-      setTrack(
-        (prev) =>
-          prev.map(
-            (song) =>
-              song.id ===
-              track.id
-                ? {
-                    ...song,
-                    downloaded:
-                      true,
-                  }
-                : song,
-          ),
+      setTrack((prev) =>
+        prev.map((song) =>
+          song.id === track.id
+            ? {
+                ...song,
+                downloaded: true,
+              }
+            : song,
+        ),
       );
 
-      setPlaybackTracks(
-        (prev) =>
-          prev.map(
-            (song) =>
-              song.id ===
-              track.id
-                ? {
-                    ...song,
-                    downloaded:
-                      true,
-                  }
-                : song,
-          ),
+      setPlaybackTracks((prev) =>
+        prev.map((song) =>
+          song.id === track.id
+            ? {
+                ...song,
+                downloaded: true,
+              }
+            : song,
+        ),
       );
     } catch (error) {
-      console.error(
-        "DOWNLOAD ERROR:",
-        error,
-      );
+      console.error("DOWNLOAD ERROR:", error);
     } finally {
-      setDownloadingTrackId(
-        null,
-      );
+      setDownloadingTrackId(null);
     }
   }
 
   async function deleteDownload() {
-    if (
-      !track.downloaded ||
-      deletingDownload
-    ) {
+    if (!track.downloaded || deletingDownload) {
       return;
     }
 
-    if (
-      current === track.id
-    ) {
+    if (current === track.id) {
       setIsPlaying(false);
       setCurrent(null);
     }
 
-    setDeletingDownload(
-      true,
-    );
+    setDeletingDownload(true);
 
     try {
-      const response =
-        await fetch(
-          `http://localhost:3000/song/download/${encodeURIComponent(
-            track.id,
-          )}`,
-          {
-            method: "DELETE",
-            credentials:
-              "include",
-          },
-        );
+      const response = await fetch(
+        `http://localhost:3000/song/download/${encodeURIComponent(
+          track.id,
+        )}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -225,48 +157,36 @@ function Song({
         );
       }
 
-      setTrack(
-        (prev) =>
-          prev.map(
-            (song) =>
-              song.id ===
-              track.id
-                ? {
-                    ...song,
-                    downloaded:
-                      false,
-                  }
-                : song,
-          ),
+      setTrack((prev) =>
+        prev.map((song) =>
+          song.id === track.id
+            ? {
+                ...song,
+                downloaded: false,
+              }
+            : song,
+        ),
       );
 
-      setPlaybackTracks(
-        (prev) =>
-          prev.map(
-            (song) =>
-              song.id ===
-              track.id
-                ? {
-                    ...song,
-                    downloaded:
-                      false,
-                  }
-                : song,
-          ),
+      setPlaybackTracks((prev) =>
+        prev.map((song) =>
+          song.id === track.id
+            ? {
+                ...song,
+                downloaded: false,
+              }
+            : song,
+        ),
       );
 
-      setDownloadConfirmOpen(
-        false,
-      );
+      setDownloadConfirmOpen(false);
     } catch (error) {
       console.error(
         "DELETE DOWNLOAD ERROR:",
         error,
       );
     } finally {
-      setDeletingDownload(
-        false,
-      );
+      setDeletingDownload(false);
     }
   }
 
@@ -276,28 +196,21 @@ function Song({
     setRemoving(true);
 
     try {
-      const response =
-        await fetch(
-          `http://localhost:3000/add/${selectedPlaylist.id}`,
-          {
-            method: "DELETE",
-            credentials:
-              "include",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify(
-              {
-                trackId:
-                  track.id,
-              },
-            ),
+      const response = await fetch(
+        `http://localhost:3000/add/${selectedPlaylist.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            trackId: track.id,
+          }),
+        },
+      );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -306,13 +219,10 @@ function Song({
         );
       }
 
-      setTrack(
-        (prev) =>
-          prev.filter(
-            (song) =>
-              song.id !==
-              track.id,
-          ),
+      setTrack((prev) =>
+        prev.filter(
+          (song) => song.id !== track.id,
+        ),
       );
 
       setConfirmOpen(false);
@@ -365,15 +275,10 @@ function Song({
               className="song-download-indicator downloaded"
               type="button"
               title="Delete downloaded file"
-              disabled={
-                deletingDownload
-              }
+              disabled={deletingDownload}
               onClick={(e) => {
                 e.stopPropagation();
-
-                setDownloadConfirmOpen(
-                  true,
-                );
+                setDownloadConfirmOpen(true);
               }}
             >
               <span className="material-symbols-outlined">
@@ -406,35 +311,30 @@ function Song({
           )}
 
           {!selectMode && (
-          <span className="song-index">
-            {index + 1}
-          </span>
+            <span className="song-index">
+              {index + 1}
+            </span>
           )}
 
           {!selectMode && (
-          <button
-            className="song-row-play"
-            type="button"
-            onClick={
-              togglePlay
-            }
-          >
-            <span className="material-symbols-outlined">
-              {isCurrentTrack &&
-              isPlaying
-                ? "pause"
-                : "play_arrow"}
-            </span>
-          </button>
+            <button
+              className="song-row-play"
+              type="button"
+              onClick={togglePlay}
+            >
+              <span className="material-symbols-outlined">
+                {isCurrentTrack && isPlaying
+                  ? "pause"
+                  : "play_arrow"}
+              </span>
+            </button>
           )}
         </div>
 
         <div className="song-title">
           <img
             src={
-              track.album
-                ?.images?.[0]
-                ?.url
+              track.album?.images?.[0]?.url
             }
             alt={
               track.album?.name ||
@@ -450,8 +350,7 @@ function Song({
             <p className="song-artist">
               {track.artists
                 ?.map(
-                  (artist) =>
-                    artist.name,
+                  (artist) => artist.name,
                 )
                 .join(", ")}
             </p>
@@ -478,10 +377,7 @@ function Song({
           title="Remove from playlist"
           onClick={(e) => {
             e.stopPropagation();
-
-            setConfirmOpen(
-              true,
-            );
+            setConfirmOpen(true);
           }}
         >
           <span className="material-symbols-outlined">
@@ -494,33 +390,24 @@ function Song({
         <div className="confirm">
           <div>
             <p>
-              Are you sure? This
-              action cannot be
-              undone
+              Are you sure? This action
+              cannot be undone
             </p>
 
             <div className="confirm-buttons">
               <button
                 className="DELETE"
-                disabled={
-                  removing
-                }
-                onClick={
-                  deleteSong
-                }
+                disabled={removing}
+                onClick={deleteSong}
               >
                 Yes, Delete
               </button>
 
               <button
                 className="No"
-                disabled={
-                  removing
-                }
+                disabled={removing}
                 onClick={() =>
-                  setConfirmOpen(
-                    false,
-                  )
+                  setConfirmOpen(false)
                 }
               >
                 Cancel
@@ -538,38 +425,28 @@ function Song({
             </span>
 
             <h3>
-              Delete downloaded
-              file?
+              Delete downloaded file?
             </h3>
 
             <p>
-              {track.name} will
-              stay in this
+              {track.name} will stay in this
               playlist.
             </p>
 
             <div className="download-confirm-buttons">
               <button
                 className="download-delete-confirm"
-                disabled={
-                  deletingDownload
-                }
-                onClick={
-                  deleteDownload
-                }
+                disabled={deletingDownload}
+                onClick={deleteDownload}
               >
                 Delete Download
               </button>
 
               <button
                 className="download-cancel-confirm"
-                disabled={
-                  deletingDownload
-                }
+                disabled={deletingDownload}
                 onClick={() =>
-                  setDownloadConfirmOpen(
-                    false,
-                  )
+                  setDownloadConfirmOpen(false)
                 }
               >
                 Cancel

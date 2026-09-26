@@ -6,8 +6,11 @@ import { useEffect, useState } from "react";
 import "../styling/home.css";
 
 function Home({ player }) {
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
-  const [minimized, setMinimized] = useState(true);
+  const [selectedPlaylist, setSelectedPlaylist] =
+    useState(null);
+
+  const [minimized, setMinimized] =
+    useState(true);
 
   const {
     current,
@@ -17,6 +20,8 @@ function Home({ player }) {
     isPlaying,
     setIsPlaying,
     setPlaybackTracks,
+    addToQueue,
+    playNext,
   } = player;
 
   const navigate = useNavigate();
@@ -33,10 +38,15 @@ function Home({ player }) {
         );
 
         if (response.status !== 200) {
-          navigate("/login", { replace: true });
+          navigate("/login", {
+            replace: true,
+          });
         }
       } catch (error) {
-        console.error("Session check failed:", error);
+        console.error(
+          "Session check failed:",
+          error,
+        );
       }
     }
 
@@ -51,32 +61,56 @@ function Home({ player }) {
           : " sidebar-expanded"
       }`}
     >
-      <Nav setSelectedPlaylist={setSelectedPlaylist} />
+      <Nav
+        setSelectedPlaylist={
+          setSelectedPlaylist
+        }
+      />
 
       <PlaylistSidebar
-        selectedPlaylist={selectedPlaylist}
-        setSelectedPlaylist={setSelectedPlaylist}
+        selectedPlaylist={
+          selectedPlaylist
+        }
+        setSelectedPlaylist={
+          setSelectedPlaylist
+        }
         minimized={minimized}
         setMinimized={setMinimized}
-        currentPlaylistId={currentPlaylistId}
+        currentPlaylistId={
+          currentPlaylistId
+        }
         setCurrent={setCurrent}
-        setCurrentPlaylistId={setCurrentPlaylistId}
+        setCurrentPlaylistId={
+          setCurrentPlaylistId
+        }
         isPlaying={isPlaying}
         setIsPlaying={setIsPlaying}
       />
 
       {selectedPlaylist && (
         <PlaylistModal
-          selectedPlaylist={selectedPlaylist}
-          setSelectedPlaylist={setSelectedPlaylist}
+          selectedPlaylist={
+            selectedPlaylist
+          }
+          setSelectedPlaylist={
+            setSelectedPlaylist
+          }
           minimized={minimized}
           setCurrent={setCurrent}
           current={current}
-          currentPlaylistId={currentPlaylistId}
-          setCurrentPlaylistId={setCurrentPlaylistId}
+          currentPlaylistId={
+            currentPlaylistId
+          }
+          setCurrentPlaylistId={
+            setCurrentPlaylistId
+          }
           isPlaying={isPlaying}
           setIsPlaying={setIsPlaying}
-          setPlaybackTracks={setPlaybackTracks}
+          setPlaybackTracks={
+            setPlaybackTracks
+          }
+          onAddToQueue={addToQueue}
+          onPlayNext={playNext}
         />
       )}
     </div>

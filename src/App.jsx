@@ -1,14 +1,32 @@
-import { Routes, Route } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
-import Home from './pages/home.jsx'
-import LoginPage from './pages/loginPage.jsx'
-import Profile from './pages/profile.jsx'
-import SearchPage from './pages/searchPage.jsx'
-import SignUpPage from './pages/signUpPage.jsx'
-import ForgotPasswordPage from './pages/forgotPasswordPage.jsx'
-import ResetPasswordPage from './pages/resetPasswordPage.jsx'
+import { Routes, Route } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import Home from "./pages/home.jsx";
+import LoginPage from "./pages/loginPage.jsx";
+import Profile from "./pages/profile.jsx";
+import SearchPage from "./pages/searchPage.jsx";
+import SignUpPage from "./pages/signUpPage.jsx";
+import ForgotPasswordPage from "./pages/forgotPasswordPage.jsx";
+import ResetPasswordPage from "./pages/resetPasswordPage.jsx";
+import NowPlayingBar from "./home-components/nowplayingbar.jsx";
+import "./styling/nowplaying.css";
 
 export const SEARCH_QUEUE_ID = "search-queue";
+export const FREE_QUEUE_ID = "free-queue";
+
+function shuffleTracks(tracks, currentId) {
+  const currentTrack = tracks.find((track) => track?.id === currentId);
+  const remaining = tracks.filter((track) => track?.id !== currentId);
+
+  for (let index = remaining.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [remaining[index], remaining[randomIndex]] = [
+      remaining[randomIndex],
+      remaining[index],
+    ];
+  }
+
+  return currentTrack ? [currentTrack, ...remaining] : remaining;
+}
 
 function App() {
   const [current, setCurrent] = useState(null);
@@ -18,12 +36,19 @@ function App() {
   const [playbackPlaylistId, setPlaybackPlaylistId] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState("off");
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState(0);
+  const [sleepTimerEndsAt, setSleepTimerEndsAt] = useState(null);
+  const [sleepRemaining, setSleepRemaining] = useState(0);
 
   const audioRef = useRef(null);
   const currentRef = useRef(null);
   const tracksRef = useRef([]);
   const sourceRequestRef = useRef(0);
   const isPlayingRef = useRef(false);
+  const repeatModeRef = useRef(repeatMode);
+  const originalQueueRef = useRef([]);
 
   useEffect(() => {
     currentRef.current = current;
@@ -38,13 +63,15 @@ function App() {
   }, [playbackTracks]);
 
   useEffect(() => {
-    if (!currentPlaylistId) {
-      setPlaybackTracks([]);
-      setPlaybackPlaylistId(null);
+    if (
+      !currentPlaylistId ||
+      currentPlaylistId === SEARCH_QUEUE_ID ||
+      currentPlaylistId === FREE_QUEUE_ID
+    ) {
       return;
     }
 
-    if (currentPlaylistId === SEARCH_QUEUE_ID) {
+    if (playbackPlaylistId === currentPlaylistId) {
       return;
     }
 
@@ -83,7 +110,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentPlaylistId]);
+  }, [currentPlaylistId, playbackPlaylistId, playbackTracks.length]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -120,27 +147,44 @@ function App() {
       const tracks = tracksRef.current;
       const currentId = currentRef.current;
 
+      if (!tracks.length || !currentId) {
+        setIsPlaying(false);
+        return;
+      }
+
+      if (repeatModeRef.current === "one") {
+        audio.currentTime = 0;
+
+        audio.play().catch((error) => {
+          console.error("REPEAT PLAY FAILED:", error);
+          setIsPlaying(false);
+        });
+
+        return;
+      }
+
       const currentIndex = tracks.findIndex(
-        (track) => track.id === currentId,
+        (track) => track?.id === currentId,
       );
 
-      if (currentIndex === -1) {
-        setIsPlaying(false);
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex < tracks.length) {
+        setCurrent(tracks[nextIndex].id);
+        setIsPlaying(true);
         return;
       }
 
-      const nextTrack = tracks[currentIndex + 1];
-
-      if (!nextTrack) {
-        setIsPlaying(false);
-        setCurrent(null);
-        setCurrentTime(0);
-        setDuration(0);
+      if (repeatModeRef.current === "all" && tracks.length > 0) {
+        setCurrent(tracks[0].id);
+        setIsPlaying(true);
         return;
       }
 
-      setCurrent(nextTrack.id);
-      setIsPlaying(true);
+      setIsPlaying(false);
+      setCurrent(null);
+      setCurrentTime(0);
+      setDuration(0);
     }
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -163,30 +207,31 @@ function App() {
   }, []);
 
   useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+
+  useEffect(() => {
     const audio = audioRef.current;
 
     if (!audio) return;
 
-    const selectedTrack =
-      playbackPlaylistId === currentPlaylistId
-        ? playbackTracks.find((track) => track.id === current)
-        : null;
+    const selectedTrack = tracksRef.current.find(
+      (track) => track?.id === current,
+    );
 
     const requestId = sourceRequestRef.current + 1;
     sourceRequestRef.current = requestId;
+
     const controller = new AbortController();
 
     if (!current || !selectedTrack) {
       audio.pause();
       audio.removeAttribute("src");
       audio.load();
-
       setCurrentTime(0);
       setDuration(0);
 
-      return () => {
-        controller.abort();
-      };
+      return () => controller.abort();
     }
 
     audio.pause();
@@ -196,41 +241,44 @@ function App() {
     setCurrentTime(0);
     setDuration(0);
 
+    const name = encodeURIComponent(selectedTrack.name || "");
+    const artist = encodeURIComponent(
+      selectedTrack.artists?.[0]?.name || "",
+    );
+
     async function loadAudioSource() {
       try {
-        let audioUrl;
-
-        if (selectedTrack.downloaded) {
-          audioUrl = `http://localhost:3000/song/file/${encodeURIComponent(
-            selectedTrack.id,
-          )}`;
-        } else {
-          const name = encodeURIComponent(selectedTrack.name || "");
-          const artist = encodeURIComponent(
-            selectedTrack.artists?.[0]?.name || "",
-          );
-
-          const response = await fetch(
-            `http://localhost:3000/song/stream/${encodeURIComponent(
+        const endpoint = selectedTrack.downloaded
+          ? `http://localhost:3000/song/file/${encodeURIComponent(
               selectedTrack.id,
-            )}?name=${name}&artist=${artist}`,
-            {
-              credentials: "include",
-              signal: controller.signal,
-            },
-          );
+            )}`
+          : `http://localhost:3000/song/stream/${encodeURIComponent(
+              selectedTrack.id,
+            )}?name=${name}&artist=${artist}`;
+
+        let source = endpoint;
+
+        if (!selectedTrack.downloaded) {
+          const response = await fetch(endpoint, {
+            credentials: "include",
+            signal: controller.signal,
+          });
 
           const data = await response.json();
 
           if (!response.ok) {
-            throw new Error(data.message || "Failed to get audio URL");
+            throw new Error(
+              data.message || "Failed to get audio URL",
+            );
           }
 
           if (!data.url || typeof data.url !== "string") {
-            throw new Error("Backend returned no playable audio URL");
+            throw new Error(
+              "Backend returned no playable audio URL",
+            );
           }
 
-          audioUrl = data.url;
+          source = data.url;
         }
 
         if (
@@ -240,12 +288,10 @@ function App() {
           return;
         }
 
-        audio.src = audioUrl;
+        audio.src = source;
         audio.load();
 
-        if (!isPlayingRef.current) {
-          return;
-        }
+        if (!isPlayingRef.current) return;
 
         if (audio.readyState < 3) {
           await new Promise((resolve, reject) => {
@@ -257,22 +303,35 @@ function App() {
             const handleError = () => {
               cleanup();
               reject(
-                new Error("Audio element could not load the assigned source"),
+                new Error(
+                  "Audio element could not load the assigned source",
+                ),
               );
             };
 
             const cleanup = () => {
-              audio.removeEventListener("canplay", handleCanPlay);
-              audio.removeEventListener("error", handleError);
+              audio.removeEventListener(
+                "canplay",
+                handleCanPlay,
+              );
+
+              audio.removeEventListener(
+                "error",
+                handleError,
+              );
             };
 
-            audio.addEventListener("canplay", handleCanPlay, {
-              once: true,
-            });
+            audio.addEventListener(
+              "canplay",
+              handleCanPlay,
+              { once: true },
+            );
 
-            audio.addEventListener("error", handleError, {
-              once: true,
-            });
+            audio.addEventListener(
+              "error",
+              handleError,
+              { once: true },
+            );
           });
         }
 
@@ -288,22 +347,19 @@ function App() {
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        console.error("AUDIO SOURCE/PLAY FAILED:", error);
+        console.error(
+          "AUDIO SOURCE/PLAY FAILED:",
+          error,
+        );
+
         setIsPlaying(false);
       }
     }
 
     loadAudioSource();
 
-    return () => {
-      controller.abort();
-    };
-  }, [
-    current,
-    currentPlaylistId,
-    playbackTracks,
-    playbackPlaylistId,
-  ]);
+    return () => controller.abort();
+  }, [current]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -315,15 +371,277 @@ function App() {
       return;
     }
 
-    if (!audio.src) {
+    if (
+      audio.src &&
+      audio.readyState >= 2 &&
+      audio.paused
+    ) {
+      audio.play().catch((error) => {
+        console.error("PLAY FAILED:", error);
+        setIsPlaying(false);
+      });
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!sleepTimerEndsAt) {
+      setSleepRemaining(0);
       return;
     }
 
-    audio.play().catch((error) => {
-      console.error("AUDIO PLAY FAILED:", error);
-      setIsPlaying(false);
+    function updateTimer() {
+      const remaining = Math.max(
+        0,
+        sleepTimerEndsAt - Date.now(),
+      );
+
+      setSleepRemaining(remaining);
+
+      if (remaining <= 0) {
+        setSleepTimerMinutes(0);
+        setSleepTimerEndsAt(null);
+        setSleepRemaining(0);
+        setIsPlaying(false);
+      }
+    }
+
+    updateTimer();
+
+    const interval = window.setInterval(
+      updateTimer,
+      1000,
+    );
+
+    return () => window.clearInterval(interval);
+  }, [sleepTimerEndsAt]);
+
+  function togglePlay() {
+    if (!current) return;
+
+    setIsPlaying((value) => !value);
+  }
+
+  function nextTrack() {
+    const tracks = tracksRef.current;
+
+    if (!tracks.length) return;
+
+    const index = tracks.findIndex(
+      (track) => track?.id === current,
+    );
+
+    if (index === -1) {
+      setCurrent(tracks[0].id);
+      setIsPlaying(true);
+      return;
+    }
+
+    if (index + 1 < tracks.length) {
+      setCurrent(tracks[index + 1].id);
+      setIsPlaying(true);
+      return;
+    }
+
+    if (repeatModeRef.current === "all") {
+      setCurrent(tracks[0].id);
+      setIsPlaying(true);
+      return;
+    }
+
+    setIsPlaying(false);
+  }
+
+  function previousTrack() {
+    const audio = audioRef.current;
+
+    if (audio && audio.currentTime > 3) {
+      audio.currentTime = 0;
+      return;
+    }
+
+    const tracks = tracksRef.current;
+
+    const index = tracks.findIndex(
+      (track) => track?.id === current,
+    );
+
+    if (index > 0) {
+      setCurrent(tracks[index - 1].id);
+      setIsPlaying(true);
+    } else if (tracks.length > 0) {
+      setCurrent(tracks[0].id);
+      setIsPlaying(true);
+    }
+  }
+
+  function toggleShuffle() {
+    if (!shuffle) {
+      originalQueueRef.current =
+        tracksRef.current.map((track) => track);
+
+      setPlaybackTracks(
+        shuffleTracks(
+          tracksRef.current,
+          current,
+        ),
+      );
+
+      setShuffle(true);
+      return;
+    }
+
+    const original = originalQueueRef.current;
+
+    if (original.length > 0) {
+      const currentTrack = original.find(
+        (track) => track?.id === current,
+      );
+
+      const remaining = original.filter(
+        (track) => track?.id !== current,
+      );
+
+      setPlaybackTracks(
+        currentTrack
+          ? [currentTrack, ...remaining]
+          : original,
+      );
+    }
+
+    originalQueueRef.current = [];
+
+    setShuffle(false);
+  }
+
+  function cycleRepeat() {
+    setRepeatMode((mode) => {
+      if (mode === "off") return "all";
+      if (mode === "all") return "one";
+      return "off";
     });
-  }, [isPlaying]);
+  }
+
+  function playQueueTrack(trackId) {
+    if (trackId === current) {
+      setIsPlaying(true);
+      return;
+    }
+
+    setCurrent(trackId);
+    setIsPlaying(true);
+  }
+
+  function addToQueue(track) {
+    if (!track?.id) return;
+
+    setPlaybackTracks((tracks) => {
+      if (
+        tracks.some(
+          (item) => item?.id === track.id,
+        )
+      ) {
+        return tracks;
+      }
+
+      return [...tracks, track];
+    });
+
+    if (!current) {
+      setPlaybackPlaylistId(FREE_QUEUE_ID);
+      setCurrentPlaylistId(FREE_QUEUE_ID);
+      setCurrent(track.id);
+      setIsPlaying(true);
+    }
+  }
+
+  function playNext(track) {
+    if (!track?.id || track.id === current) return;
+
+    setPlaybackTracks((tracks) => {
+      const withoutTrack = tracks.filter(
+        (item) => item?.id !== track.id,
+      );
+
+      const currentIndex = withoutTrack.findIndex(
+        (item) => item?.id === current,
+      );
+
+      if (currentIndex === -1) {
+        return [track, ...withoutTrack];
+      }
+
+      return [
+        ...withoutTrack.slice(0, currentIndex + 1),
+        track,
+        ...withoutTrack.slice(currentIndex + 1),
+      ];
+    });
+
+    if (!current) {
+      setPlaybackPlaylistId(FREE_QUEUE_ID);
+      setCurrentPlaylistId(FREE_QUEUE_ID);
+      setCurrent(track.id);
+      setIsPlaying(true);
+    }
+  }
+
+  function removeFromQueue(trackId) {
+    if (trackId === current) return;
+
+    setPlaybackTracks((tracks) =>
+      tracks.filter(
+        (track) => track?.id !== trackId,
+      ),
+    );
+  }
+
+  function clearQueue() {
+    const currentTrack =
+      tracksRef.current.find(
+        (track) => track?.id === current,
+      );
+
+    if (currentTrack) {
+      setPlaybackTracks([currentTrack]);
+      return;
+    }
+
+    setPlaybackTracks([]);
+  }
+
+  function seekTo(value) {
+    const audio = audioRef.current;
+
+    if (!audio || !Number.isFinite(value)) return;
+
+    audio.currentTime = value;
+    setCurrentTime(value);
+  }
+
+  function setSleepTimer(minutes) {
+    const numericMinutes = Number(minutes);
+
+    if (!numericMinutes) {
+      clearSleepTimer();
+      return;
+    }
+
+    setSleepTimerMinutes(numericMinutes);
+    setSleepTimerEndsAt(
+      Date.now() + numericMinutes * 60 * 1000,
+    );
+  }
+
+  function clearSleepTimer() {
+    setSleepTimerMinutes(0);
+    setSleepTimerEndsAt(null);
+    setSleepRemaining(0);
+  }
+
+  const currentTrack =
+    playbackTracks.find(
+      (track) => track?.id === current,
+    ) || null;
 
   const player = {
     current,
@@ -338,6 +656,24 @@ function App() {
     setPlaybackPlaylistId,
     currentTime,
     duration,
+    currentTrack,
+    shuffle,
+    repeatMode,
+    togglePlay,
+    nextTrack,
+    previousTrack,
+    toggleShuffle,
+    cycleRepeat,
+    playQueueTrack,
+    addToQueue,
+    playNext,
+    removeFromQueue,
+    clearQueue,
+    seekTo,
+    sleepTimerMinutes,
+    sleepRemaining,
+    setSleepTimer,
+    clearSleepTimer,
   };
 
   return (
@@ -349,16 +685,45 @@ function App() {
       />
 
       <Routes>
-        <Route path="/home" element={<Home player={player} />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/search" element={<SearchPage player={player} />} />
-        <Route path="/signUpPage" element={<SignUpPage />} />
-        <Route path="/forgotPasswordPage" element={<ForgotPasswordPage />} />
-        <Route path="/resetPasswordPage" element={<ResetPasswordPage />} />
+        <Route
+          path="/home"
+          element={<Home player={player} />}
+        />
+
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+
+        <Route
+          path="/profile"
+          element={<Profile />}
+        />
+
+        <Route
+          path="/search"
+          element={<SearchPage player={player} />}
+        />
+
+        <Route
+          path="/signUpPage"
+          element={<SignUpPage />}
+        />
+
+        <Route
+          path="/forgotPasswordPage"
+          element={<ForgotPasswordPage />}
+        />
+
+        <Route
+          path="/resetPasswordPage"
+          element={<ResetPasswordPage />}
+        />
       </Routes>
+
+      <NowPlayingBar player={player} />
     </>
-  )
+  );
 }
 
-export default App
+export default App;

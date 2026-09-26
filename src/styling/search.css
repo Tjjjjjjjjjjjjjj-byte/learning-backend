@@ -553,3 +553,97 @@
   outline: 2px solid var(--auth-accent);
   outline-offset: -2px;
 }
+
+.search-page {
+  padding-bottom: 120px;
+}
+
+.search-result-card .track-actions {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transform: translateY(-50%);
+}
+
+.search-result-card .track-actions .add-playlist,
+.search-result-card .track-actions .track-download,
+.search-result-card .track-actions .track-download-state {
+  position: static;
+  transform: none;
+}
+
+.search-result-card .track-actions .track-download,
+.search-result-card .track-actions .track-download-state {
+  opacity: 0;
+}
+
+.search-result-card:hover .track-actions .track-download,
+.search-result-card:hover .track-actions .track-download-state {
+  opacity: 1;
+}
+
+.track-queue-action {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #8f8f8f;
+  cursor: pointer;
+  opacity: 0;
+  transition: color .15s ease, background .15s ease, opacity .15s ease;
+}
+
+.search-result-card:hover .track-queue-action,
+.search-result-card.playing .track-queue-action {
+  opacity: 1;
+}
+
+.track-queue-action:hover {
+  background: #292929;
+  color: #fff;
+}
+
+.track-queue-action .material-symbols-outlined {
+  font-size: 21px;
+}
+
+.search-result-card .track-actions .add-playlist {
+  position: static;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #8f8f8f;
+  transform: none;
+}
+
+.search-result-card .track-actions .add-playlist:hover {
+  background: #292929;
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.search-result-card .search-result-info {
+  padding-right: 180px;
+}
+
+@media (max-width: 720px) {
+  .search-result-card .search-result-info {
+    padding-right: 130px;
+  }
+
+  .track-queue-action:first-child {
+    display: none;
+  }
+}

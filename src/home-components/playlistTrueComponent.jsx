@@ -17,64 +17,32 @@ function PlaylistModal({
   isPlaying,
   setIsPlaying,
   setPlaybackTracks,
+  onAddToQueue,
+  onPlayNext,
 }) {
-  const [
-    editDetailsOpen,
-    setEditDetailsOpen,
-  ] = useState(false);
+  const [editDetailsOpen, setEditDetailsOpen] = useState(false);
 
-  const [
-    editDetailsClosing,
-    setEditDetailsClosing,
-  ] = useState(false);
+  const [editDetailsClosing, setEditDetailsClosing] = useState(false);
 
-  const [
-    track,
-    setTrack,
-  ] = useState([]);
+  const [track, setTrack] = useState([]);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    downloadingTrackId,
-    setDownloadingTrackId,
-  ] = useState(null);
+  const [downloadingTrackId, setDownloadingTrackId] = useState(null);
 
-  const [
-    selectMode,
-    setSelectMode,
-  ] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
 
-  const [
-    selectedIds,
-    setSelectedIds,
-  ] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
 
-  const [
-    bulkBusy,
-    setBulkBusy,
-  ] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
-  const [
-    bulkConfirm,
-    setBulkConfirm,
-  ] = useState(null);
+  const [bulkConfirm, setBulkConfirm] = useState(null);
 
-  const [
-    addToPlaylistOpen,
-    setAddToPlaylistOpen,
-  ] = useState(false);
+  const [addToPlaylistOpen, setAddToPlaylistOpen] = useState(false);
 
-  const [
-    otherPlaylists,
-    setOtherPlaylists,
-  ] = useState([]);
+  const [otherPlaylists, setOtherPlaylists] = useState([]);
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
   function openEditDetails() {
     setEditDetailsClosing(false);
@@ -97,50 +65,31 @@ function PlaylistModal({
 
     setEditDetailsOpen(true);
 
-    setSelectedPlaylist(
-      ({
-        _openEdit,
-        ...playlist
-      }) => playlist,
-    );
-  }, [
-    selectedPlaylist,
-    setSelectedPlaylist,
-  ]);
+    setSelectedPlaylist(({ _openEdit, ...playlist }) => playlist);
+  }, [selectedPlaylist, setSelectedPlaylist]);
 
   useEffect(() => {
     async function getTracks() {
       setLoading(true);
 
       try {
-        const response =
-          await fetch(
-            `http://localhost:3000/home/playlist/${selectedPlaylist.id}/tracks`,
-            {
-              credentials:
-                "include",
-            },
-          );
+        const response = await fetch(
+          `http://localhost:3000/home/playlist/${selectedPlaylist.id}/tracks`,
+          {
+            credentials: "include",
+          },
+        );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to get tracks",
-          );
+          throw new Error(data.message || "Failed to get tracks");
         }
 
         setTrack(data);
-        setPlaybackTracks(
-          data.filter(Boolean),
-        );
+        setPlaybackTracks(data.filter(Boolean));
       } catch (error) {
-        console.error(
-          "FAILED TO LOAD TRACKS:",
-          error,
-        );
+        console.error("FAILED TO LOAD TRACKS:", error);
 
         setTrack([]);
       } finally {
@@ -149,36 +98,22 @@ function PlaylistModal({
     }
 
     getTracks();
-  }, [
-    selectedPlaylist,
-  ]);
+  }, [selectedPlaylist]);
 
   useEffect(() => {
     async function fetchPlaylists() {
       try {
-        const response =
-          await fetch(
-            "http://localhost:3000/home",
-            {
-              credentials:
-                "include",
-            },
-          );
+        const response = await fetch("http://localhost:3000/home", {
+          credentials: "include",
+        });
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (response.ok) {
-          setOtherPlaylists(
-            data.playlists ||
-              [],
-          );
+          setOtherPlaylists(data.playlists || []);
         }
       } catch (error) {
-        console.error(
-          "FAILED TO LOAD PLAYLISTS FOR BULK ADD:",
-          error,
-        );
+        console.error("FAILED TO LOAD PLAYLISTS FOR BULK ADD:", error);
       }
     }
 
@@ -193,35 +128,19 @@ function PlaylistModal({
   function exitSelectMode() {
     setSelectMode(false);
     setSelectedIds([]);
-    setAddToPlaylistOpen(
-      false,
-    );
+    setAddToPlaylistOpen(false);
   }
 
-  function toggleSelected(
-    trackId,
-  ) {
+  function toggleSelected(trackId) {
     setSelectedIds((prev) =>
       prev.includes(trackId)
-        ? prev.filter(
-            (id) =>
-              id !== trackId,
-          )
-        : [
-            ...prev,
-            trackId,
-          ],
+        ? prev.filter((id) => id !== trackId)
+        : [...prev, trackId],
     );
   }
 
   function selectAll() {
-    setSelectedIds(
-      track
-        .filter(Boolean)
-        .map(
-          (song) => song.id,
-        ),
-    );
+    setSelectedIds(track.filter(Boolean).map((song) => song.id));
   }
 
   function clearSelection() {
@@ -229,27 +148,15 @@ function PlaylistModal({
   }
 
   async function bulkDownload() {
-    if (
-      bulkBusy ||
-      selectedIds.length === 0
-    ) {
+    if (bulkBusy || selectedIds.length === 0) {
       return;
     }
 
-    const songsToDownload =
-      track.filter(
-        (song) =>
-          song &&
-          selectedIds.includes(
-            song.id,
-          ) &&
-          !song.downloaded,
-      );
+    const songsToDownload = track.filter(
+      (song) => song && selectedIds.includes(song.id) && !song.downloaded,
+    );
 
-    if (
-      songsToDownload.length ===
-      0
-    ) {
+    if (songsToDownload.length === 0) {
       return;
     }
 
@@ -257,38 +164,23 @@ function PlaylistModal({
 
     for (const song of songsToDownload) {
       try {
-        const response =
-          await fetch(
-            "http://localhost:3000/song/download",
-            {
-              method: "POST",
-              credentials:
-                "include",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify(
-                {
-                  trackId:
-                    song.id,
-                  name: song.name,
-                  artist:
-                    song.artists?.[0]
-                      ?.name,
-                },
-              ),
-            },
-          );
+        const response = await fetch("http://localhost:3000/song/download", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            trackId: song.id,
+            name: song.name,
+            artist: song.artists?.[0]?.name,
+          }),
+        });
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message ||
-              `Failed to download ${song.name}`,
-          );
+          throw new Error(data.message || `Failed to download ${song.name}`);
         }
 
         setTrack((prev) =>
@@ -302,22 +194,18 @@ function PlaylistModal({
           ),
         );
 
-        setPlaybackTracks(
-          (prev) =>
-            prev.map((s) =>
-              s?.id === song.id
-                ? {
-                    ...s,
-                    downloaded: true,
-                  }
-                : s,
-            ),
+        setPlaybackTracks((prev) =>
+          prev.map((s) =>
+            s?.id === song.id
+              ? {
+                  ...s,
+                  downloaded: true,
+                }
+              : s,
+          ),
         );
       } catch (error) {
-        console.error(
-          `BULK DOWNLOAD FAILED: ${song.name}`,
-          error,
-        );
+        console.error(`BULK DOWNLOAD FAILED: ${song.name}`, error);
       }
     }
 
@@ -325,27 +213,15 @@ function PlaylistModal({
   }
 
   async function bulkDeleteDownload() {
-    if (
-      bulkBusy ||
-      selectedIds.length === 0
-    ) {
+    if (bulkBusy || selectedIds.length === 0) {
       return;
     }
 
-    const songsToDelete =
-      track.filter(
-        (song) =>
-          song &&
-          selectedIds.includes(
-            song.id,
-          ) &&
-          song.downloaded,
-      );
+    const songsToDelete = track.filter(
+      (song) => song && selectedIds.includes(song.id) && song.downloaded,
+    );
 
-    if (
-      songsToDelete.length ===
-      0
-    ) {
+    if (songsToDelete.length === 0) {
       return;
     }
 
@@ -353,31 +229,23 @@ function PlaylistModal({
 
     for (const song of songsToDelete) {
       try {
-        const response =
-          await fetch(
-            `http://localhost:3000/song/download/${encodeURIComponent(
-              song.id,
-            )}`,
-            {
-              method: "DELETE",
-              credentials:
-                "include",
-            },
-          );
+        const response = await fetch(
+          `http://localhost:3000/song/download/${encodeURIComponent(song.id)}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+          },
+        );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.message ||
-              `Failed to delete download for ${song.name}`,
+            data.message || `Failed to delete download for ${song.name}`,
           );
         }
 
-        if (
-          current === song.id
-        ) {
+        if (current === song.id) {
           setIsPlaying(false);
           setCurrent(null);
         }
@@ -393,22 +261,18 @@ function PlaylistModal({
           ),
         );
 
-        setPlaybackTracks(
-          (prev) =>
-            prev.map((s) =>
-              s?.id === song.id
-                ? {
-                    ...s,
-                    downloaded: false,
-                  }
-                : s,
-            ),
+        setPlaybackTracks((prev) =>
+          prev.map((s) =>
+            s?.id === song.id
+              ? {
+                  ...s,
+                  downloaded: false,
+                }
+              : s,
+          ),
         );
       } catch (error) {
-        console.error(
-          `BULK DELETE DOWNLOAD FAILED: ${song.name}`,
-          error,
-        );
+        console.error(`BULK DELETE DOWNLOAD FAILED: ${song.name}`, error);
       }
     }
 
@@ -416,96 +280,55 @@ function PlaylistModal({
   }
 
   async function bulkRemoveFromPlaylist() {
-    if (
-      bulkBusy ||
-      selectedIds.length === 0
-    ) {
+    if (bulkBusy || selectedIds.length === 0) {
       return;
     }
 
     setBulkBusy(true);
 
-    const idsToRemove = [
-      ...selectedIds,
-    ];
+    const idsToRemove = [...selectedIds];
 
     for (const trackId of idsToRemove) {
       try {
-        const response =
-          await fetch(
-            `http://localhost:3000/add/${selectedPlaylist.id}`,
-            {
-              method: "DELETE",
-              credentials:
-                "include",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify(
-                { trackId },
-              ),
+        const response = await fetch(
+          `http://localhost:3000/add/${selectedPlaylist.id}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
             },
-          );
+            body: JSON.stringify({ trackId }),
+          },
+        );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to remove song",
-          );
+          throw new Error(data.message || "Failed to remove song");
         }
 
-        setTrack((prev) =>
-          prev.filter(
-            (s) =>
-              s?.id !== trackId,
-          ),
-        );
+        setTrack((prev) => prev.filter((s) => s?.id !== trackId));
       } catch (error) {
-        console.error(
-          `BULK REMOVE FAILED: ${trackId}`,
-          error,
-        );
+        console.error(`BULK REMOVE FAILED: ${trackId}`, error);
       }
     }
 
-    setSelectedIds((prev) =>
-      prev.filter(
-        (id) =>
-          !idsToRemove.includes(
-            id,
-          ),
-      ),
-    );
+    setSelectedIds((prev) => prev.filter((id) => !idsToRemove.includes(id)));
 
     setBulkBusy(false);
   }
 
-  async function bulkAddToPlaylist(
-    targetPlaylistId,
-  ) {
-    if (
-      bulkBusy ||
-      selectedIds.length === 0
-    ) {
+  async function bulkAddToPlaylist(targetPlaylistId) {
+    if (bulkBusy || selectedIds.length === 0) {
       return;
     }
 
-    const songsToAdd =
-      track.filter(
-        (song) =>
-          song &&
-          selectedIds.includes(
-            song.id,
-          ),
-      );
+    const songsToAdd = track.filter(
+      (song) => song && selectedIds.includes(song.id),
+    );
 
-    if (
-      songsToAdd.length === 0
-    ) {
+    if (songsToAdd.length === 0) {
       return;
     }
 
@@ -513,180 +336,109 @@ function PlaylistModal({
 
     for (const song of songsToAdd) {
       try {
-        const response =
-          await fetch(
-            `http://localhost:3000/add/${targetPlaylistId}`,
-            {
-              method: "POST",
-              credentials:
-                "include",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify(
-                {
-                  trackId:
-                    song.id,
-                },
-              ),
+        const response = await fetch(
+          `http://localhost:3000/add/${targetPlaylistId}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
             },
-          );
+            body: JSON.stringify({
+              trackId: song.id,
+            }),
+          },
+        );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message ||
-              `Failed to add ${song.name}`,
-          );
+          throw new Error(data.message || `Failed to add ${song.name}`);
         }
       } catch (error) {
-        console.error(
-          `BULK ADD FAILED: ${song.name}`,
-          error,
-        );
+        console.error(`BULK ADD FAILED: ${song.name}`, error);
       }
     }
 
-    setAddToPlaylistOpen(
-      false,
-    );
+    setAddToPlaylistOpen(false);
 
     setBulkBusy(false);
   }
 
   function requestBulkDeleteDownload() {
-    const eligible =
-      track.filter(
-        (song) =>
-          song &&
-          selectedIds.includes(
-            song.id,
-          ) &&
-          song.downloaded,
-      );
+    const eligible = track.filter(
+      (song) => song && selectedIds.includes(song.id) && song.downloaded,
+    );
 
-    if (
-      eligible.length === 0
-    ) {
+    if (eligible.length === 0) {
       return;
     }
 
     setBulkConfirm({
       type: "deleteDownload",
-      count:
-        eligible.length,
+      count: eligible.length,
     });
   }
 
   function requestBulkRemove() {
-    if (
-      selectedIds.length === 0
-    ) {
+    if (selectedIds.length === 0) {
       return;
     }
 
     setBulkConfirm({
       type: "remove",
-      count:
-        selectedIds.length,
+      count: selectedIds.length,
     });
   }
 
   async function confirmBulkAction() {
-    const pending =
-      bulkConfirm;
+    const pending = bulkConfirm;
 
     setBulkConfirm(null);
 
     if (!pending) return;
 
-    if (
-      pending.type ===
-      "deleteDownload"
-    ) {
+    if (pending.type === "deleteDownload") {
       await bulkDeleteDownload();
-    } else if (
-      pending.type === "remove"
-    ) {
+    } else if (pending.type === "remove") {
       await bulkRemoveFromPlaylist();
     }
   }
 
-  const totalDuration =
-    track.reduce(
-      (total, song) =>
-        total +
-        (song?.duration_ms ||
-          0),
-      0,
-    );
+  const totalDuration = track.reduce(
+    (total, song) => total + (song?.duration_ms || 0),
+    0,
+  );
 
-  const totalMinutes =
-    Math.floor(
-      totalDuration / 60000,
-    );
+  const totalMinutes = Math.floor(totalDuration / 60000);
 
-  const totalSeconds =
-    Math.floor(
-      (totalDuration %
-        60000) /
-        1000,
-    );
+  const totalSeconds = Math.floor((totalDuration % 60000) / 1000);
 
   return (
     <>
       <main className="playlist-detail">
         <Hero
-          selectedPlaylist={
-            selectedPlaylist
-          }
-          trackCount={
-            track.length
-          }
-          totalMinutes={
-            totalMinutes
-          }
-          totalSeconds={
-            totalSeconds
-          }
+          selectedPlaylist={selectedPlaylist}
+          trackCount={track.length}
+          totalMinutes={totalMinutes}
+          totalSeconds={totalSeconds}
         />
 
         <Features
-          setEditDetailsOpen={
-            openEditDetails
-          }
+          setEditDetailsOpen={openEditDetails}
           track={track}
           setTrack={setTrack}
-          selectedPlaylist={
-            selectedPlaylist
-          }
+          selectedPlaylist={selectedPlaylist}
           current={current}
           setCurrent={setCurrent}
-          currentPlaylistId={
-            currentPlaylistId
-          }
-          setCurrentPlaylistId={
-            setCurrentPlaylistId
-          }
+          currentPlaylistId={currentPlaylistId}
+          setCurrentPlaylistId={setCurrentPlaylistId}
           isPlaying={isPlaying}
-          setIsPlaying={
-            setIsPlaying
-          }
-          downloadingTrackId={
-            downloadingTrackId
-          }
-          setDownloadingTrackId={
-            setDownloadingTrackId
-          }
-          setPlaybackTracks={
-            setPlaybackTracks
-          }
-          onEnterSelectMode={
-            enterSelectMode
-          }
+          setIsPlaying={setIsPlaying}
+          downloadingTrackId={downloadingTrackId}
+          setDownloadingTrackId={setDownloadingTrackId}
+          setPlaybackTracks={setPlaybackTracks}
+          onEnterSelectMode={enterSelectMode}
         />
 
         {selectMode && (
@@ -695,39 +447,24 @@ function PlaylistModal({
               <button
                 type="button"
                 className="bulk-select-exit"
-                onClick={
-                  exitSelectMode
-                }
+                onClick={exitSelectMode}
                 title="Exit selection"
               >
-                <span className="material-symbols-outlined">
-                  close
-                </span>
+                <span className="material-symbols-outlined">close</span>
               </button>
 
-              <span>
-                {
-                  selectedIds.length
-                }{" "}
-                selected
-              </span>
+              <span>{selectedIds.length} selected</span>
 
               <button
                 type="button"
                 className="bulk-select-link"
                 onClick={
-                  selectedIds.length ===
-                  track.filter(
-                    Boolean,
-                  ).length
+                  selectedIds.length === track.filter(Boolean).length
                     ? clearSelection
                     : selectAll
                 }
               >
-                {selectedIds.length ===
-                track.filter(
-                  Boolean,
-                ).length
+                {selectedIds.length === track.filter(Boolean).length
                   ? "Clear"
                   : "Select all"}
               </button>
@@ -736,53 +473,29 @@ function PlaylistModal({
             <div className="bulk-select-actions">
               <button
                 type="button"
-                onClick={
-                  bulkDownload
-                }
-                disabled={
-                  bulkBusy ||
-                  selectedIds.length ===
-                    0
-                }
+                onClick={bulkDownload}
+                disabled={bulkBusy || selectedIds.length === 0}
                 title="Download selected"
               >
-                <span className="material-symbols-outlined">
-                  download
-                </span>
+                <span className="material-symbols-outlined">download</span>
                 Download
               </button>
 
               <button
                 type="button"
-                onClick={
-                  requestBulkDeleteDownload
-                }
-                disabled={
-                  bulkBusy ||
-                  selectedIds.length ===
-                    0
-                }
+                onClick={requestBulkDeleteDownload}
+                disabled={bulkBusy || selectedIds.length === 0}
                 title="Delete downloads for selected"
               >
-                <span className="material-symbols-outlined">
-                  download_done
-                </span>
+                <span className="material-symbols-outlined">download_done</span>
                 Delete Download
               </button>
 
               <div className="bulk-add-wrapper">
                 <button
                   type="button"
-                  onClick={() =>
-                    setAddToPlaylistOpen(
-                      !addToPlaylistOpen,
-                    )
-                  }
-                  disabled={
-                    bulkBusy ||
-                    selectedIds.length ===
-                      0
-                  }
+                  onClick={() => setAddToPlaylistOpen(!addToPlaylistOpen)}
+                  disabled={bulkBusy || selectedIds.length === 0}
                   title="Add selected to another playlist"
                 >
                   <span className="material-symbols-outlined">
@@ -794,47 +507,24 @@ function PlaylistModal({
                 {addToPlaylistOpen && (
                   <div className="bulk-add-menu">
                     {otherPlaylists.filter(
-                      (playlist) =>
-                        playlist.id !==
-                        selectedPlaylist.id,
-                    ).length ===
-                    0 ? (
-                      <p className="bulk-add-empty">
-                        No other
-                        playlists
-                      </p>
+                      (playlist) => playlist.id !== selectedPlaylist.id,
+                    ).length === 0 ? (
+                      <p className="bulk-add-empty">No other playlists</p>
                     ) : (
                       otherPlaylists
                         .filter(
-                          (
-                            playlist,
-                          ) =>
-                            playlist.id !==
-                            selectedPlaylist.id,
+                          (playlist) => playlist.id !== selectedPlaylist.id,
                         )
-                        .map(
-                          (
-                            playlist,
-                          ) => (
-                            <button
-                              key={
-                                playlist.id
-                              }
-                              type="button"
-                              disabled={
-                                bulkBusy
-                              }
-                              onClick={() =>
-                                bulkAddToPlaylist(
-                                  playlist.id,
-                                )
-                              }
-                            >
-                              {playlist.name ||
-                                "Untitled playlist"}
-                            </button>
-                          ),
-                        )
+                        .map((playlist) => (
+                          <button
+                            key={playlist.id}
+                            type="button"
+                            disabled={bulkBusy}
+                            onClick={() => bulkAddToPlaylist(playlist.id)}
+                          >
+                            {playlist.name || "Untitled playlist"}
+                          </button>
+                        ))
                     )}
                   </div>
                 )}
@@ -843,19 +533,11 @@ function PlaylistModal({
               <button
                 type="button"
                 className="bulk-remove"
-                onClick={
-                  requestBulkRemove
-                }
-                disabled={
-                  bulkBusy ||
-                  selectedIds.length ===
-                    0
-                }
+                onClick={requestBulkRemove}
+                disabled={bulkBusy || selectedIds.length === 0}
                 title="Remove selected from this playlist"
               >
-                <span className="material-symbols-outlined">
-                  delete
-                </span>
+                <span className="material-symbols-outlined">delete</span>
                 Remove from Playlist
               </button>
             </div>
@@ -864,13 +546,9 @@ function PlaylistModal({
 
         {loading ? (
           <div className="playlist-loading">
-            <span className="material-symbols-outlined">
-              progress_activity
-            </span>
+            <span className="material-symbols-outlined">progress_activity</span>
 
-            <p>
-              Loading songs...
-            </p>
+            <p>Loading songs...</p>
           </div>
         ) : track.length > 0 ? (
           <section className="song-list">
@@ -878,105 +556,50 @@ function PlaylistModal({
               <span>#</span>
               <span>Title</span>
               <span>Album</span>
-              <span>
-                Date added
-              </span>
+              <span>Date added</span>
 
-              <span className="material-symbols-outlined">
-                schedule
-              </span>
+              <span className="material-symbols-outlined">schedule</span>
 
               <span></span>
             </div>
 
-            {track
-              .filter(Boolean)
-              .map(
-                (
-                  song,
-                  index,
-                ) => (
-                  <Song
-                    key={`${song.id}-${index}`}
-                    track={song}
-                    index={index}
-                    selectedPlaylist={
-                      selectedPlaylist
-                    }
-                    setTrack={
-                      setTrack
-                    }
-                    setCurrent={
-                      setCurrent
-                    }
-                    current={
-                      current
-                    }
-                    currentPlaylistId={
-                      currentPlaylistId
-                    }
-                    setCurrentPlaylistId={
-                      setCurrentPlaylistId
-                    }
-                    isPlaying={
-                      isPlaying
-                    }
-                    setIsPlaying={
-                      setIsPlaying
-                    }
-                    downloadingTrackId={
-                      downloadingTrackId
-                    }
-                    setDownloadingTrackId={
-                      setDownloadingTrackId
-                    }
-                    setPlaybackTracks={
-                      setPlaybackTracks
-                    }
-                    selectMode={
-                      selectMode
-                    }
-                    isSelected={selectedIds.includes(
-                      song.id,
-                    )}
-                    onToggleSelect={
-                      toggleSelected
-                    }
-                  />
-                ),
-              )}
+            {track.filter(Boolean).map((song, index) => (
+              <Song
+                key={`${song.id}-${index}`}
+                track={song}
+                index={index}
+                selectedPlaylist={selectedPlaylist}
+                setTrack={setTrack}
+                setCurrent={setCurrent}
+                current={current}
+                currentPlaylistId={currentPlaylistId}
+                setCurrentPlaylistId={setCurrentPlaylistId}
+                isPlaying={isPlaying}
+                setIsPlaying={setIsPlaying}
+                downloadingTrackId={downloadingTrackId}
+                setDownloadingTrackId={setDownloadingTrackId}
+                setPlaybackTracks={setPlaybackTracks}
+                selectMode={selectMode}
+                isSelected={selectedIds.includes(song.id)}
+                onToggleSelect={toggleSelected}
+                onAddToQueue={onAddToQueue}
+                onPlayNext={onPlayNext}
+              />
+            ))}
           </section>
         ) : (
           <section className="empty-playlist">
             <div className="empty-playlist-icon">
-              <span className="material-symbols-outlined">
-                music_note
-              </span>
+              <span className="material-symbols-outlined">music_note</span>
             </div>
 
-            <h2>
-              This playlist is empty
-            </h2>
+            <h2>This playlist is empty</h2>
 
-            <p>
-              Add songs to start
-              building your playlist.
-            </p>
+            <p>Add songs to start building your playlist.</p>
 
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/search",
-                )
-              }
-            >
-              <span className="material-symbols-outlined">
-                search
-              </span>
-
-              Find something
-              to play
+            <button type="button" onClick={() => navigate("/search")}>
+              <span className="material-symbols-outlined">search</span>
+              Find something to play
             </button>
           </section>
         )}
@@ -986,49 +609,28 @@ function PlaylistModal({
         <div className="confirm">
           <div>
             <p>
-              {bulkConfirm.type ===
-              "remove"
+              {bulkConfirm.type === "remove"
                 ? `Remove ${bulkConfirm.count} song${
-                    bulkConfirm.count ===
-                    1
-                      ? ""
-                      : "s"
+                    bulkConfirm.count === 1 ? "" : "s"
                   } from this playlist? This action cannot be undone.`
                 : `Delete the downloaded file for ${bulkConfirm.count} song${
-                    bulkConfirm.count ===
-                    1
-                      ? ""
-                      : "s"
+                    bulkConfirm.count === 1 ? "" : "s"
                   }? This action cannot be undone.`}
             </p>
 
             <div className="confirm-buttons">
               <button
                 className="DELETE"
-                disabled={
-                  bulkBusy
-                }
-                onClick={
-                  confirmBulkAction
-                }
+                disabled={bulkBusy}
+                onClick={confirmBulkAction}
               >
-                Yes,{" "}
-                {bulkConfirm.type ===
-                "remove"
-                  ? "Remove"
-                  : "Delete"}
+                Yes, {bulkConfirm.type === "remove" ? "Remove" : "Delete"}
               </button>
 
               <button
                 className="No"
-                disabled={
-                  bulkBusy
-                }
-                onClick={() =>
-                  setBulkConfirm(
-                    null,
-                  )
-                }
+                disabled={bulkBusy}
+                onClick={() => setBulkConfirm(null)}
               >
                 Cancel
               </button>
@@ -1039,21 +641,11 @@ function PlaylistModal({
 
       {editDetailsOpen && (
         <EditPlaylistDetails
-          selectedPlaylist={
-            selectedPlaylist
-          }
-          setSelectedPlaylist={
-            setSelectedPlaylist
-          }
-          minimized={
-            minimized
-          }
-          closing={
-            editDetailsClosing
-          }
-          onClose={
-            closeEditDetails
-          }
+          selectedPlaylist={selectedPlaylist}
+          setSelectedPlaylist={setSelectedPlaylist}
+          minimized={minimized}
+          closing={editDetailsClosing}
+          onClose={closeEditDetails}
         />
       )}
     </>
