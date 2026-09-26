@@ -21,7 +21,7 @@ function Hero({
             alt={selectedPlaylist.name || "Playlist"}
           />
         ) : (
-          <div className="playlist-hero-cover-placeholder" aria-hidden="true" />
+          <div className="playlist-cover-placeholder" aria-hidden="true" />
         )}
       </div>
 
@@ -45,11 +45,7 @@ function Hero({
         )}
 
         <div className="playlist-meta">
-          <strong>
-            {selectedPlaylist.originalOwner
-              ? `${selectedPlaylist.originalOwner} · ${selectedPlaylist.owner}`
-              : selectedPlaylist.owner}
-          </strong>
+          <strong>{selectedPlaylist.owner}</strong>
 
           <span>•</span>
 

@@ -54,9 +54,6 @@ function PlaylistSidebar({
 
   useEffect(() => {
     fetchPlaylists();
-    const refresh = () => fetchPlaylists();
-    window.addEventListener("playlists:refresh", refresh);
-    return () => window.removeEventListener("playlists:refresh", refresh);
   }, []);
 
   useEffect(() => {

@@ -5,8 +5,6 @@ export function registerRoutes(app, context) {
     extractSpotifyPlaylistId,
     loadSpotifyPublicPlaylists,
     saveSpotifyPublicPlaylists,
-    loadPlaylists,
-    savePlaylists,
   } = context;
 
   function requireUser(req, res) {
@@ -160,7 +158,11 @@ export function registerRoutes(app, context) {
   );
 
   /*
-   * IMPORT PUBLIC SPOTIFY PLAYLIST INTO THE USER'S NORMAL PLAYLISTS
+   * IMPORT PUBLIC SPOTIFY PLAYLIST INTO A NORMAL USER PLAYLIST
+   *
+   * This is intentionally separate from /add/:id. Spotify public
+   * playlists are references, while imported playlists become normal
+   * numeric local playlists.
    */
   app.post(
     "/spotify/playlist/:playlistId/import",
@@ -171,20 +173,27 @@ export function registerRoutes(app, context) {
         const playlist = await getSpotifyPublicPlaylist(
           req.params.playlistId,
           getSpotifyToken,
+          { skipCache: true },
         );
 
-        if (playlist.itemsStatus !== "available" || !playlist.tracks.length) {
+        const tracks = Array.isArray(playlist.tracks)
+          ? playlist.tracks.filter((track) => track?.id)
+          : [];
+
+        if (tracks.length === 0) {
           return res.status(409).json({
             message:
+              playlist.tracksReason ||
               playlist.itemsMessage ||
-              "This Spotify playlist does not currently have resolvable songs.",
-            itemsStatus: playlist.itemsStatus,
+              "No Spotify tracks could be resolved through the official Spotify API.",
+            itemsStatus: playlist.itemsStatus || "unavailable",
             unresolvedTracks: playlist.unresolvedTracks || [],
           });
         }
 
         const username = req.session.user.username;
         const playlists = loadPlaylists();
+
         const existing = playlists.find(
           (item) =>
             item.owner === username &&
@@ -198,10 +207,11 @@ export function registerRoutes(app, context) {
           });
         }
 
-        const numericIds = playlists
+        const ids = playlists
           .map((item) => Number(item.id))
           .filter(Number.isFinite);
-        const id = numericIds.length ? Math.max(...numericIds) + 1 : 1;
+
+        const id = ids.length ? Math.max(...ids) + 1 : 1;
         const now = new Date().toISOString();
 
         const imported = {
@@ -211,17 +221,17 @@ export function registerRoutes(app, context) {
           owner: username,
           originalOwner: playlist.owner || "Spotify",
           importedSpotifyPlaylistId: playlist.spotifyPlaylistId,
-          importedFrom: playlist.externalUrl || `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`,
+          importedFrom:
+            playlist.externalUrl ||
+            `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`,
           status: "private",
           description: playlist.description || "",
-          songs: playlist.tracks.map((track) => track.id).filter(Boolean),
+          songs: tracks.map((track) => track.id),
           downloaded: [],
           createdAt: now,
           updatedAt: now,
           songAddedAt: Object.fromEntries(
-            playlist.tracks
-              .filter((track) => track?.id)
-              .map((track) => [track.id, now]),
+            tracks.map((track) => [track.id, now]),
           ),
         };
 
@@ -230,19 +240,36 @@ export function registerRoutes(app, context) {
 
         return res.status(201).json({
           alreadyImported: false,
+          unresolvedTracks: playlist.unresolvedTracks || [],
           playlist: imported,
         });
       } catch (error) {
         console.error("IMPORT PUBLIC SPOTIFY PLAYLIST ERROR:", error);
-        const status = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
-          ? error.status
-          : 502;
+
+        const status =
+          Number.isInteger(error?.status) &&
+          error.status >= 400 &&
+          error.status <= 599
+            ? error.status
+            : 502;
+
         return res.status(status).json({
-          message: error?.message || "Failed to import Spotify playlist",
+          message:
+            error?.message ||
+            "Failed to import Spotify playlist",
         });
       }
     },
   );
+
+  /*
+   * Diagnostic: proves the import route is registered.
+   */
+  app.get("/spotify/playlist/:playlistId/import", (req, res) => {
+    return res.status(405).json({
+      message: "Spotify playlist import route is registered; use POST.",
+    });
+  });
 
   /*
    * SAVE PUBLIC SPOTIFY PLAYLIST

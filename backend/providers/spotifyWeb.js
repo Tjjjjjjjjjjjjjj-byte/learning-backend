@@ -163,6 +163,19 @@ function findPlaylistEntity(value, seen = new Set()) {
   return null;
 }
 
+function extractMetaContent(html, property) {
+  const escaped = String(property).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re1 = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["'][^>]*>`,
+    "i",
+  );
+  const re2 = new RegExp(
+    `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escaped}["'][^>]*>`,
+    "i",
+  );
+  return firstString(html.match(re1)?.[1], html.match(re2)?.[1]);
+}
+
 function extractNextData(html) {
   const match = String(html || "").match(
     /<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i,
@@ -306,6 +319,9 @@ function normalizeEmbedTrack(raw, index, playlistArtwork = "") {
 
 function parseEmbedPlaylist(html, playlistId) {
   const data = extractNextData(html);
+  const pageArtwork = extractMetaContent(html, "og:image");
+  const pageTitle = extractMetaContent(html, "og:title");
+  const pageDescription = extractMetaContent(html, "og:description");
 
   if (!data) {
     const error = new Error(
@@ -323,7 +339,8 @@ function parseEmbedPlaylist(html, playlistId) {
       entity?.image ||
       entity?.cover ||
       entity?.coverArt ||
-      entity?.artwork,
+      entity?.artwork ||
+      pageArtwork,
   );
 
   const tracks = rawTracks
@@ -341,11 +358,12 @@ function parseEmbedPlaylist(html, playlistId) {
     ) || "Spotify";
 
   const name =
-    firstString(entity?.name, entity?.title) || "Spotify Playlist";
+    firstString(entity?.name, entity?.title, pageTitle) || "Spotify Playlist";
 
   const description = firstString(
     entity?.description,
     entity?.subtitleDescription,
+    pageDescription,
   );
 
   const trackCount = firstNumber(

@@ -1338,3 +1338,12 @@
         display: none;
     }
 }
+
+.playlist-import-error {
+  margin: 0 24px 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(180, 40, 40, 0.12);
+  color: #d65a5a;
+  font-size: 14px;
+}

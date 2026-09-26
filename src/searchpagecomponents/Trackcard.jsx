@@ -264,17 +264,13 @@ function TrackCard({
       onClick={togglePlay}
     >
       <div className="search-result-cover">
-        {getImageUrl(track.album?.images?.[0]?.url) ? (
-          <img
-            src={getImageUrl(track.album?.images?.[0]?.url)}
-            alt={
-              track.album?.name ||
-              track.name
-            }
-          />
-        ) : (
-          <div className="search-result-cover-placeholder" aria-hidden="true" />
-        )}
+        <img
+          src={getImageUrl(track.album?.images?.[0]?.url)}
+          alt={
+            track.album?.name ||
+            track.name
+          }
+        />
 
         <button
           className={
@@ -466,7 +462,7 @@ function TrackCard({
           </div>
 
           <div className="add-to-playlist-list">
-            {playlists.filter((playlist) => playlist.type !== "spotify-public").map(
+            {playlists.map(
               (playlist) => (
                 <Playlist
                   key={playlist.id}
