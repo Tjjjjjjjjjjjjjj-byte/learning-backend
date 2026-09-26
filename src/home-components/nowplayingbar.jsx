@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import LyricsSection from "./lyricsSection.jsx";
 
 function formatTime(value) {
@@ -157,20 +158,13 @@ function QueuePanel({
       (track) => track?.id === current,
     );
 
-  const nextTracks = useMemo(() => {
-    const currentIndex =
-      playbackTracks.findIndex(
-        (track) => track?.id === current,
-      );
-
-    if (currentIndex === -1) {
-      return playbackTracks;
-    }
-
-    return playbackTracks.slice(
-      currentIndex + 1,
-    );
-  }, [playbackTracks, current]);
+  const queuedTracks = useMemo(
+    () =>
+      playbackTracks.filter(
+        (track) => track?.id !== current,
+      ),
+    [playbackTracks, current],
+  );
 
   return (
     <aside className="queue-panel">
@@ -221,10 +215,10 @@ function QueuePanel({
         )}
 
         <section>
-          <h3>Next in queue</h3>
+          <h3>Queue</h3>
 
-          {nextTracks.length > 0 ? (
-            nextTracks.map(
+          {queuedTracks.length > 0 ? (
+            queuedTracks.map(
               (track, index) => (
                 <TrackLine
                   key={`${track.id}-${index}`}
@@ -266,9 +260,6 @@ function ExpandedPlayer({
   onClose,
 }) {
   const [queueOpen, setQueueOpen] =
-    useState(false);
-
-  const [lyricsOpen, setLyricsOpen] =
     useState(false);
 
   useEffect(() => {
@@ -463,19 +454,9 @@ function ExpandedPlayer({
                 </span>
               </button>
 
-              <button
-                type="button"
-                className={lyricsOpen ? "active" : ""}
-                onClick={() => setLyricsOpen((value) => !value)}
-                title="Lyrics"
-              >
-                <span className="material-symbols-outlined">
-                  lyrics
-                </span>
-              </button>
             </div>
 
-            {lyricsOpen && <LyricsSection />}
+            <LyricsSection />
 
             <div className="sleep-timer">
               <div>
@@ -552,6 +533,8 @@ function ExpandedPlayer({
 }
 
 function NowPlayingBar({ player }) {
+  const location = useLocation();
+
   const [expanded, setExpanded] =
     useState(false);
 
@@ -602,7 +585,13 @@ function NowPlayingBar({ player }) {
         />
       )}
 
-      <div className="now-playing-bar">
+      <div
+        className={`now-playing-bar${
+          location.pathname === "/search"
+            ? " search-now-playing-bar"
+            : ""
+        }`}
+      >
         <button
           className="now-playing-track"
           type="button"

@@ -691,3 +691,199 @@
   max-height: none;
   width: min(420px, calc(100vw - 48px));
 }
+
+/* Current Now Playing / queue fixes */
+
+.now-playing-expanded {
+  background:
+    radial-gradient(circle at 50% 8%, rgba(90, 130, 180, .12), transparent 34%),
+    radial-gradient(circle at 15% 80%, rgba(120, 70, 150, .08), transparent 30%),
+    rgba(12, 12, 12, .72);
+  backdrop-filter: blur(22px) saturate(120%);
+  -webkit-backdrop-filter: blur(22px) saturate(120%);
+}
+
+.now-playing-overlay {
+  background: rgba(0, 0, 0, .46);
+  backdrop-filter: blur(20px) saturate(90%);
+  -webkit-backdrop-filter: blur(20px) saturate(90%);
+}
+
+.now-playing-expanded-progress {
+  width: 100%;
+  min-width: 0;
+}
+
+.now-playing-expanded-progress input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 6px;
+  margin: 12px 0 10px;
+  box-sizing: border-box;
+}
+
+.now-playing-expanded-progress > div {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.now-playing-expanded-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 22px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.now-playing-expanded-controls button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
+  border-radius: 50%;
+}
+
+.now-playing-expanded-controls .large-play {
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
+  min-height: 62px;
+  flex: 0 0 62px;
+}
+
+.now-playing-expanded-controls button.active {
+  color: #fff;
+  background: rgba(255, 255, 255, .1);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .16);
+}
+
+.now-playing-expanded-controls button:not(.large-play):hover {
+  background: rgba(255, 255, 255, .08);
+}
+
+.now-playing-expanded-controls .large-play:hover {
+  background: #fff;
+}
+
+.search-now-playing-bar {
+  border-color: rgba(255, 255, 255, .14);
+  background:
+    radial-gradient(circle at 8% 15%, rgba(70, 125, 180, .22), transparent 34%),
+    radial-gradient(circle at 88% 20%, rgba(130, 70, 170, .2), transparent 36%),
+    radial-gradient(circle at 52% 120%, rgba(45, 125, 125, .16), transparent 42%),
+    linear-gradient(115deg, rgba(13, 18, 27, .9), rgba(24, 17, 34, .86), rgba(11, 24, 27, .9));
+  backdrop-filter: blur(24px) saturate(135%);
+  -webkit-backdrop-filter: blur(24px) saturate(135%);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, .45),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.search-now-playing-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      105deg,
+      rgba(255, 255, 255, .05),
+      transparent 28%,
+      rgba(120, 160, 220, .06) 58%,
+      transparent 82%
+    );
+  pointer-events: none;
+}
+
+.queue-track {
+  transition:
+    background .15s ease,
+    opacity .15s ease,
+    transform .15s ease;
+}
+
+.queue-track.current {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, .1),
+      rgba(255, 255, 255, .04)
+    );
+  box-shadow: inset 2px 0 0 #fff;
+}
+
+.queue-track.current .queue-track-info strong {
+  color: #fff;
+}
+
+.queue-track.current .queue-track-info small {
+  color: #bcbcbc;
+}
+
+.queue-track.dragging {
+  opacity: .4;
+  transform: scale(.99);
+}
+
+.queue-track[draggable="true"] {
+  cursor: grab;
+}
+
+.queue-track[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.queue-track-main {
+  flex: 1 1 auto;
+}
+
+.queue-drag-handle {
+  flex: 0 0 18px;
+}
+
+.queue-track-duration {
+  flex: 0 0 42px;
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 650px) {
+  .now-playing-expanded-controls {
+    gap: 10px;
+  }
+
+  .now-playing-expanded-controls button {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    flex-basis: 40px;
+  }
+
+  .now-playing-expanded-controls .large-play {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+    flex-basis: 56px;
+  }
+
+  .now-playing-expanded-progress input {
+    width: 100%;
+  }
+}
+
+.search-now-playing-bar::before {
+  z-index: 0;
+}
+
+.search-now-playing-bar > * {
+  position: relative;
+  z-index: 1;
+}
