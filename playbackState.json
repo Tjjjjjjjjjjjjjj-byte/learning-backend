@@ -1,29 +1,69 @@
 {
   "test": {
-    "trackId": "0ARK753YaiJbpLUk7z5yIM",
-    "title": "Dilemma",
-    "artist": "Nelly, Kelly Rowland",
+    "trackId": "2iclfHORMqpR3TxuhwVRhD",
+    "title": "Mesmerize",
+    "artist": "Ja Rule, Ashanti",
     "album": "",
-    "artwork": "",
-    "duration": 289.421,
+    "artwork": "https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0272062edb1c2405289b2f3f0b",
+    "duration": 278.801,
     "source": "youtube-playback",
-    "sourceUrl": "https://rr6---sn-2aqu-n4xz.googlevideo.com/videoplayback?expire=1790444697&ei=ObC3arqvJsz5pt8PlqjEwQY&ip=2001%3A4452%3A36c%3Abc00%3Ac805%3Afa4d%3Ae292%3A5cee&id=o-AB46ltMILLftqXk-OVtygJY0Q2iKRa6aZ_QleosRSkdU&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=508&met=1790423097%2C&mh=ZN&mm=18%2C29&mn=sn-2aqu-n4xz%2Csn-2aqu-hoasr&ms=aub%2Crdu&mv=m&mvi=6&pl=41&rms=aub%2Caub&initcwndbps=1257500&bui=AWzQHwqEIKSkTkRMB_HJhn1jccyBNpUOBeJG4qnnjxCjECeoazy_siGgQcWCkXyxw75VjlQopU27wRMe&spc=I-rgIbM3x5MZ61qWv1SNg0hFyjrbqybsruZc_JuqcasSyNGiia7GI7Oq_-aK&vprv=1&svpuc=1&mime=audio%2Fwebm&rqh=1&gir=yes&clen=4926976&dur=289.421&lmt=1756115843427425&mt=1790422615&fvip=4&keepalive=yes&fexp=51565115%2C52112905%2C52178456%2C52250513&c=VISIONOS&txp=5532534&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&sig=AE0s2JYwRQIgQ10B-ZUENWuwpxoaNOEZZeGtGw-MRqSFOWBrsnvETiQCIQC1EtYXmgE6HsHily5PeBIB6z6fwTMB6hgJZLXygRZLDQ%3D%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRQIhAKgQOCPG_rfYZWx5s7GR0XwF50eKJoVcb2tm2f7n-9a2AiBF6BFGJqNRD63OoX3ZLo0QLFoXni2VG9ao2theq5O0aw%3D%3D",
-    "position": 0,
-    "updatedAt": "2026-09-26T11:48:00.810Z",
+    "sourceUrl": "https://rr2---sn-2aqu-n4xee.googlevideo.com/videoplayback?expire=1790486974&ei=XlW4asagCdudssUP6c3iuQE&ip=2001%3A4452%3A36c%3Abc00%3A5664%3Adf71%3A4f85%3A79a6&id=o-ANHEseZ6NZFF7ltDfH2zh_pq_xcI-w12JNhCIo1vtAmp&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=31&met=1790465374%2C&mh=ed&mm=31%2C29&mn=sn-2aqu-n4xee%2Csn-2aqu-hoasd&ms=au%2Crdu&mv=m&mvi=2&pl=41&rms=au%2Cau&initcwndbps=1305875&bui=AWzQHwoVK3TG9f_ScCb4GfFcuAJPcTs-NuvbR4HfCJaAAVk4lZXfU4LhYOhjhwqSGj_YSnV441fQs3WL&spc=I-rgIRLdq0MeGhRRyqFwkpCbJOFN0j3GfmQVBDUGiaSfKyZ9PkRCMEAcig&vprv=1&svpuc=1&mime=audio%2Fwebm&rqh=1&gir=yes&clen=4618637&dur=278.801&lmt=1733567077320467&mt=1790464859&fvip=3&keepalive=yes&fexp=51565116%2C52178456&c=VISIONOS&txp=5308224&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&sig=AE0s2JYwRAIgIC7_mwG3noHrk9z8ywwOccD14Xzel-yQn0r4oDhMoRsCIFfTvuspq60Wxf7LcSS_a_TBF_mXZMw_yYqNHzEZaS9K&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRgIhAOsQEE3SJpw-f6AhFEI0o4To0HRmVqlaMJIYr8f18ReyAiEA7gW4aqk0Fl05OCAv6Znea3QwgAF_BypINW7o56s13-U%3D",
+    "position": 35.393798,
+    "updatedAt": "2026-09-26T23:31:52.515Z",
     "completed": false,
-    "playlistId": "spotify:29EreasAQpb0wo0a16rYDm",
+    "playlistId": 8,
     "playlistName": "",
-    "queueIndex": 0,
+    "queueIndex": 3,
     "history": [
       {
         "trackId": "0ARK753YaiJbpLUk7z5yIM",
         "playedAt": "2026-09-26T10:14:40.359Z",
-        "position": 0,
+        "position": 289.4,
         "duration": 289.421,
         "completed": false,
         "liked": false,
         "title": "Dilemma",
         "artist": "Nelly, Kelly Rowland"
+      },
+      {
+        "trackId": "3Gf5nttwcX9aaSQXRWidEZ",
+        "playedAt": "2026-09-26T12:43:11.939Z",
+        "position": 291.821,
+        "duration": 291.821,
+        "completed": true,
+        "liked": false,
+        "title": "Ride Wit Me",
+        "artist": "Nelly, City Spud"
+      },
+      {
+        "trackId": "1hGy2eLcmC8eKx7qr1tOqx",
+        "playedAt": "2026-09-26T12:43:16.097Z",
+        "position": 18.554774,
+        "duration": 261.821,
+        "completed": false,
+        "liked": false,
+        "title": "Beautiful Girls",
+        "artist": "Sean Kingston"
+      },
+      {
+        "trackId": "6BaxqcoEM9r3LXisTyJjST",
+        "playedAt": "2026-09-26T12:43:37.645Z",
+        "position": 2.808186,
+        "duration": 216.021,
+        "completed": false,
+        "liked": false,
+        "title": "Ridin' Solo",
+        "artist": "Jason Derulo"
+      },
+      {
+        "trackId": "2iclfHORMqpR3TxuhwVRhD",
+        "playedAt": "2026-09-26T12:43:42.598Z",
+        "position": 35.393798,
+        "duration": 278.801,
+        "completed": false,
+        "liked": false,
+        "title": "Mesmerize",
+        "artist": "Ja Rule, Ashanti"
       }
     ]
   }

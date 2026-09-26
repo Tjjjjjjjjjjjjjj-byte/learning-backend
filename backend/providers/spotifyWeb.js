@@ -1,4 +1,5 @@
 const SPOTIFY_EMBED_BASE = "https://open.spotify.com/embed";
+const SPOTIFY_WEB_BASE = "https://open.spotify.com";
 const DEFAULT_HEADERS = {
   Accept: "text/html,application/xhtml+xml",
   "User-Agent":
@@ -101,6 +102,8 @@ function pickArtwork(value, fallback = "") {
       value.src,
       value.imageUrl,
       value.uri,
+      pickArtwork(value.visualIdentity, ""),
+      pickArtwork(value.sources, ""),
       pickArtwork(value.images, ""),
       pickArtwork(value.image, ""),
     );
@@ -161,6 +164,119 @@ function findPlaylistEntity(value, seen = new Set()) {
   }
 
   return null;
+}
+
+function findTrackEntity(value, seen = new Set()) {
+  if (!value || typeof value !== "object" || seen.has(value)) return null;
+  seen.add(value);
+
+  const type = asString(value.type).toLowerCase();
+
+  if (type === "track" && (value.name || value.title)) {
+    return value;
+  }
+
+  for (const child of Object.values(value)) {
+    const found = findTrackEntity(child, seen);
+    if (found) return found;
+  }
+
+  return null;
+}
+
+// Runs `fn` over `items` with at most `limit` in flight at once, instead of
+// either a single fetch-per-item loop (slow, one at a time) or
+// Promise.all over everything at once (looks like a burst/DoS to whatever
+// we're fetching from).
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < items.length) {
+      const current = cursor;
+      cursor += 1;
+      results[current] = await fn(items[current], current);
+    }
+  }
+
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, worker));
+
+  return results;
+}
+
+/*
+ * Fetches a single track's embed page and pulls its name/album/cover out of
+ * the same __NEXT_DATA__ structure the playlist scraper reads. This exists
+ * as a fallback for when Spotify's official Web API (GET /v1/tracks) is
+ * unavailable for this app's credentials (HTTP 403) -- the embed pages
+ * aren't gated behind that same restriction.
+ */
+async function resolveTrackViaEmbed(trackId, fetchImpl = fetch) {
+  const id = String(trackId || "").trim();
+
+  const response = await fetchImpl(
+    `${SPOTIFY_EMBED_BASE}/track/${encodeURIComponent(id)}`,
+    { headers: DEFAULT_HEADERS },
+  );
+
+  const html = await response.text();
+
+  if (!response.ok) {
+    const error = new Error(
+      `Spotify embed track request failed with HTTP ${response.status}`,
+    );
+    error.status = response.status;
+    throw error;
+  }
+
+  const data = extractNextData(html);
+  const pageArtwork = extractMetaContent(html, "og:image");
+  const pageTitle = extractMetaContent(html, "og:title");
+  const entity = data ? findTrackEntity(data) : null;
+
+  const artwork =
+    pickArtwork(entity?.visualIdentity, "") ||
+    pickArtwork(entity?.images, "") ||
+    pickArtwork(entity?.albumOfTrack?.visualIdentity, "") ||
+    pickArtwork(entity?.albumOfTrack?.images, "") ||
+    pickArtwork(entity?.album?.visualIdentity, "") ||
+    pickArtwork(entity?.album?.images, "") ||
+    pageArtwork ||
+    "";
+
+  const name = firstString(entity?.name, entity?.title, pageTitle);
+
+  const artists = normalizeArtistList(
+    entity?.artists || entity?.subtitle,
+  );
+
+  const albumName = firstString(
+    entity?.albumOfTrack?.name,
+    entity?.album?.name,
+  );
+
+  const durationMs =
+    parseDurationMs(
+      firstString(entity?.duration_ms, entity?.durationMs, entity?.duration),
+    ) ??
+    firstNumber(entity?.duration_ms, entity?.durationMs, entity?.duration) ??
+    0;
+
+  const externalUrl = `${SPOTIFY_WEB_BASE}/track/${id}`;
+
+  return {
+    id,
+    name,
+    artists: artists.map((artistName) => ({ name: artistName })),
+    album: {
+      name: albumName,
+      images: artwork ? [{ url: artwork }] : [],
+    },
+    duration_ms: durationMs,
+    external_urls: { spotify: externalUrl },
+  };
 }
 
 function extractMetaContent(html, property) {
@@ -266,18 +382,24 @@ function normalizeEmbedTrack(raw, index, playlistArtwork = "") {
       raw.item?.durationMs,
     );
 
-  const artwork = pickArtwork(
-    raw.artwork ||
-      raw.image ||
-      raw.images ||
-      raw.albumArt ||
-      raw.album?.images ||
-      raw.track?.images ||
-      raw.track?.album?.images ||
-      raw.item?.images ||
-      raw.item?.album?.images,
-    playlistArtwork,
-  );
+  const artwork =
+    pickArtwork(raw.visualIdentity, "") ||
+    pickArtwork(raw.artwork, "") ||
+    pickArtwork(raw.image, "") ||
+    pickArtwork(raw.images, "") ||
+    pickArtwork(raw.albumArt, "") ||
+    pickArtwork(raw.coverArt, "") ||
+    pickArtwork(albumObject?.visualIdentity, "") ||
+    pickArtwork(albumObject?.images, "") ||
+    pickArtwork(albumObject?.coverArt, "") ||
+    pickArtwork(raw.track?.images, "") ||
+    pickArtwork(raw.track?.album?.images, "") ||
+    pickArtwork(raw.track?.album?.coverArt, "") ||
+    pickArtwork(raw.item?.images, "") ||
+    pickArtwork(raw.item?.album?.images, "") ||
+    pickArtwork(raw.item?.album?.coverArt, "") ||
+    playlistArtwork ||
+    "";
 
   const externalUrl =
     firstString(
@@ -334,14 +456,15 @@ function parseEmbedPlaylist(html, playlistId) {
   const entity = findPlaylistEntity(data);
   const rawTracks = findTrackList(data) || [];
 
-  const playlistArtwork = pickArtwork(
-    entity?.images ||
-      entity?.image ||
-      entity?.cover ||
-      entity?.coverArt ||
-      entity?.artwork ||
-      pageArtwork,
-  );
+  const playlistArtwork =
+    pickArtwork(entity?.visualIdentity, "") ||
+    pickArtwork(entity?.images, "") ||
+    pickArtwork(entity?.image, "") ||
+    pickArtwork(entity?.cover, "") ||
+    pickArtwork(entity?.coverArt, "") ||
+    pickArtwork(entity?.artwork, "") ||
+    pageArtwork ||
+    "";
 
   const tracks = rawTracks
     .map((track, index) =>
@@ -430,9 +553,42 @@ export function createSpotifyWebProvider({ fetchImpl = fetch } = {}) {
         throw error;
       }
 
-      return parseEmbedPlaylist(html, id);
+      const result = parseEmbedPlaylist(html, id);
+
+      // Playlists with no custom cover get a mosaic image generated from
+      // their tracks -- that mosaic is reliably present as og:image on the
+      // plain (non-embed) playlist page, but is sometimes missing from the
+      // embed page's own metadata/__NEXT_DATA__. Fall back to it when the
+      // embed page gave us nothing.
+      if (!result.cover) {
+        try {
+          const plainResponse = await fetchImpl(
+            `${SPOTIFY_WEB_BASE}/playlist/${encodeURIComponent(id)}`,
+            { headers: DEFAULT_HEADERS },
+          );
+
+          if (plainResponse.ok) {
+            const plainHtml = await plainResponse.text();
+            const fallbackCover = extractMetaContent(plainHtml, "og:image");
+
+            if (fallbackCover) {
+              console.log(
+                "[spotify-web] used plain-page og:image fallback for cover",
+              );
+              result.cover = fallbackCover;
+            }
+          }
+        } catch (error) {
+          console.error(
+            "[spotify-web] plain-page cover fallback failed:",
+            error,
+          );
+        }
+      }
+
+      return result;
     },
   };
 }
 
-export { parseEmbedPlaylist };
+export { parseEmbedPlaylist, resolveTrackViaEmbed, mapWithConcurrency };

@@ -176,7 +176,7 @@ function SearchPage({ player }) {
 
     const alreadySaved = playlists.some(
       (item) =>
-        item.importedFromSpotifyId === playlist.spotifyPlaylistId ||
+        item.importedSpotifyPlaylistId === playlist.spotifyPlaylistId ||
         (item.type === "spotify-public" &&
           item.spotifyPlaylistId === playlist.spotifyPlaylistId),
     );
@@ -223,7 +223,7 @@ function SearchPage({ player }) {
   const publicPlaylistSaved = publicPlaylist
     ? playlists.some(
         (item) =>
-          item.importedFromSpotifyId === publicPlaylist.spotifyPlaylistId ||
+          item.importedSpotifyPlaylistId === publicPlaylist.spotifyPlaylistId ||
           (item.type === "spotify-public" &&
             item.spotifyPlaylistId === publicPlaylist.spotifyPlaylistId),
       )

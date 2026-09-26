@@ -41,6 +41,7 @@ function PlaylistModal({
   setPlaybackPlaylistId,
   onAddToQueue,
   onPlayNext,
+  onPlaylistImported,
 }) {
   const [editDetailsOpen, setEditDetailsOpen] = useState(false);
 
@@ -49,6 +50,10 @@ function PlaylistModal({
   const [track, setTrack] = useState([]);
 
   const [loading, setLoading] = useState(true);
+
+  const [importingPlaylist, setImportingPlaylist] = useState(false);
+
+  const [importError, setImportError] = useState("");
 
   const [itemsStatus, setItemsStatus] = useState(
     selectedPlaylist?.type === "spotify-public"
@@ -476,6 +481,47 @@ function PlaylistModal({
     }
   }
 
+  async function handleImportPlaylist() {
+    if (
+      !isReadOnly ||
+      !selectedPlaylist?.spotifyPlaylistId ||
+      importingPlaylist
+    ) {
+      return;
+    }
+
+    setImportingPlaylist(true);
+    setImportError("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+          selectedPlaylist.spotifyPlaylistId,
+        )}/import`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      const data = await readJsonResponse(response);
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to add playlist to your library",
+        );
+      }
+
+      onPlaylistImported?.();
+    } catch (error) {
+      console.error("IMPORT PLAYLIST ERROR:", error);
+      setImportError(error.message || "Failed to add playlist to your library");
+    } finally {
+      setImportingPlaylist(false);
+    }
+  }
+
   const isReadOnly = selectedPlaylist.type === "spotify-public";
 
   const totalDuration = track.reduce(
@@ -518,7 +564,13 @@ function PlaylistModal({
           setDownloadingTrackId={setDownloadingTrackId}
           setPlaybackTracks={setPlaybackTracks}
           onEnterSelectMode={enterSelectMode}
+          onImportPlaylist={handleImportPlaylist}
+          importingPlaylist={importingPlaylist}
         />
+
+        {isReadOnly && importError && (
+          <p className="search-error">{importError}</p>
+        )}
 
         {selectMode && !isReadOnly && (
           <div className="bulk-select-bar">

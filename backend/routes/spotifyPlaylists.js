@@ -5,6 +5,8 @@ export function registerRoutes(app, context) {
     extractSpotifyPlaylistId,
     loadSpotifyPublicPlaylists,
     saveSpotifyPublicPlaylists,
+    loadPlaylists,
+    savePlaylists,
   } = context;
 
   function requireUser(req, res) {

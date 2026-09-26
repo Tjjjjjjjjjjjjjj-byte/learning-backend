@@ -1,4 +1,9 @@
 // API routes for this feature area.
+import {
+  resolveTrackViaEmbed,
+  mapWithConcurrency,
+} from "../providers/spotifyWeb.js";
+
 export function registerRoutes(app, context) {
   const { fs, path, PROJECT_ROOT, loadPlaylists, savePlaylists, loadSpotifyPublicPlaylists, getUserDownloads, getSpotifyToken } = context;
 
@@ -242,20 +247,66 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
       userDownloads.map((download) => download.trackId),
     );
 
-    const tracks = [];
+    // Batch up to 50 IDs per request (Spotify's max for GET /v1/tracks)
+    // instead of firing one request per track -- doing it one-at-a-time
+    // for a large playlist quickly trips Spotify's rate limit and silently
+    // drops every track that gets a 429.
+    const officialTracksById = new Map();
 
-    for (const id of songs) {
-      const response = await fetch(`https://api.spotify.com/v1/tracks/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    for (let i = 0; i < songs.length; i += 50) {
+      const batch = songs.slice(i, i + 50);
+
+      const response = await fetch(
+        `https://api.spotify.com/v1/tracks?ids=${batch.join(",")}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await response.json();
 
-      if (!response.ok || !data || !data.id) {
-        console.error("SPOTIFY TRACK ERROR:", id, response.status, data);
+      if (!response.ok) {
+        console.error("SPOTIFY TRACKS BATCH ERROR:", response.status, data);
+        continue;
+      }
 
+      for (const track of data?.tracks || []) {
+        if (track?.id) officialTracksById.set(track.id, track);
+      }
+    }
+
+    // Same 403-from-Spotify's-official-API situation as the public
+    // playlist enrichment: fall back to scraping each missing track's own
+    // embed page, which isn't gated behind that restriction.
+    const missingIds = songs.filter((id) => !officialTracksById.has(id));
+
+    if (missingIds.length > 0) {
+      const scraped = await mapWithConcurrency(missingIds, 6, async (id) => {
+        try {
+          return await resolveTrackViaEmbed(id);
+        } catch (error) {
+          console.error(
+            `SPOTIFY TRACK EMBED SCRAPE FAILED: ${id}`,
+            error.message,
+          );
+          return null;
+        }
+      });
+
+      for (const track of scraped) {
+        if (track?.id) officialTracksById.set(track.id, track);
+      }
+    }
+
+    const tracks = [];
+
+    for (const id of songs) {
+      const data = officialTracksById.get(id);
+
+      if (!data) {
+        console.error("SPOTIFY TRACK MISSING FROM BATCH:", id);
         continue;
       }
 
