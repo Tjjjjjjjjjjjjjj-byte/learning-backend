@@ -1222,3 +1222,119 @@
     display: none;
   }
 }
+
+.song-header,
+.song-card {
+    grid-template-columns: 58px minmax(0, 1.8fr) minmax(0, 1fr) minmax(120px, 1fr) 70px 104px;
+}
+
+.song-header > span:nth-child(5) {
+    justify-self: end;
+    width: 100%;
+    text-align: right;
+}
+
+.song-header > span:last-child {
+    width: 100%;
+}
+
+.song-card > * {
+    min-width: 0;
+}
+
+.song-duration {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 4px;
+    justify-self: end;
+    text-align: right;
+}
+
+.song-actions {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+}
+
+.song-actions .delete,
+.song-queue-action {
+    position: static;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #9a9a9a;
+    cursor: pointer;
+    opacity: 0;
+    transform: none;
+    transition: opacity .15s ease, color .15s ease, background .15s ease;
+}
+
+.song-card:hover .song-actions .delete,
+.song-card:hover .song-queue-action,
+.song-card.current .song-actions .delete,
+.song-card.current .song-queue-action {
+    opacity: 1;
+}
+
+.song-queue-action:hover {
+    color: #fff;
+    background: #292929;
+}
+
+.song-actions .delete:hover {
+    color: #ff4444;
+    background: rgba(255, 68, 68, .1);
+}
+
+.song-actions .material-symbols-outlined {
+    font-size: 19px;
+}
+
+@media (max-width: 950px) {
+    .song-header,
+    .song-card {
+        grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1fr) 70px 104px;
+    }
+}
+
+@media (max-width: 700px) {
+    .song-header,
+    .song-card {
+        grid-template-columns: 48px minmax(0, 1fr) 70px 104px;
+    }
+
+    .song-actions .delete,
+    .song-queue-action {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .song-header,
+    .song-card {
+        grid-template-columns: 48px minmax(0, 1fr) 70px 70px;
+    }
+
+    .song-actions {
+        gap: 0;
+    }
+
+    .song-actions .delete,
+    .song-queue-action {
+        width: 30px;
+        flex-basis: 30px;
+    }
+
+    .song-queue-action:first-child {
+        display: none;
+    }
+}

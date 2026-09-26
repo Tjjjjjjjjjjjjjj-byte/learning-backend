@@ -16,10 +16,11 @@ function Song({
   selectMode,
   isSelected,
   onToggleSelect,
+  onAddToQueue,
+  onPlayNext,
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [downloadConfirmOpen, setDownloadConfirmOpen] =
-    useState(false);
+  const [downloadConfirmOpen, setDownloadConfirmOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [deletingDownload, setDeletingDownload] = useState(false);
 
@@ -56,13 +57,9 @@ function Song({
   function formatDuration(duration) {
     const minutes = Math.floor(duration / 60000);
 
-    const seconds = Math.floor(
-      (duration % 60000) / 1000,
-    );
+    const seconds = Math.floor((duration % 60000) / 1000);
 
-    return `${minutes}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 
   async function downloadSong() {
@@ -73,28 +70,23 @@ function Song({
     setDownloadingTrackId(track.id);
 
     try {
-      const response = await fetch(
-        "http://localhost:3000/song/download",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            trackId: track.id,
-            name: track.name,
-            artist: track.artists?.[0]?.name,
-          }),
+      const response = await fetch("http://localhost:3000/song/download", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          trackId: track.id,
+          name: track.name,
+          artist: track.artists?.[0]?.name,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Download failed",
-        );
+        throw new Error(data.message || "Download failed");
       }
 
       setTrack((prev) =>
@@ -139,9 +131,7 @@ function Song({
 
     try {
       const response = await fetch(
-        `http://localhost:3000/song/download/${encodeURIComponent(
-          track.id,
-        )}`,
+        `http://localhost:3000/song/download/${encodeURIComponent(track.id)}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -151,10 +141,7 @@ function Song({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Failed to delete download",
-        );
+        throw new Error(data.message || "Failed to delete download");
       }
 
       setTrack((prev) =>
@@ -181,10 +168,7 @@ function Song({
 
       setDownloadConfirmOpen(false);
     } catch (error) {
-      console.error(
-        "DELETE DOWNLOAD ERROR:",
-        error,
-      );
+      console.error("DELETE DOWNLOAD ERROR:", error);
     } finally {
       setDeletingDownload(false);
     }
@@ -213,24 +197,14 @@ function Song({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Failed to remove song",
-        );
+        throw new Error(data.message || "Failed to remove song");
       }
 
-      setTrack((prev) =>
-        prev.filter(
-          (song) => song.id !== track.id,
-        ),
-      );
+      setTrack((prev) => prev.filter((song) => song.id !== track.id));
 
       setConfirmOpen(false);
     } catch (error) {
-      console.error(
-        "REMOVE SONG ERROR:",
-        error,
-      );
+      console.error("REMOVE SONG ERROR:", error);
     } finally {
       setRemoving(false);
     }
@@ -258,16 +232,10 @@ function Song({
                 onToggleSelect?.(track.id);
               }}
               aria-pressed={isSelected}
-              title={
-                isSelected
-                  ? "Deselect"
-                  : "Select"
-              }
+              title={isSelected ? "Deselect" : "Select"}
             >
               <span className="material-symbols-outlined">
-                {isSelected
-                  ? "check_box"
-                  : "check_box_outline_blank"}
+                {isSelected ? "check_box" : "check_box_outline_blank"}
               </span>
             </button>
           ) : track.downloaded ? (
@@ -281,9 +249,7 @@ function Song({
                 setDownloadConfirmOpen(true);
               }}
             >
-              <span className="material-symbols-outlined">
-                download_done
-              </span>
+              <span className="material-symbols-outlined">download_done</span>
             </button>
           ) : isDownloading ? (
             <span
@@ -304,17 +270,11 @@ function Song({
                 downloadSong();
               }}
             >
-              <span className="material-symbols-outlined">
-                download
-              </span>
+              <span className="material-symbols-outlined">download</span>
             </button>
           )}
 
-          {!selectMode && (
-            <span className="song-index">
-              {index + 1}
-            </span>
-          )}
+          {!selectMode && <span className="song-index">{index + 1}</span>}
 
           {!selectMode && (
             <button
@@ -323,9 +283,7 @@ function Song({
               onClick={togglePlay}
             >
               <span className="material-symbols-outlined">
-                {isCurrentTrack && isPlaying
-                  ? "pause"
-                  : "play_arrow"}
+                {isCurrentTrack && isPlaying ? "pause" : "play_arrow"}
               </span>
             </button>
           )}
@@ -333,66 +291,72 @@ function Song({
 
         <div className="song-title">
           <img
-            src={
-              track.album?.images?.[0]?.url
-            }
-            alt={
-              track.album?.name ||
-              track.name
-            }
+            src={track.album?.images?.[0]?.url}
+            alt={track.album?.name || track.name}
           />
 
           <div className="song-title-info">
-            <p className="song-name">
-              {track.name}
-            </p>
+            <p className="song-name">{track.name}</p>
 
             <p className="song-artist">
-              {track.artists
-                ?.map(
-                  (artist) => artist.name,
-                )
-                .join(", ")}
+              {track.artists?.map((artist) => artist.name).join(", ")}
             </p>
           </div>
         </div>
 
-        <p className="song-album">
-          {track.album?.name}
-        </p>
+        <p className="song-album">{track.album?.name}</p>
 
-        <p className="song-date">
-          4 days ago
-        </p>
+        <p className="song-date">4 days ago</p>
 
-        <p className="song-duration">
-          {formatDuration(
-            track.duration_ms,
+        <p className="song-duration">{formatDuration(track.duration_ms)}</p>
+
+        <div className="song-actions">
+          {!selectMode && (
+            <>
+              <button
+                className="song-queue-action"
+                type="button"
+                title="Play next"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPlayNext?.(track);
+                }}
+              >
+                <span className="material-symbols-outlined">next_plan</span>
+              </button>
+
+              <button
+                className="song-queue-action"
+                type="button"
+                title="Add to queue"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToQueue?.(track);
+                }}
+              >
+                <span className="material-symbols-outlined">queue_music</span>
+              </button>
+            </>
           )}
-        </p>
 
-        <button
-          className="delete"
-          type="button"
-          title="Remove from playlist"
-          onClick={(e) => {
-            e.stopPropagation();
-            setConfirmOpen(true);
-          }}
-        >
-          <span className="material-symbols-outlined">
-            delete
-          </span>
-        </button>
+          <button
+            className="delete"
+            type="button"
+            title="Remove from playlist"
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmOpen(true);
+            }}
+          >
+            <span className="material-symbols-outlined">delete</span>
+          </button>
+        </div>
       </div>
 
       {confirmOpen && (
         <div className="confirm">
           <div>
-            <p>
-              Are you sure? This action
-              cannot be undone
-            </p>
+            <p>Are you sure? This action cannot be undone</p>
 
             <div className="confirm-buttons">
               <button
@@ -406,9 +370,7 @@ function Song({
               <button
                 className="No"
                 disabled={removing}
-                onClick={() =>
-                  setConfirmOpen(false)
-                }
+                onClick={() => setConfirmOpen(false)}
               >
                 Cancel
               </button>
@@ -420,18 +382,11 @@ function Song({
       {downloadConfirmOpen && (
         <div className="download-confirm">
           <div>
-            <span className="material-symbols-outlined">
-              download_done
-            </span>
+            <span className="material-symbols-outlined">download_done</span>
 
-            <h3>
-              Delete downloaded file?
-            </h3>
+            <h3>Delete downloaded file?</h3>
 
-            <p>
-              {track.name} will stay in this
-              playlist.
-            </p>
+            <p>{track.name} will stay in this playlist.</p>
 
             <div className="download-confirm-buttons">
               <button
@@ -445,9 +400,7 @@ function Song({
               <button
                 className="download-cancel-confirm"
                 disabled={deletingDownload}
-                onClick={() =>
-                  setDownloadConfirmOpen(false)
-                }
+                onClick={() => setDownloadConfirmOpen(false)}
               >
                 Cancel
               </button>

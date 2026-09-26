@@ -972,7 +972,6 @@ app.post("/song/download", (req, res) => {
     });
   });
 });
-
 app.get("/song/stream/:trackId", (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({
@@ -984,15 +983,11 @@ app.get("/song/stream/:trackId", (req, res) => {
   const trackId = req.params.trackId;
   const userDownloads = getUserDownloads(username);
 
-  const download = userDownloads.find(
-    (item) => item.trackId === trackId,
-  );
+  const download = userDownloads.find((item) => item.trackId === trackId);
 
   if (download?.file) {
     return res.status(200).json({
-      url: `http://localhost:${PORT}/song/file/${encodeURIComponent(
-        trackId,
-      )}`,
+      url: `http://localhost:${PORT}/song/file/${encodeURIComponent(trackId)}`,
       downloaded: true,
     });
   }
@@ -1001,24 +996,58 @@ app.get("/song/stream/:trackId", (req, res) => {
 
   if (!name || !artist) {
     return res.status(400).json({
-      message:
-        "Track name and artist are required for online playback",
+      message: "Track name and artist are required for online playback",
     });
   }
 
   const trackQuery = `${name} ${artist}`;
 
-  const onlineSearch = spawn("yt-dlp", [
+  let onlineSearch = null;
+  let extractionProcess = null;
+  let finished = false;
+  let timeout = null;
+
+  function cleanupProcesses() {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+
+    if (onlineSearch && !onlineSearch.killed) {
+      onlineSearch.kill("SIGKILL");
+    }
+
+    if (extractionProcess && !extractionProcess.killed) {
+      extractionProcess.kill("SIGKILL");
+    }
+  }
+
+  function sendJson(status, body) {
+    if (finished || res.headersSent) {
+      return;
+    }
+
+    finished = true;
+    cleanupProcesses();
+
+    res.status(status).json(body);
+  }
+
+  timeout = setTimeout(() => {
+    sendJson(504, {
+      message: "Timed out while preparing audio playback",
+    });
+  }, 30000);
+
+  onlineSearch = spawn("yt-dlp", [
     "--skip-download",
     "--flat-playlist",
-    "--print",
-    "%(id)s|%(title)s|%(uploader)s|%(webpage_url)s",
+    "--dump-single-json",
     `ytsearch5:${trackQuery}`,
   ]);
 
   let onlineSearchOutput = "";
   let onlineSearchError = "";
-  let extractionProcess = null;
 
   onlineSearch.stdout.on("data", (data) => {
     onlineSearchOutput += data.toString();
@@ -1029,200 +1058,176 @@ app.get("/song/stream/:trackId", (req, res) => {
   });
 
   onlineSearch.on("error", (error) => {
-    console.error(
-      "ONLINE SEARCH ERROR:",
-      error,
-    );
+    console.error("ONLINE SEARCH ERROR:", error);
 
-    if (!res.headersSent) {
-      res.status(500).json({
-        message:
-          "Failed to start YouTube search",
-      });
-    }
+    sendJson(500, {
+      message: "Failed to start YouTube search",
+    });
   });
 
   onlineSearch.on("close", (code) => {
-    if (res.headersSent) return;
+    if (finished) return;
 
     if (code !== 0) {
       console.error(
         "ONLINE SEARCH FAILED:",
-        onlineSearchError.trim(),
+        onlineSearchError.trim() || `yt-dlp exited with code ${code}`,
       );
 
-      return res.status(500).json({
+      return sendJson(500, {
         message: "YouTube search failed",
-        error:
-          onlineSearchError.trim() ||
-          "yt-dlp exited with an error",
+        error: onlineSearchError.trim() || `yt-dlp exited with code ${code}`,
       });
     }
 
-    const results = onlineSearchOutput
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        const [id, title, uploader, url] =
-          line.split("|");
+    if (onlineSearchError.trim()) {
+      console.warn("ONLINE SEARCH WARNING:", onlineSearchError.trim());
+    }
+
+    let searchData;
+
+    try {
+      searchData = JSON.parse(onlineSearchOutput);
+    } catch (error) {
+      console.error("ONLINE SEARCH JSON PARSE ERROR:", error);
+
+      return sendJson(502, {
+        message: "YouTube search returned invalid data",
+      });
+    }
+
+    const results = (searchData.entries || [])
+      .map((entry) => {
+        const rawId = entry.id || entry.url;
+
+        const id =
+          typeof rawId === "string"
+            ? rawId.replace(/^https?:\/\/(www\.)?youtube\.com\/watch\?v=/, "")
+            : "";
 
         return {
           id,
-          title,
-          uploader,
-          url,
+          title: entry.title || "",
+          uploader: entry.uploader || entry.channel || "",
+          url:
+            entry.webpage_url ||
+            (typeof rawId === "string" && rawId.startsWith("http")
+              ? rawId
+              : id
+                ? `https://www.youtube.com/watch?v=${id}`
+                : ""),
         };
       })
-      .filter((video) => video.url);
+      .filter((video) => video.id && video.url);
 
-    if (results.length === 0) {
-      return res.status(404).json({
-        message:
-          "Song not found on YouTube",
+    if (!results.length) {
+      return sendJson(404, {
+        message: "Song not found on YouTube",
       });
     }
 
-    const normalizedArtist =
-      artist.toLowerCase();
+    const normalizedArtist = artist.toLowerCase();
 
-    const matchedVideo = results.find(
-      (video) =>
-        video.uploader
-          ?.toLowerCase()
-          .includes(
-            normalizedArtist,
-          ),
+    const matchedVideo = results.find((video) =>
+      video.uploader?.toLowerCase().includes(normalizedArtist),
     );
 
-    const video =
-      matchedVideo || results[0];
+    const video = matchedVideo || results[0];
 
-    extractionProcess = spawn(
-      "yt-dlp",
-      [
-        "-f",
-        "bestaudio",
-        "-g",
-        "--no-playlist",
-        video.url,
-      ],
-    );
+    extractionProcess = spawn("yt-dlp", [
+      "--no-playlist",
+      "--format",
+      "bestaudio/best",
+      "--get-url",
+      video.url,
+    ]);
 
     let extractedUrl = "";
     let extractionError = "";
 
-    extractionProcess.stdout.on(
-      "data",
-      (data) => {
-        extractedUrl +=
-          data.toString();
-      },
-    );
+    extractionProcess.stdout.on("data", (data) => {
+      extractedUrl += data.toString();
+    });
 
-    extractionProcess.stderr.on(
-      "data",
-      (data) => {
-        extractionError +=
-          data.toString();
-      },
-    );
+    extractionProcess.stderr.on("data", (data) => {
+      extractionError += data.toString();
+    });
 
-    extractionProcess.on(
-      "error",
-      (error) => {
-        console.error(
-          "ONLINE URL EXTRACTION ERROR:",
-          error,
+    extractionProcess.on("error", (error) => {
+      console.error("ONLINE URL EXTRACTION ERROR:", error);
+
+      sendJson(500, {
+        message: "Failed to start audio URL extraction",
+      });
+    });
+
+    extractionProcess.on("close", (exitCode) => {
+      if (finished) return;
+
+      const audioUrl = extractedUrl
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find(
+          (line) => line.startsWith("http://") || line.startsWith("https://"),
         );
 
-        if (!res.headersSent) {
-          res.status(500).json({
-            message:
-              "Failed to extract audio URL",
-          });
-        }
-      },
-    );
-
-    extractionProcess.on(
-      "close",
-      (exitCode) => {
-        if (res.headersSent) return;
-
-        const audioUrl =
-          extractedUrl
-            .trim()
-            .split(/\r?\n/)
-            .find(Boolean);
-
-        if (exitCode !== 0) {
-          console.error(
-            "ONLINE URL EXTRACTION FAILED:",
+      if (extractionError.trim()) {
+        if (exitCode === 0) {
+          console.warn(
+            "ONLINE URL EXTRACTION WARNING:",
             extractionError.trim(),
           );
-
-          return res.status(500).json({
-            message:
-              "Failed to extract playable audio URL",
-            error:
-              extractionError.trim() ||
-              "yt-dlp could not extract the audio URL",
-          });
+        } else {
+          console.error("ONLINE URL EXTRACTION ERROR:", extractionError.trim());
         }
+      }
 
-        if (!audioUrl) {
-          return res.status(502).json({
-            message:
-              "yt-dlp returned no playable audio URL",
-          });
-        }
-
-        try {
-          const parsedUrl =
-            new URL(audioUrl);
-
-          if (
-            ![
-              "http:",
-              "https:",
-            ].includes(
-              parsedUrl.protocol,
-            )
-          ) {
-            throw new Error(
-              "Unsupported audio URL protocol",
-            );
-          }
-        } catch {
-          return res.status(502).json({
-            message:
-              "yt-dlp returned an invalid audio URL",
-          });
-        }
-
-        return res.status(200).json({
-          url: audioUrl,
-          downloaded: false,
+      if (exitCode !== 0) {
+        return sendJson(500, {
+          message: "Failed to extract playable audio URL",
+          error:
+            extractionError.trim() || `yt-dlp exited with code ${exitCode}`,
         });
-      },
-    );
+      }
+
+      if (!audioUrl) {
+        return sendJson(502, {
+          message: "yt-dlp returned no playable audio URL",
+        });
+      }
+
+      try {
+        const parsedUrl = new URL(audioUrl);
+
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          throw new Error("Unsupported audio URL protocol");
+        }
+      } catch {
+        return sendJson(502, {
+          message: "yt-dlp returned an invalid audio URL",
+        });
+      }
+
+      sendJson(200, {
+        url: audioUrl,
+        downloaded: false,
+      });
+    });
   });
 
-  req.on("close", () => {
-    if (!onlineSearch.killed) {
-      onlineSearch.kill("SIGKILL");
-    }
+  req.once("aborted", () => {
+    finished = true;
+    cleanupProcesses();
+  });
 
-    if (
-      extractionProcess &&
-      !extractionProcess.killed
-    ) {
-      extractionProcess.kill("SIGKILL");
+  res.once("close", () => {
+    if (!finished && !res.writableEnded) {
+      finished = true;
+      cleanupProcesses();
     }
   });
 });
-
 app.delete("/song/download/:trackId", (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({
@@ -1427,8 +1432,6 @@ app.post("/stream", (req, res) => {
     "--input-ipc-server=/tmp/mpv-socket",
     "-",
   ]);
-
-  
 
   ytdlp.stdout.pipe(mpv.stdin);
 });

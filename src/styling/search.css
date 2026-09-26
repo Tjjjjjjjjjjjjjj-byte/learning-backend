@@ -647,3 +647,8 @@
     display: none;
   }
 }
+
+.sidebar.minimized,
+.sidebar:not(.minimized) {
+  bottom: var(--now-playing-reserved);
+}

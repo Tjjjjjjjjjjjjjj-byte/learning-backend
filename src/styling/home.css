@@ -184,3 +184,16 @@ body,
 .add-playlist-button.exists span {
   transform: rotate(45deg);
 }
+
+.home-div {
+  padding-bottom: var(--now-playing-reserved);
+  box-sizing: border-box;
+}
+
+.playlist-detail {
+  bottom: var(--now-playing-reserved);
+}
+
+.home-div.sidebar-expanded .playlist-detail {
+  bottom: var(--now-playing-reserved);
+}

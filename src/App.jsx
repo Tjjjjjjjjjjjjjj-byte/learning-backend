@@ -93,7 +93,19 @@ function App() {
         }
 
         if (!cancelled) {
-          setPlaybackTracks(data.filter(Boolean));
+          const nextTracks = data.filter(Boolean);
+
+          originalQueueRef.current = nextTracks;
+
+          setPlaybackTracks(
+            shuffle
+              ? shuffleTracks(
+                  nextTracks,
+                  currentRef.current,
+                )
+              : nextTracks,
+          );
+
           setPlaybackPlaylistId(currentPlaylistId);
         }
       } catch (error) {
@@ -110,7 +122,12 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentPlaylistId, playbackPlaylistId, playbackTracks.length]);
+  }, [
+    currentPlaylistId,
+    playbackPlaylistId,
+    playbackTracks.length,
+    shuffle,
+  ]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -543,7 +560,18 @@ function App() {
         return tracks;
       }
 
-      return [...tracks, track];
+      const next = [...tracks, track];
+
+      if (shuffle) {
+        originalQueueRef.current = [
+          ...originalQueueRef.current.filter(
+            (item) => item?.id !== track.id,
+          ),
+          track,
+        ];
+      }
+
+      return next;
     });
 
     if (!current) {
@@ -566,15 +594,20 @@ function App() {
         (item) => item?.id === current,
       );
 
-      if (currentIndex === -1) {
-        return [track, ...withoutTrack];
+      const next =
+        currentIndex === -1
+          ? [track, ...withoutTrack]
+          : [
+              ...withoutTrack.slice(0, currentIndex + 1),
+              track,
+              ...withoutTrack.slice(currentIndex + 1),
+            ];
+
+      if (shuffle) {
+        originalQueueRef.current = next;
       }
 
-      return [
-        ...withoutTrack.slice(0, currentIndex + 1),
-        track,
-        ...withoutTrack.slice(currentIndex + 1),
-      ];
+      return next;
     });
 
     if (!current) {
@@ -593,6 +626,48 @@ function App() {
         (track) => track?.id !== trackId,
       ),
     );
+
+    if (shuffle) {
+      originalQueueRef.current =
+        originalQueueRef.current.filter(
+          (track) => track?.id !== trackId,
+        );
+    }
+  }
+
+  function reorderQueue(sourceId, targetId) {
+    if (!sourceId || !targetId || sourceId === targetId) {
+      return;
+    }
+
+    setPlaybackTracks((tracks) => {
+      const sourceIndex = tracks.findIndex(
+        (track) => track?.id === sourceId,
+      );
+
+      const targetIndex = tracks.findIndex(
+        (track) => track?.id === targetId,
+      );
+
+      if (
+        sourceIndex === -1 ||
+        targetIndex === -1 ||
+        sourceId === current ||
+        targetId === current
+      ) {
+        return tracks;
+      }
+
+      const next = [...tracks];
+      const [movedTrack] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, movedTrack);
+
+      if (shuffle) {
+        originalQueueRef.current = next;
+      }
+
+      return next;
+    });
   }
 
   function clearQueue() {
@@ -603,10 +678,14 @@ function App() {
 
     if (currentTrack) {
       setPlaybackTracks([currentTrack]);
+      if (shuffle) {
+        originalQueueRef.current = [currentTrack];
+      }
       return;
     }
 
     setPlaybackTracks([]);
+    originalQueueRef.current = [];
   }
 
   function seekTo(value) {
@@ -668,6 +747,7 @@ function App() {
     addToQueue,
     playNext,
     removeFromQueue,
+    reorderQueue,
     clearQueue,
     seekTo,
     sleepTimerMinutes,

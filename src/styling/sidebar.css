@@ -1116,3 +1116,8 @@
 .createOptions button:disabled:hover {
   background: var(--auth-surface);
 }
+
+.sidebar.minimized,
+.sidebar:not(.minimized) {
+  bottom: var(--now-playing-reserved);
+}

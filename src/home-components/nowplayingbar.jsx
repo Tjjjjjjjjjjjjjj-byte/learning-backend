@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import LyricsSection from "./lyricsSection.jsx";
 
 function formatTime(value) {
   if (!Number.isFinite(value) || value < 0) {
@@ -26,25 +27,78 @@ function getArtist(track) {
   );
 }
 
+function formatTrackDuration(durationMs) {
+  if (!Number.isFinite(durationMs) || durationMs < 0) {
+    return "0:00";
+  }
+
+  return formatTime(durationMs / 1000);
+}
+
 function TrackLine({
   track,
   current,
   onPlay,
   onRemove,
+  onReorder,
 }) {
+  const [dragging, setDragging] = useState(false);
   const isCurrent = track?.id === current;
+
+  function handleDragStart(event) {
+    if (isCurrent) {
+      event.preventDefault();
+      return;
+    }
+
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", track.id);
+    setDragging(true);
+  }
+
+  function handleDragEnd() {
+    setDragging(false);
+  }
+
+  function handleDrop(event) {
+    event.preventDefault();
+
+    const sourceId = event.dataTransfer.getData("text/plain");
+
+    setDragging(false);
+
+    if (!sourceId || sourceId === track.id || isCurrent) {
+      return;
+    }
+
+    onReorder?.(sourceId, track.id);
+  }
 
   return (
     <div
       className={`queue-track${
         isCurrent ? " current" : ""
-      }`}
+      }${dragging ? " dragging" : ""}`}
+      draggable={!isCurrent}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={handleDrop}
     >
       <button
         className="queue-track-main"
         type="button"
         onClick={() => onPlay(track.id)}
       >
+        {!isCurrent && (
+          <span
+            className="material-symbols-outlined queue-drag-handle"
+            title="Drag to reorder"
+          >
+            drag_indicator
+          </span>
+        )}
+
         <img
           src={getCover(track)}
           alt=""
@@ -53,6 +107,10 @@ function TrackLine({
         <span className="queue-track-info">
           <strong>{track?.name}</strong>
           <small>{getArtist(track)}</small>
+        </span>
+
+        <span className="queue-track-duration">
+          {formatTrackDuration(track?.duration_ms)}
         </span>
 
         {isCurrent && (
@@ -67,7 +125,10 @@ function TrackLine({
           className="queue-remove"
           type="button"
           title="Remove from queue"
-          onClick={() => onRemove(track.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove(track.id);
+          }}
         >
           <span className="material-symbols-outlined">
             close
@@ -87,6 +148,7 @@ function QueuePanel({
     playbackTracks,
     playQueueTrack,
     removeFromQueue,
+    reorderQueue,
     clearQueue,
   } = player;
 
@@ -153,6 +215,7 @@ function QueuePanel({
               current={current}
               onPlay={playQueueTrack}
               onRemove={removeFromQueue}
+              onReorder={reorderQueue}
             />
           </section>
         )}
@@ -169,6 +232,7 @@ function QueuePanel({
                   current={current}
                   onPlay={playQueueTrack}
                   onRemove={removeFromQueue}
+                  onReorder={reorderQueue}
                 />
               ),
             )
@@ -203,6 +267,18 @@ function ExpandedPlayer({
 }) {
   const [queueOpen, setQueueOpen] =
     useState(false);
+
+  const [lyricsOpen, setLyricsOpen] =
+    useState(false);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   const {
     currentTrack,
@@ -386,7 +462,20 @@ function ExpandedPlayer({
                   {repeatIcon}
                 </span>
               </button>
+
+              <button
+                type="button"
+                className={lyricsOpen ? "active" : ""}
+                onClick={() => setLyricsOpen((value) => !value)}
+                title="Lyrics"
+              >
+                <span className="material-symbols-outlined">
+                  lyrics
+                </span>
+              </button>
             </div>
+
+            {lyricsOpen && <LyricsSection />}
 
             <div className="sleep-timer">
               <div>
@@ -475,10 +564,12 @@ function NowPlayingBar({ player }) {
     currentTime,
     duration,
     shuffle,
+    repeatMode,
     togglePlay,
     nextTrack,
     previousTrack,
     toggleShuffle,
+    cycleRepeat,
     seekTo,
   } = player;
 
@@ -585,6 +676,19 @@ function NowPlayingBar({ player }) {
             >
               <span className="material-symbols-outlined">
                 skip_next
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                repeatMode !== "off" ? "active" : ""
+              }
+              onClick={cycleRepeat}
+              title="Repeat"
+            >
+              <span className="material-symbols-outlined">
+                {repeatMode === "one" ? "repeat_one" : "repeat"}
               </span>
             </button>
 
