@@ -31,90 +31,104 @@ function normalizeTrackForApplication(track) {
   };
 }
 
-async function getOfficialSpotifyPlaylist(
-  playlistId,
-  getSpotifyToken,
-) {
-  const token = await getSpotifyToken();
-  const market = process.env.SPOTIFY_MARKET || "PH";
-  const url =
-    `https://api.spotify.com/v1/playlists/${encodeURIComponent(playlistId)}` +
-    `?market=${encodeURIComponent(market)}`;
-
+async function spotifyJson(url, token) {
   const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
-
   const text = await response.text();
-
   let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok || !data?.id) {
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  if (!response.ok) {
     const error = new Error(
-      data?.error?.message ||
-        `Spotify playlist lookup failed with HTTP ${response.status}`,
+      data?.error?.message || `Spotify API request failed with HTTP ${response.status}`,
     );
     error.status = response.status;
     throw error;
   }
+  return data;
+}
 
-  const tracks = [];
+function normalizeMatchValue(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .trim()
+    .toLocaleLowerCase();
+}
 
-  if (Array.isArray(data.items?.items)) {
-    tracks.push(
-      ...data.items.items
-        .map((item) => item?.item || item?.track)
-        .map(normalizeTrackForApplication)
-        .filter(Boolean),
-    );
+function exactTrackMatch(providerTrack, apiTrack) {
+  if (!providerTrack?.name || !apiTrack?.name) return false;
+  const providerArtist = normalizeMatchValue(providerTrack.artists?.[0]?.name);
+  const apiArtist = normalizeMatchValue(apiTrack.artists?.[0]?.name);
+  return (
+    normalizeMatchValue(providerTrack.name) === normalizeMatchValue(apiTrack.name) &&
+    providerArtist &&
+    providerArtist === apiArtist
+  );
+}
+
+async function resolveProviderTrack(providerTrack, token, market) {
+  const providerId = String(providerTrack?.spotifyTrackId || providerTrack?.id || "").trim();
+
+  if (providerId) {
+    try {
+      const byId = await spotifyJson(
+        `https://api.spotify.com/v1/tracks/${encodeURIComponent(providerId)}?market=${encodeURIComponent(market)}`,
+        token,
+      );
+      if (byId?.id && exactTrackMatch(providerTrack, byId)) return byId;
+    } catch (error) {
+      if (error?.status !== 404) throw error;
+    }
   }
 
-  let nextUrl = data.items?.next || null;
+  const name = normalizeMatchValue(providerTrack?.name);
+  const artist = normalizeMatchValue(providerTrack?.artists?.[0]?.name);
+  if (!name || !artist) return null;
 
-  while (nextUrl) {
-    const itemsResponse = await fetch(nextUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const query = `track:"${providerTrack.name}" artist:"${providerTrack.artists[0].name}"`;
+  const search = await spotifyJson(
+    `https://api.spotify.com/v1/search?${new URLSearchParams({
+      q: query,
+      type: "track",
+      limit: "10",
+      market,
+    })}`,
+    token,
+  );
+
+  const candidates = Array.isArray(search?.tracks?.items)
+    ? search.tracks.items
+    : [];
+  return candidates.find((candidate) => exactTrackMatch(providerTrack, candidate)) || null;
+}
+
+async function getOfficialSpotifyPlaylistMetadata(playlistId, token, market) {
+  return spotifyJson(
+    `https://api.spotify.com/v1/playlists/${encodeURIComponent(playlistId)}?market=${encodeURIComponent(market)}`,
+    token,
+  );
+}
+
+async function getOfficialSpotifyPlaylist(
+  playlistId,
+  getSpotifyToken,
+  providerTracks = [],
+) {
+  const token = await getSpotifyToken();
+  const market = process.env.SPOTIFY_MARKET || "PH";
+  const data = await getOfficialSpotifyPlaylistMetadata(playlistId, token, market);
+
+  const tracks = [];
+  const unresolvedTracks = [];
+  for (const providerTrack of providerTracks) {
+    const resolved = await resolveProviderTrack(providerTrack, token, market);
+    if (resolved) tracks.push(resolved);
+    else unresolvedTracks.push({
+      index: providerTrack.playlistIndex,
+      name: providerTrack.name,
+      artists: providerTrack.artists || [],
+      spotifyTrackId: providerTrack.spotifyTrackId || providerTrack.id || null,
     });
-
-    const itemsText = await itemsResponse.text();
-
-    let itemsData = null;
-
-    try {
-      itemsData = itemsText ? JSON.parse(itemsText) : null;
-    } catch {
-      itemsData = null;
-    }
-
-    if (!itemsResponse.ok) {
-      const error = new Error(
-        itemsData?.error?.message ||
-          `Spotify playlist items lookup failed with HTTP ${itemsResponse.status}`,
-      );
-      error.status = itemsResponse.status;
-      throw error;
-    }
-
-    if (Array.isArray(itemsData?.items)) {
-      tracks.push(
-        ...itemsData.items
-          .map((item) => item?.item || item?.track)
-          .map(normalizeTrackForApplication)
-          .filter(Boolean),
-      );
-    }
-
-    nextUrl = itemsData?.next || null;
   }
 
   const trackCount = Number.isFinite(Number(data.items?.total))
@@ -137,6 +151,8 @@ async function getOfficialSpotifyPlaylist(
     snapshotId: data.snapshot_id || null,
     trackCount,
     tracks,
+    unresolvedTracks,
+    providerTrackCount: providerTracks.length,
   };
 }
 
@@ -147,8 +163,8 @@ export async function getSpotifyPublicPlaylist(
   const resolved = await resolveSpotifyPlaylistWithProviders(
     playlistId,
     {
-      officialApiResolver: (id) =>
-        getOfficialSpotifyPlaylist(id, getSpotifyToken),
+      officialApiResolver: (id, providerTracks) =>
+        getOfficialSpotifyPlaylist(id, getSpotifyToken, providerTracks),
     },
   );
 
@@ -184,6 +200,7 @@ export async function getSpotifyPublicPlaylist(
     tracksAvailable: Boolean(resolved.tracksAvailable),
     tracksReason: resolved.tracksReason || null,
     provider: resolved.source || "spotify-web",
+    unresolvedTracks: Array.isArray(resolved.unresolvedTracks) ? resolved.unresolvedTracks : [],
     tracks: Array.isArray(resolved.tracks)
       ? resolved.tracks.map(normalizeTrackForApplication).filter(Boolean)
       : [],

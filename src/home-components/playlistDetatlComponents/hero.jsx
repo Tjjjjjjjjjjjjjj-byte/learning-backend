@@ -15,10 +15,14 @@ function Hero({
   return (
     <section className="playlist-hero">
       <div className="playlist-hero-cover">
-        <img
-          src={getImageUrl(selectedPlaylist.cover)}
-          alt={selectedPlaylist.name || "Playlist"}
-        />
+        {getImageUrl(selectedPlaylist.cover) ? (
+          <img
+            src={getImageUrl(selectedPlaylist.cover)}
+            alt={selectedPlaylist.name || "Playlist"}
+          />
+        ) : (
+          <div className="playlist-hero-cover-placeholder" aria-hidden="true" />
+        )}
       </div>
 
       <div className="playlist-hero-details">
@@ -41,7 +45,11 @@ function Hero({
         )}
 
         <div className="playlist-meta">
-          <strong>{selectedPlaylist.owner}</strong>
+          <strong>
+            {selectedPlaylist.originalOwner
+              ? `${selectedPlaylist.originalOwner} · ${selectedPlaylist.owner}`
+              : selectedPlaylist.owner}
+          </strong>
 
           <span>•</span>
 

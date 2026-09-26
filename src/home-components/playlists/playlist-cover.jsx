@@ -3,7 +3,11 @@ import { getImageUrl } from "../../utils/imageUrl";
 function PlaylistCover({ cover, isCurrent, isPlaying, onTogglePlay }) {
   return (
     <>
-      <img src={getImageUrl(cover)} alt="Playlist cover" />
+      {getImageUrl(cover) ? (
+        <img src={getImageUrl(cover)} alt="Playlist cover" />
+      ) : (
+        <div className="playlist-cover-placeholder" aria-hidden="true" />
+      )}
 
       <span
         className={isCurrent ? "play-icon active" : "play-icon"}

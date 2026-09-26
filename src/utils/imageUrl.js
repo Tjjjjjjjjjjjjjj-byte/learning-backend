@@ -1,10 +1,10 @@
 const BACKEND_IMAGE_PROXY = "http://localhost:3000/image-proxy?url=";
 
 export function getImageUrl(value) {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") return null;
 
   const url = value.trim();
-  if (!url) return "";
+  if (!url) return null;
 
   if (/^(?:data:|blob:)/i.test(url)) return url;
   if (/^https?:\/\/localhost(?::\d+)?\//i.test(url)) return url;

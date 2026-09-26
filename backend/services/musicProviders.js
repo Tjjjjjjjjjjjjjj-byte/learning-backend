@@ -54,29 +54,61 @@ export async function resolveSpotifyPlaylistWithProviders(
 
   let webError = null;
 
+  let resolved;
   try {
-    const resolved = await provider.resolvePlaylist(id);
-
-    const result = {
-      ...resolved,
-      tracksStatus:
-        resolved.tracks.length > 0
-          ? "available"
-          : resolved.trackCount === 0
-            ? "empty"
-            : "unavailable",
-      tracksAvailable: resolved.tracks.length > 0,
-      tracksReason:
-        resolved.tracks.length > 0
-          ? null
-          : resolved.trackCount === 0
-            ? "playlist-empty"
-            : "provider-returned-no-items",
-    };
-
-    return setCached(cacheKey, result);
+    resolved = await provider.resolvePlaylist(id);
   } catch (error) {
     webError = error;
+  }
+
+  if (resolved && typeof officialApiResolver === "function") {
+    try {
+      const official = await officialApiResolver(id, resolved.tracks);
+      const resolvedCount = official.tracks.length;
+      const expectedCount = resolved.tracks.length;
+      const tracksStatus =
+        expectedCount === 0
+          ? (official.trackCount === 0 ? "empty" : "unavailable")
+          : resolvedCount > 0
+            ? "available"
+            : "unavailable";
+
+      return setCached(cacheKey, {
+        ...resolved,
+        ...official,
+        source: "spotify-web+spotify-api",
+        tracksStatus,
+        tracksAvailable: resolvedCount > 0,
+        tracksReason:
+          tracksStatus === "available"
+            ? null
+            : tracksStatus === "empty"
+              ? "playlist-empty"
+              : "spotify-api-exact-match-unavailable",
+        providerTrackCount: expectedCount,
+        unresolvedTracks: official.unresolvedTracks || [],
+      });
+    } catch (officialError) {
+      return setCached(cacheKey, {
+        ...resolved,
+        tracks: [],
+        source: "spotify-web",
+        tracksStatus: "unavailable",
+        tracksAvailable: false,
+        tracksReason: "spotify-api-resolution-failed",
+        providerError: officialError?.message || "Spotify API resolution failed",
+      });
+    }
+  }
+
+  if (resolved) {
+    return setCached(cacheKey, {
+      ...resolved,
+      tracks: [],
+      tracksStatus: "unavailable",
+      tracksAvailable: false,
+      tracksReason: "spotify-api-resolver-unavailable",
+    });
   }
 
   /*
@@ -87,7 +119,7 @@ export async function resolveSpotifyPlaylistWithProviders(
    */
   if (typeof officialApiResolver === "function") {
     try {
-      const official = await officialApiResolver(id);
+      const official = await officialApiResolver(id, []);
 
       const result = {
         ...official,

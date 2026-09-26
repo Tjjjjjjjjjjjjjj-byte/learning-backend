@@ -15,10 +15,14 @@ function PublicPlaylistCard({ playlist, saved, onOpen, onSave, saving }) {
       }}
     >
       <div className="search-result-cover">
-        <img
-          src={getImageUrl(playlist.cover)}
-          alt={playlist.name || "Spotify playlist"}
-        />
+        {getImageUrl(playlist.cover) ? (
+          <img
+            src={getImageUrl(playlist.cover)}
+            alt={playlist.name || "Spotify playlist"}
+          />
+        ) : (
+          <div className="search-result-cover-placeholder" aria-hidden="true" />
+        )}
       </div>
 
       <div className="search-result-info">

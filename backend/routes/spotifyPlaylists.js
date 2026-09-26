@@ -5,6 +5,8 @@ export function registerRoutes(app, context) {
     extractSpotifyPlaylistId,
     loadSpotifyPublicPlaylists,
     saveSpotifyPublicPlaylists,
+    loadPlaylists,
+    savePlaylists,
   } = context;
 
   function requireUser(req, res) {
@@ -152,6 +154,91 @@ export function registerRoutes(app, context) {
           message:
             error?.message ||
             "Failed to load Spotify playlist tracks",
+        });
+      }
+    },
+  );
+
+  /*
+   * IMPORT PUBLIC SPOTIFY PLAYLIST INTO THE USER'S NORMAL PLAYLISTS
+   */
+  app.post(
+    "/spotify/playlist/:playlistId/import",
+    async (req, res) => {
+      if (!requireUser(req, res)) return;
+
+      try {
+        const playlist = await getSpotifyPublicPlaylist(
+          req.params.playlistId,
+          getSpotifyToken,
+        );
+
+        if (playlist.itemsStatus !== "available" || !playlist.tracks.length) {
+          return res.status(409).json({
+            message:
+              playlist.itemsMessage ||
+              "This Spotify playlist does not currently have resolvable songs.",
+            itemsStatus: playlist.itemsStatus,
+            unresolvedTracks: playlist.unresolvedTracks || [],
+          });
+        }
+
+        const username = req.session.user.username;
+        const playlists = loadPlaylists();
+        const existing = playlists.find(
+          (item) =>
+            item.owner === username &&
+            item.importedSpotifyPlaylistId === playlist.spotifyPlaylistId,
+        );
+
+        if (existing) {
+          return res.status(200).json({
+            alreadyImported: true,
+            playlist: existing,
+          });
+        }
+
+        const numericIds = playlists
+          .map((item) => Number(item.id))
+          .filter(Number.isFinite);
+        const id = numericIds.length ? Math.max(...numericIds) + 1 : 1;
+        const now = new Date().toISOString();
+
+        const imported = {
+          name: playlist.name || "My Playlist",
+          id,
+          cover: playlist.cover || "",
+          owner: username,
+          originalOwner: playlist.owner || "Spotify",
+          importedSpotifyPlaylistId: playlist.spotifyPlaylistId,
+          importedFrom: playlist.externalUrl || `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`,
+          status: "private",
+          description: playlist.description || "",
+          songs: playlist.tracks.map((track) => track.id).filter(Boolean),
+          downloaded: [],
+          createdAt: now,
+          updatedAt: now,
+          songAddedAt: Object.fromEntries(
+            playlist.tracks
+              .filter((track) => track?.id)
+              .map((track) => [track.id, now]),
+          ),
+        };
+
+        playlists.push(imported);
+        savePlaylists(playlists);
+
+        return res.status(201).json({
+          alreadyImported: false,
+          playlist: imported,
+        });
+      } catch (error) {
+        console.error("IMPORT PUBLIC SPOTIFY PLAYLIST ERROR:", error);
+        const status = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
+          ? error.status
+          : 502;
+        return res.status(status).json({
+          message: error?.message || "Failed to import Spotify playlist",
         });
       }
     },

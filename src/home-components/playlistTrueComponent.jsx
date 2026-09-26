@@ -71,8 +71,33 @@ function PlaylistModal({
   const [addToPlaylistOpen, setAddToPlaylistOpen] = useState(false);
 
   const [otherPlaylists, setOtherPlaylists] = useState([]);
+  const [importingPlaylist, setImportingPlaylist] = useState(false);
 
   const navigate = useNavigate();
+
+  async function importSpotifyPlaylist() {
+    if (selectedPlaylist?.type !== "spotify-public" || importingPlaylist) return;
+
+    setImportingPlaylist(true);
+    try {
+      const response = await fetch(
+        `http://localhost:3000/spotify/playlist/${encodeURIComponent(selectedPlaylist.spotifyPlaylistId)}/import`,
+        { method: "POST", credentials: "include" },
+      );
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to import playlist (HTTP ${response.status})`);
+      }
+
+      const imported = data.playlist;
+      window.dispatchEvent(new CustomEvent("playlists:refresh"));
+      setSelectedPlaylist({ ...imported, _openEdit: false });
+    } catch (error) {
+      console.error("IMPORT SPOTIFY PLAYLIST ERROR:", error);
+    } finally {
+      setImportingPlaylist(false);
+    }
+  }
 
   function openEditDetails() {
     setEditDetailsClosing(false);
@@ -518,6 +543,8 @@ function PlaylistModal({
           setDownloadingTrackId={setDownloadingTrackId}
           setPlaybackTracks={setPlaybackTracks}
           onEnterSelectMode={enterSelectMode}
+          onImportPlaylist={importSpotifyPlaylist}
+          importingPlaylist={importingPlaylist}
         />
 
         {selectMode && !isReadOnly && (

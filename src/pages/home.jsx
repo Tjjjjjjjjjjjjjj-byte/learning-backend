@@ -12,6 +12,9 @@ function Home({ player }) {
   const [minimized, setMinimized] =
     useState(true);
 
+  const [playlistRefreshKey, setPlaylistRefreshKey] =
+    useState(0);
+
   const [searchParams, setSearchParams] = useSearchParams();
 
   const {
@@ -150,6 +153,7 @@ function Home({ player }) {
         setPlaybackPlaylistId={setPlaybackPlaylistId}
         isPlaying={isPlaying}
         setIsPlaying={setIsPlaying}
+        refreshKey={playlistRefreshKey}
       />
 
       {selectedPlaylist && (
@@ -179,6 +183,9 @@ function Home({ player }) {
           }
           onAddToQueue={addToQueue}
           onPlayNext={playNext}
+          onPlaylistImported={() =>
+            setPlaylistRefreshKey((value) => value + 1)
+          }
         />
       )}
     </div>

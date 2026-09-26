@@ -16,6 +16,8 @@ function Features({
   setDownloadingTrackId,
   setPlaybackTracks,
   onEnterSelectMode,
+  onImportPlaylist,
+  importingPlaylist = false,
 }) {
   const isThisPlaylistPlaying =
     currentPlaylistId ===
@@ -317,6 +319,20 @@ function Features({
           </span>
         )}
       </button>
+
+      {isReadOnly && (
+        <button
+          className="playlist-feature-button"
+          type="button"
+          onClick={onImportPlaylist}
+          disabled={importingPlaylist}
+          title={importingPlaylist ? "Adding playlist..." : "Add to My Playlists"}
+        >
+          <span className="material-symbols-outlined">
+            {importingPlaylist ? "progress_activity" : "playlist_add"}
+          </span>
+        </button>
+      )}
 
       {!isReadOnly && (
         <button

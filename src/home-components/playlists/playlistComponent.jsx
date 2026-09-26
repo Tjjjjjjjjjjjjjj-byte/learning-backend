@@ -4,6 +4,8 @@ import PlaylistCover from "./playlist-cover";
 function Playlist({
   name,
   owner,
+  originalOwner,
+  importedFromSpotifyId,
   id,
   minimized,
   setMaximized,
@@ -159,6 +161,8 @@ function Playlist({
         : {
             name,
             owner,
+            originalOwner,
+            importedFromSpotifyId,
             cover,
             status,
             description,
@@ -181,7 +185,9 @@ function Playlist({
 
         <div className="add-playlist-info">
           <p className="add-playlist-name">{name || "My Playlist"}</p>
-          <p className="add-playlist-owner">Playlist · {owner}</p>
+          <p className="add-playlist-owner">
+            Playlist · {originalOwner ? `${originalOwner} · ${owner}` : owner}
+          </p>
         </div>
 
         <button
@@ -224,7 +230,11 @@ function Playlist({
         </button>
 
         <div className="playlist-info">
-          <p>{name || "My Playlist"} · {owner}</p>
+          <p>
+            {name || "My Playlist"} · {originalOwner
+              ? `${originalOwner} · ${owner}`
+              : owner}
+          </p>
 
           {!minimized && hovering && (
             <button

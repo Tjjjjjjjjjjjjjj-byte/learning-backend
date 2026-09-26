@@ -176,8 +176,9 @@ function SearchPage({ player }) {
 
     const alreadySaved = playlists.some(
       (item) =>
-        item.type === "spotify-public" &&
-        item.spotifyPlaylistId === playlist.spotifyPlaylistId,
+        item.importedFromSpotifyId === playlist.spotifyPlaylistId ||
+        (item.type === "spotify-public" &&
+          item.spotifyPlaylistId === playlist.spotifyPlaylistId),
     );
 
     if (alreadySaved) return;
@@ -188,7 +189,7 @@ function SearchPage({ player }) {
       const response = await fetch(
         `http://localhost:3000/spotify/playlist/${encodeURIComponent(
           playlist.spotifyPlaylistId,
-        )}/save`,
+        )}/import`,
         {
           method: "POST",
           credentials: "include",
@@ -222,8 +223,9 @@ function SearchPage({ player }) {
   const publicPlaylistSaved = publicPlaylist
     ? playlists.some(
         (item) =>
-          item.type === "spotify-public" &&
-          item.spotifyPlaylistId === publicPlaylist.spotifyPlaylistId,
+          item.importedFromSpotifyId === publicPlaylist.spotifyPlaylistId ||
+          (item.type === "spotify-public" &&
+            item.spotifyPlaylistId === publicPlaylist.spotifyPlaylistId),
       )
     : false;
 

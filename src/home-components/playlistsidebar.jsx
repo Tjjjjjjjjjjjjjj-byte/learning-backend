@@ -54,6 +54,9 @@ function PlaylistSidebar({
 
   useEffect(() => {
     fetchPlaylists();
+    const refresh = () => fetchPlaylists();
+    window.addEventListener("playlists:refresh", refresh);
+    return () => window.removeEventListener("playlists:refresh", refresh);
   }, []);
 
   useEffect(() => {
@@ -115,7 +118,7 @@ function PlaylistSidebar({
           setMaximized={setMaximized}
           viewMode={viewMode}
           name={playlist.name}
-          owner={playlist.owner}
+          owner={playlist.originalOwner ? `${playlist.originalOwner} · ${playlist.owner}` : playlist.owner}
           cover={playlist.cover}
           status={playlist.status}
           description={playlist.description}
