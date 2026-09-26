@@ -20,6 +20,7 @@ function Playlist({
   currentPlaylistId,
   setCurrent,
   setCurrentPlaylistId,
+  setPlaybackTracks,
   isPlaying,
   setIsPlaying,
   onPlaylistDeleted,
@@ -57,10 +58,20 @@ function Playlist({
         throw new Error(data.message || "Failed to load playlist");
       }
 
-      const firstTrack = data.find(Boolean);
+      const playableTracks = Array.isArray(data)
+        ? data.filter(
+            (track) =>
+              track?.id &&
+              track?.name &&
+              track?.artists?.[0]?.name,
+          )
+        : [];
 
-      if (!firstTrack) return;
+      if (!playableTracks.length) return;
 
+      const firstTrack = playableTracks[0];
+
+      setPlaybackTracks(playableTracks);
       setCurrent(firstTrack.id);
       setCurrentPlaylistId(id);
       setIsPlaying(true);

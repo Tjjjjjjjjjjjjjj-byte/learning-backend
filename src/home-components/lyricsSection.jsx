@@ -82,7 +82,7 @@ function LyricsSection({ currentTrack, currentTime }) {
         console.error("LYRICS LOAD ERROR:", error);
 
         if (!controller.signal.aborted) {
-          lyricsCache.set(trackId, []);
+          lyricsCache.delete(trackId);
           setLines([]);
           setUnavailable(true);
         }

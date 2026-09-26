@@ -80,14 +80,18 @@ function Features({
         !isPlaying,
       );
     } else {
-      setCurrent(
-        track[0].id,
+      const playableTracks = track.filter(
+        (song) =>
+          song?.id &&
+          song?.name &&
+          song?.artists?.[0]?.name,
       );
 
-      setCurrentPlaylistId(
-        selectedPlaylist.id,
-      );
+      if (!playableTracks.length) return;
 
+      setPlaybackTracks(playableTracks);
+      setCurrent(playableTracks[0].id);
+      setCurrentPlaylistId(selectedPlaylist.id);
       setIsPlaying(true);
     }
   }

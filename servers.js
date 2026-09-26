@@ -14,7 +14,6 @@ const PASSWORD_RESETS_FILE = "./passwordResets.json";
 const PLAYBACK_CACHE_DIR = "./temp/playback-cache";
 const PLAYBACK_CACHE_TTL_MS = 30 * 60 * 1000;
 const PLAYBACK_PRELOAD_CONCURRENCY = 3;
-const LYRICSTIFY_API_URL = "http://localhost:3001/v1/lyrics";
 const LYRIC_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
 fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
@@ -1528,6 +1527,88 @@ app.get("/song/file/:trackId", (req, res) => {
   return res.sendFile(resolvedFile);
 });
 
+function parseLrcLyrics(syncedLyrics) {
+  if (typeof syncedLyrics !== "string" || !syncedLyrics.trim()) {
+    return [];
+  }
+
+  const lines = [];
+
+  for (const rawLine of syncedLyrics.split(/\r?\n/)) {
+    const timestampPattern = /\[(\d{1,3}):(\d{2})(?:\.(\d{1,3}))?\]/g;
+    const timestamps = [];
+    let match;
+
+    while ((match = timestampPattern.exec(rawLine)) !== null) {
+      const minutes = Number(match[1]);
+      const seconds = Number(match[2]);
+      const fraction = match[3] || "";
+
+      if (seconds >= 60) {
+        continue;
+      }
+
+      const milliseconds =
+        fraction.length === 0 ? 0 : Number(fraction.padEnd(3, "0").slice(0, 3));
+
+      const startTimeMs = minutes * 60 * 1000 + seconds * 1000 + milliseconds;
+
+      if (Number.isFinite(startTimeMs)) {
+        timestamps.push(startTimeMs);
+      }
+    }
+
+    if (!timestamps.length) {
+      continue;
+    }
+
+    const words = rawLine
+      .replace(/\[(\d{1,3}):(\d{2})(?:\.(\d{1,3}))?\]/g, "")
+      .trim();
+
+    if (!words) {
+      continue;
+    }
+
+    for (const startTimeMs of timestamps) {
+      lines.push({
+        startTimeMs,
+        words,
+      });
+    }
+  }
+
+  return lines.sort((a, b) => a.startTimeMs - b.startTimeMs);
+}
+
+async function getSpotifyTrackForLyrics(trackId) {
+  const token = await getSpotifyToken();
+
+  const response = await fetch(
+    `https://api.spotify.com/v1/tracks/${encodeURIComponent(trackId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || !data?.id) {
+    if (response.status === 404) {
+      return null;
+    }
+
+    throw new Error(
+      data?.error?.message ||
+        `Spotify track lookup failed with HTTP ${response.status}`,
+    );
+  }
+
+  return data;
+}
+
 app.get("/lyrics/:trackId", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({
@@ -1536,6 +1617,13 @@ app.get("/lyrics/:trackId", async (req, res) => {
   }
 
   const trackId = req.params.trackId;
+
+  if (!trackId) {
+    return res.status(400).json({
+      message: "Missing track ID",
+    });
+  }
+
   const cached = lyricsCache.get(trackId);
 
   if (cached && cached.expiresAt > Date.now()) {
@@ -1547,26 +1635,105 @@ app.get("/lyrics/:trackId", async (req, res) => {
   }
 
   try {
-    const response = await fetch(
-      `${LYRICSTIFY_API_URL}/${encodeURIComponent(trackId)}`,
-    );
+    const track = await getSpotifyTrackForLyrics(trackId);
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        message: data?.message || "Lyrics unavailable",
+    if (!track) {
+      console.warn("LYRICS: Spotify track not found:", trackId);
+      return res.status(200).json({
+        lyrics: {
+          lines: [],
+        },
       });
     }
 
+    const artistName = Array.isArray(track.artists)
+      ? track.artists
+          .map((artist) => artist?.name)
+          .filter(Boolean)
+          .join(", ")
+      : "";
+
+    const trackName = String(track.name || "").trim();
+    const albumName = String(track.album?.name || "").trim();
+    const durationSeconds = Number(track.duration_ms) / 1000;
+
+    if (
+      !trackName ||
+      !artistName ||
+      !albumName ||
+      !Number.isFinite(durationSeconds) ||
+      durationSeconds <= 0
+    ) {
+      console.warn("LYRICS: Incomplete Spotify metadata:", trackId);
+      return res.status(200).json({
+        lyrics: {
+          lines: [],
+        },
+      });
+    }
+
+    const lrclibUrl = new URL("https://lrclib.net/api/get");
+    lrclibUrl.searchParams.set("track_name", trackName);
+    lrclibUrl.searchParams.set("artist_name", artistName);
+    lrclibUrl.searchParams.set("album_name", albumName);
+    lrclibUrl.searchParams.set("duration", String(durationSeconds));
+
+    const response = await fetch(lrclibUrl, {
+      headers: {
+        Accept: "application/json",
+        "Lrclib-Client": "learning-backend",
+      },
+    });
+
+    if (response.status === 404) {
+      return res.status(200).json({
+        lyrics: {
+          lines: [],
+        },
+      });
+    }
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.error(
+        "LRCLIB REQUEST FAILED:",
+        response.status,
+        data?.message || "Unknown LRCLIB error",
+      );
+
+      return res.status(502).json({
+        message: "Lyrics service unavailable",
+      });
+    }
+
+    const lines = parseLrcLyrics(data?.syncedLyrics);
+
+    if (!lines.length) {
+      return res.status(200).json({
+        lyrics: {
+          lines: [],
+        },
+      });
+    }
+
+    const result = {
+      lyrics: {
+        lines,
+      },
+    };
+
     lyricsCache.set(trackId, {
-      data,
+      data: result,
       expiresAt: Date.now() + LYRIC_CACHE_TTL_MS,
     });
 
-    return res.status(200).json(data);
+    return res.status(200).json(result);
   } catch (error) {
-    console.error("LYRICSTIFY ERROR:", error);
+    console.error(
+      "LYRICS LOAD ERROR:",
+      error instanceof Error ? error.message : error,
+    );
 
     return res.status(502).json({
       message: "Lyrics service unavailable",

@@ -17,6 +17,7 @@ function PlaylistSidebar({
   currentPlaylistId,
   setCurrent,
   setCurrentPlaylistId,
+  setPlaybackTracks,
   isPlaying,
   setIsPlaying,
 }) {
@@ -123,6 +124,7 @@ function PlaylistSidebar({
           currentPlaylistId={currentPlaylistId}
           setCurrent={setCurrent}
           setCurrentPlaylistId={setCurrentPlaylistId}
+          setPlaybackTracks={setPlaybackTracks}
           isPlaying={isPlaying}
           setIsPlaying={setIsPlaying}
           onPlaylistDeleted={handlePlaylistDeleted}
