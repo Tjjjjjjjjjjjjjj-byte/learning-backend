@@ -12,3 +12,5 @@ export const PLAYBACK_CACHE_DIR = path.join(PROJECT_ROOT, "temp", "playback-cach
 export const PLAYBACK_CACHE_TTL_MS = 30 * 60 * 1000;
 export const PLAYBACK_PRELOAD_CONCURRENCY = 3;
 export const LYRIC_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+export const PLAYBACK_STATE_FILE = path.join(PROJECT_ROOT, "playbackState.json");
+export const MAX_PLAYBACK_HISTORY = 200;

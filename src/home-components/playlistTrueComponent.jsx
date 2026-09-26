@@ -6,6 +6,27 @@ import Features from "./playlistDetatlComponents/features";
 import "../styling/playlistModal.css";
 import Song from "./playlistDetatlComponents/song";
 
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  if (!text) return {};
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error(
+      response.ok
+        ? "Server returned a non-JSON response"
+        : `Server returned HTTP ${response.status} instead of JSON`,
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Server returned invalid JSON");
+  }
+}
+
 function PlaylistModal({
   selectedPlaylist,
   setSelectedPlaylist,
@@ -28,6 +49,14 @@ function PlaylistModal({
   const [track, setTrack] = useState([]);
 
   const [loading, setLoading] = useState(true);
+
+  const [itemsStatus, setItemsStatus] = useState(
+    selectedPlaylist?.type === "spotify-public"
+      ? selectedPlaylist?.itemsStatus || "loading"
+      : "available",
+  );
+
+  const [itemsMessage, setItemsMessage] = useState("");
 
   const [downloadingTrackId, setDownloadingTrackId] = useState(null);
 
@@ -72,6 +101,10 @@ function PlaylistModal({
   useEffect(() => {
     async function getTracks() {
       setLoading(true);
+      if (selectedPlaylist.type === "spotify-public") {
+        setItemsStatus("loading");
+        setItemsMessage("");
+      }
 
       try {
         const endpoint =
@@ -85,19 +118,38 @@ function PlaylistModal({
           credentials: "include",
         });
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to get tracks");
         }
 
-        setTrack(data);
-        setPlaybackTracks(data.filter(Boolean));
-        setPlaybackPlaylistId(selectedPlaylist.id);
+        if (selectedPlaylist.type === "spotify-public") {
+          const nextTracks = Array.isArray(data.tracks) ? data.tracks.filter(Boolean) : [];
+          setItemsStatus(data.itemsStatus || selectedPlaylist.itemsStatus || "unavailable");
+          setItemsMessage(data.itemsMessage || "");
+          setTrack(nextTracks);
+
+          if (nextTracks.length > 0) {
+            setPlaybackTracks(nextTracks);
+            setPlaybackPlaylistId(selectedPlaylist.id || selectedPlaylist.spotifyPlaylistId);
+          }
+        } else {
+          const nextTracks = Array.isArray(data) ? data.filter(Boolean) : [];
+          setItemsStatus("available");
+          setItemsMessage("");
+          setTrack(nextTracks);
+          setPlaybackTracks(nextTracks);
+          setPlaybackPlaylistId(selectedPlaylist.id);
+        }
       } catch (error) {
         console.error("FAILED TO LOAD TRACKS:", error);
 
         setTrack([]);
+        if (selectedPlaylist.type === "spotify-public") {
+          setItemsStatus("error");
+          setItemsMessage(error.message || "Failed to load Spotify playlist items");
+        }
       } finally {
         setLoading(false);
       }
@@ -113,7 +165,7 @@ function PlaylistModal({
           credentials: "include",
         });
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
         if (response.ok) {
           setOtherPlaylists(
@@ -188,7 +240,7 @@ function PlaylistModal({
           }),
         });
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
         if (!response.ok) {
           throw new Error(data.message || `Failed to download ${song.name}`);
@@ -248,7 +300,7 @@ function PlaylistModal({
           },
         );
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
         if (!response.ok) {
           throw new Error(
@@ -317,7 +369,7 @@ function PlaylistModal({
           },
         );
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to remove song");
@@ -369,7 +421,7 @@ function PlaylistModal({
           },
         );
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
         if (!response.ok) {
           throw new Error(data.message || `Failed to add ${song.name}`);
@@ -440,7 +492,12 @@ function PlaylistModal({
       <main className="playlist-detail">
         <Hero
           selectedPlaylist={selectedPlaylist}
-          trackCount={track.length}
+          trackCount={
+            selectedPlaylist.type === "spotify-public" &&
+            Number.isFinite(Number(selectedPlaylist.trackCount))
+              ? Number(selectedPlaylist.trackCount)
+              : track.length
+          }
           totalMinutes={totalMinutes}
           totalSeconds={totalSeconds}
         />
@@ -613,21 +670,35 @@ function PlaylistModal({
         ) : (
           <section className="empty-playlist">
             <div className="empty-playlist-icon">
-              <span className="material-symbols-outlined">music_note</span>
+              <span className="material-symbols-outlined">
+                {itemsStatus === "unavailable" ? "cloud_off" : itemsStatus === "error" ? "error_outline" : "music_note"}
+              </span>
             </div>
 
-            <h2>This playlist is empty</h2>
+            <h2>
+              {itemsStatus === "unavailable"
+                ? "Songs unavailable"
+                : itemsStatus === "error"
+                  ? "Could not load songs"
+                  : "This playlist is empty"}
+            </h2>
 
             <p>
-              {isReadOnly
-                ? "This Spotify playlist has no available tracks."
-                : "Add songs to start building your playlist."}
+              {itemsStatus === "unavailable"
+                ? (itemsMessage || "Spotify provided the playlist metadata, but the current API client cannot access its song items. This does not mean the playlist is empty.")
+                : itemsStatus === "error"
+                  ? itemsMessage
+                  : isReadOnly
+                    ? "This Spotify playlist has no available tracks."
+                    : "Add songs to start building your playlist."}
             </p>
 
-            <button type="button" onClick={() => navigate("/search")}>
-              <span className="material-symbols-outlined">search</span>
-              Find something to play
-            </button>
+            {itemsStatus !== "unavailable" && (
+              <button type="button" onClick={() => navigate("/search")}>
+                <span className="material-symbols-outlined">search</span>
+                Find something to play
+              </button>
+            )}
           </section>
         )}
       </main>

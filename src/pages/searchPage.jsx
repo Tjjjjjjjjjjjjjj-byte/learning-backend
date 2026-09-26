@@ -11,6 +11,27 @@ import PublicPlaylistCard from "../searchpagecomponents/PublicPlaylistCard";
 import { SEARCH_QUEUE_ID } from "../App";
 import "../styling/search.css";
 
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  if (!text) return {};
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error(
+      response.ok
+        ? "Server returned a non-JSON response"
+        : `Server returned HTTP ${response.status} instead of JSON`,
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Server returned invalid JSON");
+  }
+}
+
 function SearchPage({ player }) {
   const [searchParams] = useSearchParams();
   const searchValue = searchParams.get("q") || "";
@@ -19,6 +40,7 @@ function SearchPage({ player }) {
   const [loading, setLoading] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [savingPlaylistId, setSavingPlaylistId] = useState(null);
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
@@ -79,6 +101,7 @@ function SearchPage({ player }) {
 
     async function getResults() {
       setLoading(true);
+    setError("");
 
       try {
         const trimmedSearch = searchValue.trim();
@@ -96,27 +119,27 @@ function SearchPage({ player }) {
           credentials: "include",
         });
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
-        // The direct public-playlist endpoint returns the playlist itself.
-        // Normalize it to the same shape used by the normal search renderer.
-        if (playlistMatch && response.ok && data?.type === "spotify-public") {
+        if (!response.ok) {
+          throw new Error(data.message || `Search failed (HTTP ${response.status})`);
+        }
+
+        if (playlistMatch && data?.type === "spotify-public") {
+          const playlistTracks = Array.isArray(data.tracks) ? data.tracks : [];
           setResults({
             playlist: data,
-            tracks: { items: [] },
+            tracks: { items: playlistTracks },
             artists: { items: [] },
             albums: { items: [] },
           });
           return;
         }
 
-        if (!response.ok) {
-          throw new Error(data.message || "Search failed");
-        }
-
         setResults(data);
       } catch (error) {
         console.error(error);
+        setError(error.message || "Search failed");
         setResults(null);
       } finally {
         setLoading(false);
@@ -136,7 +159,7 @@ function SearchPage({ player }) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       setPlaylists(data.playlists || []);
     } catch (error) {
       console.error("Failed to load playlists:", error);
@@ -173,7 +196,7 @@ function SearchPage({ player }) {
         },
       );
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to save playlist");
@@ -223,6 +246,12 @@ function SearchPage({ player }) {
 
           {loading && <p>Loading...</p>}
 
+          {!loading && error && (
+            <section className="search-section">
+              <p className="search-error">{error}</p>
+            </section>
+          )}
+
           {!loading && results && (
             <>
               {publicPlaylist && (
@@ -241,6 +270,16 @@ function SearchPage({ player }) {
                       onSave={() => savePublicPlaylist(publicPlaylist)}
                     />
                   </div>
+
+                  {publicPlaylist.itemsStatus === "unavailable" && (
+                    <p className="search-error">
+                      Spotify provided the playlist metadata, but its song items are unavailable to this API client. This is not an empty playlist.
+                    </p>
+                  )}
+
+                  {publicPlaylist.itemsStatus === "empty" && (
+                    <p>No songs are available in this Spotify playlist.</p>
+                  )}
                 </section>
               )}
 

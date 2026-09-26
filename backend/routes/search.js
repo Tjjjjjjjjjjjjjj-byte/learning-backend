@@ -25,9 +25,9 @@ export function registerRoutes(app, context) {
         return res.json({
           playlist: {
             ...playlist,
-            tracks: undefined,
+            tracks: playlist.tracks,
           },
-          tracks: { items: [] },
+          tracks: { items: playlist.tracks },
           artists: { items: [] },
           albums: { items: [] },
         });

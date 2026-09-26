@@ -5,11 +5,16 @@ import {
   DOWNLOAD_DIR,
   PASSWORD_RESETS_FILE,
   PROJECT_ROOT,
+  PLAYBACK_STATE_FILE,
 } from "../config.js";
 
 export function ensureStorageDirectories() {
   fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
   fs.mkdirSync(path.join(PROJECT_ROOT, "temp", "playback-cache"), { recursive: true });
+
+  if (!fs.existsSync(PLAYBACK_STATE_FILE)) {
+    fs.writeFileSync(PLAYBACK_STATE_FILE, "{}", "utf-8");
+  }
 }
 
 export function ensurePlaylistMetadata(playlists) {
@@ -118,4 +123,35 @@ export function saveSpotifyPublicPlaylists(playlists) {
 
 export function loadSpotifyPublicPlaylists() {
   return readSpotifyPublicPlaylists();
+}
+
+
+export function readPlaybackStates() {
+  if (!fs.existsSync(PLAYBACK_STATE_FILE)) return {};
+
+  try {
+    const data = JSON.parse(fs.readFileSync(PLAYBACK_STATE_FILE, "utf-8"));
+    return data && typeof data === "object" && !Array.isArray(data)
+      ? data
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export function loadPlaybackState(username) {
+  const states = readPlaybackStates();
+  const state = states[username];
+
+  if (!state || typeof state !== "object") {
+    return null;
+  }
+
+  return state;
+}
+
+export function savePlaybackState(username, state) {
+  const states = readPlaybackStates();
+  states[username] = state;
+  fs.writeFileSync(PLAYBACK_STATE_FILE, JSON.stringify(states, null, 2), "utf-8");
 }

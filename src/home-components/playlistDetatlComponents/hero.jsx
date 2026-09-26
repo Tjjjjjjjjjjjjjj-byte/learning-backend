@@ -45,7 +45,9 @@ function Hero({
           <span>•</span>
 
           <span>
-            {trackCount} {trackCount === 1 ? "song" : "songs"}
+            {trackCount == null
+            ? "Song count unavailable"
+            : `${trackCount} ${trackCount === 1 ? "song" : "songs"}`}
           </span>
 
           <span>•</span>

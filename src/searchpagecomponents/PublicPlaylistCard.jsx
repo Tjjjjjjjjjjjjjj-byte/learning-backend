@@ -23,7 +23,15 @@ function PublicPlaylistCard({ playlist, saved, onOpen, onSave, saving }) {
         <span className="public-playlist-label">Spotify Public Playlist</span>
         <h3>{playlist.name || "Spotify Playlist"}</h3>
         <p>
-          {playlist.owner || "Spotify"} · {playlist.trackCount || 0} songs
+          {playlist.owner || "Spotify"} · {
+            playlist.itemsStatus === "unavailable"
+              ? "songs unavailable to this API client"
+              : playlist.trackCount === 0
+                ? "0 songs"
+                : playlist.trackCount != null
+                  ? `${playlist.trackCount} songs`
+                  : "song count unavailable"
+          }
         </p>
         {playlist.description && (
           <p>{playlist.description}</p>

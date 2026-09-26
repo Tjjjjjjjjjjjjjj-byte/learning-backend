@@ -729,3 +729,9 @@
     padding-right: 12px;
   }
 }
+
+
+.search-error {
+  color: #d7d7d7;
+  line-height: 1.5;
+}

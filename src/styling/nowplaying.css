@@ -917,3 +917,22 @@
 .lyrics-lines::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.now-playing-empty-cover {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background: #242424;
+  color: #777;
+}
+
+.now-playing-controls button:disabled,
+.now-playing-open:disabled,
+.now-playing-track:disabled {
+  opacity: .45;
+  cursor: default;
+}

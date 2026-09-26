@@ -15,8 +15,10 @@ import {
   PLAYBACK_CACHE_DIR,
   PLAYBACK_PRELOAD_CONCURRENCY,
   LYRIC_CACHE_TTL_MS,
+  PLAYBACK_STATE_FILE,
+  MAX_PLAYBACK_HISTORY,
 } from "./config.js";
-import { ensureStorageDirectories, loadPlaylists, savePlaylists, readDownloads, saveDownloads, getUserDownloads, readPasswordResets, savePasswordResets, sanitizeFilename, findGlobalDownload, loadSpotifyPublicPlaylists, saveSpotifyPublicPlaylists } from "./services/storage.js";
+import { ensureStorageDirectories, loadPlaylists, savePlaylists, readDownloads, saveDownloads, getUserDownloads, readPasswordResets, savePasswordResets, sanitizeFilename, findGlobalDownload, loadSpotifyPublicPlaylists, saveSpotifyPublicPlaylists, loadPlaybackState, savePlaybackState } from "./services/storage.js";
 import { getSpotifyToken, getSpotifyTrackForLyrics } from "./services/spotify.js";
 import { extractSpotifyPlaylistId, getSpotifyPublicPlaylist } from "./services/spotifyPlaylist.js";
 import { findYoutubeVideo } from "./services/youtube.js";
@@ -29,6 +31,7 @@ import { registerRoutes as registerSearchRoutes } from "./routes/search.js";
 import { registerRoutes as registerSongRoutes } from "./routes/songs.js";
 import { registerRoutes as registerLyricsRoutes } from "./routes/lyrics.js";
 import { registerRoutes as registerLegacyStreamRoutes } from "./routes/stream.js";
+import { registerRoutes as registerPlaybackRoutes } from "./routes/playback.js";
 import { registerRoutes as registerSpotifyPlaylistRoutes } from "./routes/spotifyPlaylists.js";
 
 const app = express();
@@ -67,6 +70,8 @@ const context = {
   PLAYBACK_CACHE_DIR,
   PLAYBACK_PRELOAD_CONCURRENCY,
   LYRIC_CACHE_TTL_MS,
+  PLAYBACK_STATE_FILE,
+  MAX_PLAYBACK_HISTORY,
   getSpotifyToken,
   getSpotifyTrackForLyrics,
   getSpotifyPublicPlaylist,
@@ -77,6 +82,8 @@ const context = {
   readDownloads,
   loadSpotifyPublicPlaylists,
   saveSpotifyPublicPlaylists,
+  loadPlaybackState,
+  savePlaybackState,
   saveDownloads,
   sanitizeFilename,
   loadPlaylists,
@@ -90,6 +97,7 @@ const context = {
 };
 
 registerAuthRoutes(app, context);
+registerPlaybackRoutes(app, context);
 registerPlaylistRoutes(app, context);
 registerSearchRoutes(app, context);
 registerSpotifyPlaylistRoutes(app, context);

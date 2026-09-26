@@ -56,7 +56,7 @@ export function registerRoutes(app, context) {
          */
         return res.status(200).json({
           ...playlist,
-          tracks: undefined,
+          tracks: playlist.tracks,
         });
       } catch (error) {
         console.error(
@@ -110,19 +110,17 @@ export function registerRoutes(app, context) {
             )
           : new Set();
 
-        return res.status(200).json(
-          playlist.tracks.map((track, index) => ({
+        return res.status(200).json({
+          itemsStatus: playlist.itemsStatus,
+          itemsMessage: playlist.itemsMessage,
+          trackCount: playlist.trackCount,
+          tracks: playlist.tracks.map((track, index) => ({
             ...track,
-
-            downloaded: downloadedIds.has(
-              track.id,
-            ),
-
+            downloaded: downloadedIds.has(track.id),
             addedAt: null,
-
             publicPlaylistIndex: index,
           })),
-        );
+        });
       } catch (error) {
         console.error(
           "PUBLIC SPOTIFY PLAYLIST TRACKS ERROR:",
@@ -307,7 +305,7 @@ export function registerRoutes(app, context) {
 
         return res.status(200).json({
           ...playlist,
-          tracks: undefined,
+          tracks: playlist.tracks,
         });
       } catch (error) {
         console.error(

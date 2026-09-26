@@ -60,14 +60,17 @@ function Playlist({
         credentials: "include",
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const text = await response.text();
+      const data = contentType.includes("application/json") && text ? JSON.parse(text) : {};
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to load playlist");
+        throw new Error(data.message || `Failed to load playlist (HTTP ${response.status})`);
       }
 
-      const playableTracks = Array.isArray(data)
-        ? data.filter(
+      const rawTracks = type === "spotify-public" ? data.tracks : data;
+      const playableTracks = Array.isArray(rawTracks)
+        ? rawTracks.filter(
             (track) =>
               track?.id &&
               track?.name &&

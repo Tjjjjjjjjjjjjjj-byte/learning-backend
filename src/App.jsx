@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Home from "./pages/home.jsx";
 import LoginPage from "./pages/loginPage.jsx";
 import Profile from "./pages/profile.jsx";
@@ -12,6 +13,27 @@ import "./styling/nowplaying.css";
 
 export const SEARCH_QUEUE_ID = "search-queue";
 export const FREE_QUEUE_ID = "free-queue";
+
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  if (!text) return {};
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error(
+      response.ok
+        ? "Server returned a non-JSON response"
+        : `Server returned HTTP ${response.status} instead of JSON`,
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Server returned invalid JSON");
+  }
+}
 
 function shuffleTracks(tracks, currentId) {
   const currentTrack = tracks.find((track) => track?.id === currentId);
@@ -52,6 +74,14 @@ function App() {
   const isPlayingRef = useRef(false);
   const repeatModeRef = useRef(repeatMode);
   const originalQueueRef = useRef([]);
+  const restorePositionRef = useRef(null);
+  const currentTimeRef = useRef(0);
+  const durationRef = useRef(0);
+  const restoredForSessionRef = useRef(false);
+  const restoringCurrentRef = useRef(false);
+  const persistPlaybackRef = useRef(null);
+  const sourceUrlRef = useRef("");
+  const location = useLocation();
 
   useEffect(() => {
     currentRef.current = current;
@@ -68,6 +98,175 @@ function App() {
   useEffect(() => {
     tracksRef.current = playbackTracks;
   }, [playbackTracks]);
+
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+  }, [currentTime]);
+
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
+
+  async function persistPlayback(event = "progress", overrides = {}) {
+    const track = overrides.track || tracksRef.current.find(
+      (item) => item?.id === currentRef.current,
+    );
+
+    if (!track?.id || !track?.name) return;
+
+    const position = Number.isFinite(Number(overrides.position))
+      ? Math.max(0, Number(overrides.position))
+      : Math.max(0, Number(currentTimeRef.current) || 0);
+
+    const durationValue = Number.isFinite(Number(overrides.duration))
+      ? Math.max(0, Number(overrides.duration))
+      : Math.max(0, Number(durationRef.current || track.duration_ms / 1000)) || 0;
+
+    const queueIndex = tracksRef.current.findIndex((item) => item?.id === track.id);
+
+    const state = {
+      trackId: track.id,
+      title: track.name,
+      artist: track.artists?.map((artist) => artist?.name).filter(Boolean).join(", ") || "Unknown artist",
+      album: track.album?.name || "",
+      artwork: track.album?.images?.[0]?.url || "",
+      duration: durationValue,
+      source: track.downloaded ? "download" : "youtube-playback",
+      sourceUrl: sourceUrlRef.current || (track.downloaded
+        ? `http://localhost:3000/song/file/${encodeURIComponent(track.id)}`
+        : `http://localhost:3000/song/stream/${encodeURIComponent(track.id)}`),
+      position,
+      updatedAt: new Date().toISOString(),
+      completed: Boolean(overrides.completed),
+      playlistId: currentPlaylistId,
+      playlistName: overrides.playlistName || "",
+      queueIndex: queueIndex >= 0 ? queueIndex : null,
+    };
+
+    try {
+      const response = await fetch("http://localhost:3000/playback/state", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state, event }),
+        keepalive: event === "unload" || event === "pause" || event === "seek",
+      });
+
+      if (!response.ok) {
+        const data = await readJsonResponse(response).catch(() => ({}));
+        throw new Error(data.message || `Playback state save failed (${response.status})`);
+      }
+    } catch (error) {
+      console.error("PLAYBACK STATE SAVE ERROR:", error);
+    }
+  }
+
+  persistPlaybackRef.current = persistPlayback;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restorePlayback() {
+      if (restoredForSessionRef.current) return;
+
+      try {
+        const response = await fetch("http://localhost:3000/playback/state", {
+          credentials: "include",
+        });
+
+        if (response.status === 401) return;
+
+        const data = await readJsonResponse(response);
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to restore playback state");
+        }
+
+        if (cancelled) return;
+
+        const state = data.state;
+        if (!state?.trackId || !state?.title) {
+          restoredForSessionRef.current = true;
+          return;
+        }
+
+        const restoredTrack = {
+          id: state.trackId,
+          name: state.title,
+          artists: [{ name: state.artist || "Unknown artist" }],
+          album: {
+            name: state.album || "",
+            images: state.artwork ? [{ url: state.artwork }] : [],
+          },
+          duration_ms: Number(state.duration) > 0 ? Number(state.duration) * 1000 : 0,
+          downloaded: state.source === "download",
+        };
+
+        restorePositionRef.current = {
+          trackId: state.trackId,
+          position: Math.max(0, Number(state.position) || 0),
+        };
+
+        restoringCurrentRef.current = true;
+        setPlaybackTracks([restoredTrack]);
+        setPlaybackPlaylistId(state.playlistId || FREE_QUEUE_ID);
+        setCurrentPlaylistId(state.playlistId || FREE_QUEUE_ID);
+        setCurrent(state.trackId);
+        setCurrentTime(Math.max(0, Number(state.position) || 0));
+        setDuration(Math.max(0, Number(state.duration) || 0));
+        setIsPlaying(false);
+        restoredForSessionRef.current = true;
+      } catch (error) {
+        console.error("PLAYBACK STATE RESTORE ERROR:", error);
+      }
+    }
+
+    restorePlayback();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!current) return;
+
+    if (restoringCurrentRef.current) {
+      restoringCurrentRef.current = false;
+      return;
+    }
+
+    persistPlaybackRef.current?.("track-change", {
+      position: restorePositionRef.current?.trackId === current
+        ? restorePositionRef.current.position
+        : 0,
+    });
+
+    if (restorePositionRef.current?.trackId === current) {
+      setCurrentTime(restorePositionRef.current.position);
+    }
+  }, [current]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (currentRef.current && isPlayingRef.current) {
+        persistPlaybackRef.current?.("progress");
+      }
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleUnload = () => {
+      if (currentRef.current) {
+        persistPlaybackRef.current?.("unload");
+      }
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, []);
 
   const playbackPreloadKey = playbackTracks
     .map((track) => track?.id)
@@ -113,7 +312,7 @@ function App() {
         );
 
         if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
+          const data = await readJsonResponse(response).catch(() => ({}));
 
           throw new Error(
             data.message ||
@@ -161,7 +360,7 @@ function App() {
           },
         );
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to load playback tracks");
@@ -214,7 +413,19 @@ function App() {
     }
 
     function handleLoadedMetadata() {
-      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+      const nextDuration = Number.isFinite(audio.duration) ? audio.duration : 0;
+      setDuration(nextDuration);
+
+      const restored = restorePositionRef.current;
+      if (restored?.trackId === currentRef.current) {
+        const nextPosition = Math.min(
+          restored.position,
+          nextDuration > 0 ? nextDuration : restored.position,
+        );
+        audio.currentTime = nextPosition;
+        setCurrentTime(nextPosition);
+        restorePositionRef.current = null;
+      }
     }
 
     function handleDurationChange() {
@@ -228,6 +439,7 @@ function App() {
     function handlePause() {
       if (audio.ended) return;
       setIsPlaying(false);
+      persistPlaybackRef.current?.("pause", { position: audio.currentTime });
     }
 
     function handleError() {
@@ -261,6 +473,16 @@ function App() {
     function handleEnded() {
       const tracks = tracksRef.current;
       const currentId = currentRef.current;
+      const currentTrack = tracks.find((track) => track?.id === currentId);
+
+      if (currentTrack && currentId) {
+        persistPlaybackRef.current?.("ended", {
+          track: currentTrack,
+          position: audio.duration || currentTimeRef.current,
+          duration: Number.isFinite(audio.duration) ? audio.duration : durationRef.current,
+          completed: true,
+        });
+      }
 
       if (!tracks.length || !currentId) {
         setIsPlaying(false);
@@ -269,37 +491,40 @@ function App() {
 
       if (repeatModeRef.current === "one") {
         audio.currentTime = 0;
+        setCurrentTime(0);
+        persistPlaybackRef.current?.("track-change", {
+          track: currentTrack,
+          position: 0,
+          completed: false,
+        });
 
         audio.play().catch((error) => {
           console.error("REPEAT PLAY FAILED:", error);
           setIsPlaying(false);
         });
-
         return;
       }
 
-      const currentIndex = tracks.findIndex(
-        (track) => track?.id === currentId,
-      );
-
+      const currentIndex = tracks.findIndex((track) => track?.id === currentId);
       const nextIndex = currentIndex + 1;
 
       if (nextIndex < tracks.length) {
         setCurrent(tracks[nextIndex].id);
+        setCurrentTime(0);
         setIsPlaying(true);
         return;
       }
 
       if (repeatModeRef.current === "all" && tracks.length > 0) {
         setCurrent(tracks[0].id);
+        setCurrentTime(0);
         setIsPlaying(true);
         return;
       }
 
       setIsPlaying(false);
-      setCurrent(null);
-      setCurrentTime(0);
-      setDuration(0);
+      setCurrentTime(audio.duration || currentTimeRef.current);
+      setDuration(Number.isFinite(audio.duration) ? audio.duration : durationRef.current);
     }
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -343,6 +568,7 @@ function App() {
       audio.pause();
       audio.removeAttribute("src");
       audio.load();
+      sourceUrlRef.current = "";
       setCurrentTime(0);
       setDuration(0);
 
@@ -352,6 +578,7 @@ function App() {
     audio.pause();
     audio.removeAttribute("src");
     audio.load();
+    sourceUrlRef.current = "";
 
     setCurrentTime(0);
     setDuration(0);
@@ -392,7 +619,7 @@ function App() {
             signal: controller.signal,
           });
 
-          const data = await response.json();
+          const data = await readJsonResponse(response);
 
           if (!response.ok) {
             throw new Error(
@@ -417,8 +644,18 @@ function App() {
         }
 
         audio.src = source;
+        sourceUrlRef.current = source;
         audio.load();
         sourceRetryInProgressRef.current = false;
+
+        if (restorePositionRef.current?.trackId === selectedTrack.id) {
+          const restoredPosition = restorePositionRef.current.position;
+          if (audio.readyState >= 1) {
+            audio.currentTime = restoredPosition;
+            setCurrentTime(restoredPosition);
+            restorePositionRef.current = null;
+          }
+        }
 
         if (!isPlayingRef.current) return;
 
@@ -816,6 +1053,7 @@ function App() {
 
     audio.currentTime = value;
     setCurrentTime(value);
+    persistPlaybackRef.current?.("seek", { position: value });
   }
 
   function setSleepTimer(minutes) {

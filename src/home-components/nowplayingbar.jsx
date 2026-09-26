@@ -563,7 +563,7 @@ function NowPlayingBar({ player }) {
     }
   }, [currentTrack]);
 
-  if (!currentTrack) return null;
+  const hasTrack = Boolean(currentTrack);
 
   return (
     <>
@@ -595,23 +595,26 @@ function NowPlayingBar({ player }) {
         <button
           className="now-playing-track"
           type="button"
-          onClick={() =>
-            setExpanded(true)
-          }
-          title="Open now playing"
+          onClick={() => {
+            if (hasTrack) setExpanded(true);
+          }}
+          title={hasTrack ? "Open now playing" : "Nothing playing"}
         >
-          <img
-            src={getCover(currentTrack)}
-            alt=""
-          />
+          {getCover(currentTrack) ? (
+            <img src={getCover(currentTrack)} alt="" />
+          ) : (
+            <span className="now-playing-empty-cover">
+              <span className="material-symbols-outlined">music_note</span>
+            </span>
+          )}
 
           <span>
             <strong>
-              {currentTrack.name}
+              {currentTrack?.name || "Nothing playing"}
             </strong>
 
             <small>
-              {getArtist(currentTrack)}
+              {currentTrack ? getArtist(currentTrack) : "Choose a song to start playback"}
             </small>
           </span>
         </button>
@@ -625,6 +628,7 @@ function NowPlayingBar({ player }) {
               }
               onClick={toggleShuffle}
               title="Shuffle"
+              disabled={!hasTrack}
             >
               <span className="material-symbols-outlined">
                 shuffle
@@ -635,6 +639,7 @@ function NowPlayingBar({ player }) {
               type="button"
               onClick={previousTrack}
               title="Previous"
+              disabled={!hasTrack}
             >
               <span className="material-symbols-outlined">
                 skip_previous
@@ -645,6 +650,7 @@ function NowPlayingBar({ player }) {
               type="button"
               className="now-playing-play"
               onClick={togglePlay}
+              disabled={!hasTrack}
               title={
                 isPlaying
                   ? "Pause"
@@ -662,6 +668,7 @@ function NowPlayingBar({ player }) {
               type="button"
               onClick={nextTrack}
               title="Next"
+              disabled={!hasTrack}
             >
               <span className="material-symbols-outlined">
                 skip_next
@@ -675,6 +682,7 @@ function NowPlayingBar({ player }) {
               }
               onClick={cycleRepeat}
               title="Repeat"
+              disabled={!hasTrack}
             >
               <span className="material-symbols-outlined">
                 {repeatMode === "one" ? "repeat_one" : "repeat"}
@@ -690,6 +698,7 @@ function NowPlayingBar({ player }) {
                 setQueueOpen(!queueOpen)
               }
               title="Queue"
+              disabled={!hasTrack}
             >
               <span className="material-symbols-outlined">
                 queue_music
@@ -711,6 +720,7 @@ function NowPlayingBar({ player }) {
                 currentTime,
                 duration || 0,
               )}
+              disabled={!hasTrack}
               onChange={(event) =>
                 seekTo(
                   Number(
@@ -729,10 +739,10 @@ function NowPlayingBar({ player }) {
         <button
           className="now-playing-open"
           type="button"
-          onClick={() =>
-            setExpanded(true)
-          }
-          title="Open now playing"
+          onClick={() => {
+            if (hasTrack) setExpanded(true);
+          }}
+          title={hasTrack ? "Open now playing" : "Nothing playing"}
         >
           <span className="material-symbols-outlined">
             open_in_full
