@@ -12,6 +12,9 @@ function Playlist({
   cover,
   status,
   description,
+  type,
+  spotifyPlaylistId,
+  externalUrl,
   selectedPlaylist,
   setSelectedPlaylist,
   nonSidebar = false,
@@ -21,6 +24,7 @@ function Playlist({
   setCurrent,
   setCurrentPlaylistId,
   setPlaybackTracks,
+  setPlaybackPlaylistId,
   isPlaying,
   setIsPlaying,
   onPlaylistDeleted,
@@ -45,12 +49,16 @@ function Playlist({
     setStarting(true);
 
     try {
-      const response = await fetch(
-        `http://localhost:3000/home/playlist/${id}/tracks`,
-        {
-          credentials: "include",
-        },
-      );
+      const endpoint =
+        type === "spotify-public"
+          ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+              spotifyPlaylistId,
+            )}/tracks`
+          : `http://localhost:3000/home/playlist/${id}/tracks`;
+
+      const response = await fetch(endpoint, {
+        credentials: "include",
+      });
 
       const data = await response.json();
 
@@ -72,6 +80,7 @@ function Playlist({
       const firstTrack = playableTracks[0];
 
       setPlaybackTracks(playableTracks);
+      setPlaybackPlaylistId?.(id);
       setCurrent(firstTrack.id);
       setCurrentPlaylistId(id);
       setIsPlaying(true);
@@ -86,13 +95,17 @@ function Playlist({
     if (event) event.stopPropagation();
 
     try {
-      const response = await fetch(
-        `http://localhost:3000/home/playlist/${id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        },
-      );
+      const endpoint =
+        type === "spotify-public"
+          ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+              spotifyPlaylistId,
+            )}/save`
+          : `http://localhost:3000/home/playlist/${id}`;
+
+      const response = await fetch(endpoint, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       if (!response.ok) {
         throw new Error("Failed to delete playlist");
@@ -119,6 +132,9 @@ function Playlist({
             cover,
             status,
             description,
+            type,
+            spotifyPlaylistId,
+            externalUrl,
             id,
           },
     );
@@ -197,7 +213,11 @@ function Playlist({
               className="confirmDelete"
               onClick={(e) => e.stopPropagation()}
             >
-              <p>Are you sure? This action cannot be undone!</p>
+              <p>
+                {type === "spotify-public"
+                  ? "Remove this Spotify playlist from your library?"
+                  : "Are you sure? This action cannot be undone!"}
+              </p>
 
               <button
                 className="del"

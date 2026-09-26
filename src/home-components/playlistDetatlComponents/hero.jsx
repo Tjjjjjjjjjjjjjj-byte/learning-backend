@@ -22,9 +22,11 @@ function Hero({
 
       <div className="playlist-hero-details">
         <span className="playlist-status">
-          {selectedPlaylist.status === "private"
-            ? "Private Playlist"
-            : "Public Playlist"}
+          {selectedPlaylist.type === "spotify-public"
+            ? "Spotify Public Playlist"
+            : selectedPlaylist.status === "private"
+              ? "Private Playlist"
+              : "Public Playlist"}
         </span>
 
         <h1>

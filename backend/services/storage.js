@@ -98,3 +98,24 @@ export function findGlobalDownload(trackId) {
   }
   return null;
 }
+
+
+export function readSpotifyPublicPlaylists() {
+  const file = path.join(PROJECT_ROOT, "spotifyPublicPlaylists.json");
+  if (!fs.existsSync(file)) return {};
+  try {
+    const data = JSON.parse(fs.readFileSync(file, "utf-8"));
+    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveSpotifyPublicPlaylists(playlists) {
+  const file = path.join(PROJECT_ROOT, "spotifyPublicPlaylists.json");
+  fs.writeFileSync(file, JSON.stringify(playlists, null, 2), "utf-8");
+}
+
+export function loadSpotifyPublicPlaylists() {
+  return readSpotifyPublicPlaylists();
+}

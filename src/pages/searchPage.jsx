@@ -7,24 +7,18 @@ import Nav from "../home-components/nav";
 import TrackCard from "../searchpagecomponents/Trackcard";
 import AlbumCard from "../searchpagecomponents/AlbumCard";
 import ArtistCard from "../searchpagecomponents/ArtistCard";
+import PublicPlaylistCard from "../searchpagecomponents/PublicPlaylistCard";
 import { SEARCH_QUEUE_ID } from "../App";
 import "../styling/search.css";
 
 function SearchPage({ player }) {
-  const [searchParams] =
-    useSearchParams();
+  const [searchParams] = useSearchParams();
+  const searchValue = searchParams.get("q") || "";
 
-  const searchValue =
-    searchParams.get("q") || "";
-
-  const [results, setResults] =
-    useState(null);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [playlists, setPlaylists] =
-    useState([]);
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [playlists, setPlaylists] = useState([]);
+  const [savingPlaylistId, setSavingPlaylistId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -50,16 +44,11 @@ function SearchPage({ player }) {
       return;
     }
 
-    const queue =
-      results?.tracks?.items || [];
+    const queue = results?.tracks?.items || [];
 
     setPlaybackTracks(queue);
-    setPlaybackPlaylistId(
-      SEARCH_QUEUE_ID,
-    );
-    setCurrentPlaylistId(
-      SEARCH_QUEUE_ID,
-    );
+    setPlaybackPlaylistId(SEARCH_QUEUE_ID);
+    setCurrentPlaylistId(SEARCH_QUEUE_ID);
     setCurrent(track.id);
     setIsPlaying(true);
   }
@@ -67,23 +56,15 @@ function SearchPage({ player }) {
   useEffect(() => {
     async function checkLogIn() {
       try {
-        const response = await fetch(
-          "http://localhost:3000/me",
-          {
-            credentials: "include",
-          },
-        );
+        const response = await fetch("http://localhost:3000/me", {
+          credentials: "include",
+        });
 
         if (response.status !== 200) {
-          navigate("/login", {
-            replace: true,
-          });
+          navigate("/login", { replace: true });
         }
       } catch (error) {
-        console.error(
-          "Session check failed:",
-          error,
-        );
+        console.error("Session check failed:", error);
       }
     }
 
@@ -101,22 +82,14 @@ function SearchPage({ player }) {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/search?q=${encodeURIComponent(
-            searchValue,
-          )}`,
-          {
-            credentials: "include",
-          },
+          `http://localhost:3000/search?q=${encodeURIComponent(searchValue.trim())}`,
+          { credentials: "include" },
         );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Search failed",
-          );
+          throw new Error(data.message || "Search failed");
         }
 
         setResults(data);
@@ -131,40 +104,88 @@ function SearchPage({ player }) {
     getResults();
   }, [searchValue]);
 
-  useEffect(() => {
-    async function fetchPlaylists() {
-      try {
-        const response = await fetch(
-          "http://localhost:3000/home",
-          {
-            credentials: "include",
-          },
-        );
+  async function fetchPlaylists() {
+    try {
+      const response = await fetch("http://localhost:3000/home", {
+        credentials: "include",
+      });
 
-        if (!response.ok) {
-          throw new Error(
-            `HTTP error! Status: ${response.status}`,
-          );
-        }
-
-        const data =
-          await response.json();
-
-        setPlaylists(
-          data.playlists || [],
-        );
-      } catch (error) {
-        console.error(
-          "Failed to load playlists:",
-          error,
-        );
-
-        setPlaylists([]);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-    }
 
+      const data = await response.json();
+      setPlaylists(data.playlists || []);
+    } catch (error) {
+      console.error("Failed to load playlists:", error);
+      setPlaylists([]);
+    }
+  }
+
+  useEffect(() => {
     fetchPlaylists();
   }, []);
+
+  async function savePublicPlaylist(playlist) {
+    if (!playlist?.spotifyPlaylistId || savingPlaylistId) return;
+
+    const alreadySaved = playlists.some(
+      (item) =>
+        item.type === "spotify-public" &&
+        item.spotifyPlaylistId === playlist.spotifyPlaylistId,
+    );
+
+    if (alreadySaved) return;
+
+    setSavingPlaylistId(playlist.spotifyPlaylistId);
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+          playlist.spotifyPlaylistId,
+        )}/save`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to save playlist");
+      }
+
+      await fetchPlaylists();
+    } catch (error) {
+      console.error("SAVE PUBLIC PLAYLIST ERROR:", error);
+    } finally {
+      setSavingPlaylistId(null);
+    }
+  }
+
+  function openPublicPlaylist(playlist) {
+    navigate(
+      `/home?spotifyPlaylist=${encodeURIComponent(
+        playlist.spotifyPlaylistId,
+      )}`,
+    );
+  }
+
+  const publicPlaylist = results?.playlist;
+  const publicPlaylistSaved = publicPlaylist
+    ? playlists.some(
+        (item) =>
+          item.type === "spotify-public" &&
+          item.spotifyPlaylistId === publicPlaylist.spotifyPlaylistId,
+      )
+    : false;
+
+  const hasNormalResults =
+    results?.tracks?.items?.length ||
+    results?.artists?.items?.length ||
+    results?.albums?.items?.length;
 
   return (
     <>
@@ -178,100 +199,80 @@ function SearchPage({ player }) {
               : "Search for something to play"}
           </h1>
 
-          {loading && (
-            <p>Loading...</p>
-          )}
+          {loading && <p>Loading...</p>}
 
           {!loading && results && (
             <>
-              {results.tracks?.items
-                ?.length > 0 && (
+              {publicPlaylist && (
+                <section className="search-section">
+                  <h2>Playlist</h2>
+
+                  <div className="search-results">
+                    <PublicPlaylistCard
+                      playlist={publicPlaylist}
+                      saved={publicPlaylistSaved}
+                      saving={
+                        savingPlaylistId ===
+                        publicPlaylist.spotifyPlaylistId
+                      }
+                      onOpen={() => openPublicPlaylist(publicPlaylist)}
+                      onSave={() => savePublicPlaylist(publicPlaylist)}
+                    />
+                  </div>
+                </section>
+              )}
+
+              {results.tracks?.items?.length > 0 && (
                 <section className="search-section">
                   <h2>Songs</h2>
 
                   <div className="search-results">
-                    {results.tracks.items.map(
-                      (
-                        track,
-                        index,
-                      ) => (
-                        <TrackCard
-                          key={`${track.id}-${index}`}
-                          track={track}
-                          playlists={
-                            playlists
-                          }
-                          isCurrentTrack={
-                            current ===
-                              track.id &&
-                            currentPlaylistId ===
-                              SEARCH_QUEUE_ID
-                          }
-                          isPlaying={
-                            isPlaying
-                          }
-                          onPlay={
-                            playFromSearch
-                          }
-                          onAddToQueue={
-                            addToQueue
-                          }
-                          onPlayNext={
-                            playNext
-                          }
-                        />
-                      ),
-                    )}
+                    {results.tracks.items.map((track, index) => (
+                      <TrackCard
+                        key={`${track.id}-${index}`}
+                        track={track}
+                        playlists={playlists}
+                        isCurrentTrack={
+                          current === track.id &&
+                          currentPlaylistId === SEARCH_QUEUE_ID
+                        }
+                        isPlaying={isPlaying}
+                        onPlay={playFromSearch}
+                        onAddToQueue={addToQueue}
+                        onPlayNext={playNext}
+                      />
+                    ))}
                   </div>
                 </section>
               )}
 
-              {results.artists?.items
-                ?.length > 0 && (
+              {results.artists?.items?.length > 0 && (
                 <section className="search-section">
                   <h2>Artists</h2>
 
                   <div className="search-results">
-                    {results.artists.items.map(
-                      (artist) => (
-                        <ArtistCard
-                          key={artist.id}
-                          artist={artist}
-                        />
-                      ),
-                    )}
+                    {results.artists.items.map((artist) => (
+                      <ArtistCard key={artist.id} artist={artist} />
+                    ))}
                   </div>
                 </section>
               )}
 
-              {results.albums?.items
-                ?.length > 0 && (
+              {results.albums?.items?.length > 0 && (
                 <section className="search-section">
                   <h2>Albums</h2>
 
                   <div className="search-results">
-                    {results.albums.items.map(
-                      (album) => (
-                        <AlbumCard
-                          key={album.id}
-                          album={album}
-                        />
-                      ),
-                    )}
+                    {results.albums.items.map((album) => (
+                      <AlbumCard key={album.id} album={album} />
+                    ))}
                   </div>
                 </section>
               )}
 
-              {!results.tracks
-                ?.items?.length &&
-                !results.artists
-                  ?.items?.length &&
-                !results.albums
-                  ?.items?.length && (
-                  <p>
-                    No results found.
-                  </p>
-                )}
+              {!publicPlaylist && !hasNormalResults && (
+                <p>No results found.</p>
+              )}
             </>
           )}
         </div>

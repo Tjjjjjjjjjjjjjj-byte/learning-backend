@@ -2,6 +2,7 @@ import { useState } from "react";
 
 function Features({
   setEditDetailsOpen,
+  isReadOnly = false,
   track,
   setTrack,
   selectedPlaylist,
@@ -317,21 +318,20 @@ function Features({
         )}
       </button>
 
-      <button
-        className="playlist-feature-button"
-        type="button"
-        onClick={() =>
-          setEditDetailsOpen(
-            true,
-          )
-        }
-        title="Edit playlist details"
-      >
-        <span className="material-symbols-outlined">
-          edit
-        </span>
-      </button>
+      {!isReadOnly && (
+        <button
+          className="playlist-feature-button"
+          type="button"
+          onClick={() => setEditDetailsOpen(true)}
+          title="Edit playlist details"
+        >
+          <span className="material-symbols-outlined">
+            edit
+          </span>
+        </button>
+      )}
 
+      {!isReadOnly && (
       <div className="playlist-options-wrapper">
         <button
           className="playlist-feature-button"
@@ -416,6 +416,7 @@ function Features({
           </div>
         )}
       </div>
+      )}
     </section>
   );
 }

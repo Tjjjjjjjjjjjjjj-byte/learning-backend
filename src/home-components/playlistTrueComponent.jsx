@@ -17,6 +17,7 @@ function PlaylistModal({
   isPlaying,
   setIsPlaying,
   setPlaybackTracks,
+  setPlaybackPlaylistId,
   onAddToQueue,
   onPlayNext,
 }) {
@@ -73,12 +74,16 @@ function PlaylistModal({
       setLoading(true);
 
       try {
-        const response = await fetch(
-          `http://localhost:3000/home/playlist/${selectedPlaylist.id}/tracks`,
-          {
-            credentials: "include",
-          },
-        );
+        const endpoint =
+          selectedPlaylist.type === "spotify-public"
+            ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+                selectedPlaylist.spotifyPlaylistId,
+              )}/tracks`
+            : `http://localhost:3000/home/playlist/${selectedPlaylist.id}/tracks`;
+
+        const response = await fetch(endpoint, {
+          credentials: "include",
+        });
 
         const data = await response.json();
 
@@ -88,6 +93,7 @@ function PlaylistModal({
 
         setTrack(data);
         setPlaybackTracks(data.filter(Boolean));
+        setPlaybackPlaylistId(selectedPlaylist.id);
       } catch (error) {
         console.error("FAILED TO LOAD TRACKS:", error);
 
@@ -110,7 +116,11 @@ function PlaylistModal({
         const data = await response.json();
 
         if (response.ok) {
-          setOtherPlaylists(data.playlists || []);
+          setOtherPlaylists(
+            (data.playlists || []).filter(
+              (playlist) => playlist.type !== "spotify-public",
+            ),
+          );
         }
       } catch (error) {
         console.error("FAILED TO LOAD PLAYLISTS FOR BULK ADD:", error);
@@ -281,7 +291,11 @@ function PlaylistModal({
   }
 
   async function bulkRemoveFromPlaylist() {
-    if (bulkBusy || selectedIds.length === 0) {
+    if (
+      selectedPlaylist.type === "spotify-public" ||
+      bulkBusy ||
+      selectedIds.length === 0
+    ) {
       return;
     }
 
@@ -321,7 +335,11 @@ function PlaylistModal({
   }
 
   async function bulkAddToPlaylist(targetPlaylistId) {
-    if (bulkBusy || selectedIds.length === 0) {
+    if (
+      selectedPlaylist.type === "spotify-public" ||
+      bulkBusy ||
+      selectedIds.length === 0
+    ) {
       return;
     }
 
@@ -406,6 +424,8 @@ function PlaylistModal({
     }
   }
 
+  const isReadOnly = selectedPlaylist.type === "spotify-public";
+
   const totalDuration = track.reduce(
     (total, song) => total + (song?.duration_ms || 0),
     0,
@@ -427,6 +447,7 @@ function PlaylistModal({
 
         <Features
           setEditDetailsOpen={openEditDetails}
+          isReadOnly={isReadOnly}
           track={track}
           setTrack={setTrack}
           selectedPlaylist={selectedPlaylist}
@@ -442,7 +463,7 @@ function PlaylistModal({
           onEnterSelectMode={enterSelectMode}
         />
 
-        {selectMode && (
+        {selectMode && !isReadOnly && (
           <div className="bulk-select-bar">
             <div className="bulk-select-info">
               <button
@@ -570,6 +591,7 @@ function PlaylistModal({
                 track={song}
                 index={index}
                 selectedPlaylist={selectedPlaylist}
+                isReadOnly={isReadOnly}
                 setTrack={setTrack}
                 setCurrent={setCurrent}
                 current={current}
@@ -596,7 +618,11 @@ function PlaylistModal({
 
             <h2>This playlist is empty</h2>
 
-            <p>Add songs to start building your playlist.</p>
+            <p>
+              {isReadOnly
+                ? "This Spotify playlist has no available tracks."
+                : "Add songs to start building your playlist."}
+            </p>
 
             <button type="button" onClick={() => navigate("/search")}>
               <span className="material-symbols-outlined">search</span>
@@ -640,7 +666,7 @@ function PlaylistModal({
         </div>
       )}
 
-      {editDetailsOpen && (
+      {editDetailsOpen && !isReadOnly && (
         <EditPlaylistDetails
           selectedPlaylist={selectedPlaylist}
           setSelectedPlaylist={setSelectedPlaylist}

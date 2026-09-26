@@ -1,6 +1,6 @@
 // API routes for this feature area.
 export function registerRoutes(app, context) {
-  const { fs, path, PROJECT_ROOT, loadPlaylists, savePlaylists, getUserDownloads, getSpotifyToken } = context;
+  const { fs, path, PROJECT_ROOT, loadPlaylists, savePlaylists, loadSpotifyPublicPlaylists, getUserDownloads, getSpotifyToken } = context;
 
 app.get("/home", (req, res) => {
   if (!req.session.user) {
@@ -16,8 +16,13 @@ app.get("/home", (req, res) => {
     (playlist) => playlist.owner === username,
   );
 
+  const savedPublicPlaylists = loadSpotifyPublicPlaylists();
+  const publicPlaylists = Array.isArray(savedPublicPlaylists[username])
+    ? savedPublicPlaylists[username]
+    : [];
+
   return res.status(200).json({
-    playlists: userPlaylists,
+    playlists: [...userPlaylists, ...publicPlaylists],
   });
 });
 

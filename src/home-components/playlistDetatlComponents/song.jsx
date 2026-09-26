@@ -5,6 +5,7 @@ function Song({
   track,
   index,
   selectedPlaylist,
+  isReadOnly = false,
   setTrack,
   setCurrent,
   setCurrentPlaylistId,
@@ -177,7 +178,7 @@ function Song({
   }
 
   async function deleteSong() {
-    if (removing) return;
+    if (isReadOnly || removing) return;
 
     setRemoving(true);
 
@@ -341,21 +342,23 @@ function Song({
             </>
           )}
 
-          <button
-            className="delete"
-            type="button"
-            title="Remove from playlist"
-            onClick={(e) => {
-              e.stopPropagation();
-              setConfirmOpen(true);
-            }}
-          >
-            <span className="material-symbols-outlined">delete</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              className="delete"
+              type="button"
+              title="Remove from playlist"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmOpen(true);
+              }}
+            >
+              <span className="material-symbols-outlined">delete</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {confirmOpen && (
+      {confirmOpen && !isReadOnly && (
         <div className="confirm">
           <div>
             <p>Are you sure? This action cannot be undone</p>

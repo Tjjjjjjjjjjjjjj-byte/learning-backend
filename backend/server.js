@@ -16,8 +16,9 @@ import {
   PLAYBACK_PRELOAD_CONCURRENCY,
   LYRIC_CACHE_TTL_MS,
 } from "./config.js";
-import { ensureStorageDirectories, loadPlaylists, savePlaylists, readDownloads, saveDownloads, getUserDownloads, readPasswordResets, savePasswordResets, sanitizeFilename, findGlobalDownload } from "./services/storage.js";
+import { ensureStorageDirectories, loadPlaylists, savePlaylists, readDownloads, saveDownloads, getUserDownloads, readPasswordResets, savePasswordResets, sanitizeFilename, findGlobalDownload, loadSpotifyPublicPlaylists, saveSpotifyPublicPlaylists } from "./services/storage.js";
 import { getSpotifyToken, getSpotifyTrackForLyrics } from "./services/spotify.js";
+import { extractSpotifyPlaylistId, getSpotifyPublicPlaylist } from "./services/spotifyPlaylist.js";
 import { findYoutubeVideo } from "./services/youtube.js";
 import { cleanupPlaybackCache, readPlaybackCache, getOrCreatePlaybackUrl, runWithConcurrency } from "./services/playback.js";
 import { parseLrcLyrics, createLyricsCache } from "./services/lyrics.js";
@@ -28,6 +29,7 @@ import { registerRoutes as registerSearchRoutes } from "./routes/search.js";
 import { registerRoutes as registerSongRoutes } from "./routes/songs.js";
 import { registerRoutes as registerLyricsRoutes } from "./routes/lyrics.js";
 import { registerRoutes as registerLegacyStreamRoutes } from "./routes/stream.js";
+import { registerRoutes as registerSpotifyPlaylistRoutes } from "./routes/spotifyPlaylists.js";
 
 const app = express();
 const lyricsCache = createLyricsCache();
@@ -67,10 +69,14 @@ const context = {
   LYRIC_CACHE_TTL_MS,
   getSpotifyToken,
   getSpotifyTrackForLyrics,
+  getSpotifyPublicPlaylist,
+  extractSpotifyPlaylistId,
   findYoutubeVideo,
   getUserDownloads,
   findGlobalDownload,
   readDownloads,
+  loadSpotifyPublicPlaylists,
+  saveSpotifyPublicPlaylists,
   saveDownloads,
   sanitizeFilename,
   loadPlaylists,
@@ -86,6 +92,7 @@ const context = {
 registerAuthRoutes(app, context);
 registerPlaylistRoutes(app, context);
 registerSearchRoutes(app, context);
+registerSpotifyPlaylistRoutes(app, context);
 registerSongRoutes(app, context);
 registerLyricsRoutes(app, context);
 registerLegacyStreamRoutes(app, context);

@@ -18,6 +18,7 @@ function PlaylistSidebar({
   setCurrent,
   setCurrentPlaylistId,
   setPlaybackTracks,
+  setPlaybackPlaylistId,
   isPlaying,
   setIsPlaying,
 }) {
@@ -118,6 +119,9 @@ function PlaylistSidebar({
           cover={playlist.cover}
           status={playlist.status}
           description={playlist.description}
+          type={playlist.type}
+          spotifyPlaylistId={playlist.spotifyPlaylistId}
+          externalUrl={playlist.externalUrl}
           id={playlist.id}
           selectedPlaylist={selectedPlaylist}
           setSelectedPlaylist={setSelectedPlaylist}

@@ -652,3 +652,80 @@
 .sidebar:not(.minimized) {
   bottom: var(--now-playing-reserved);
 }
+
+/* Public Spotify playlist search result */
+.public-playlist-result {
+  overflow: hidden;
+}
+
+.public-playlist-result .search-result-info {
+  flex: 1 1 auto;
+  max-width: none;
+}
+
+.public-playlist-label {
+  color: var(--auth-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.public-playlist-save {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--auth-text-muted);
+  cursor: pointer;
+}
+
+.public-playlist-save:hover {
+  background: #292929;
+  color: #fff;
+}
+
+.public-playlist-save.saved {
+  color: var(--auth-accent);
+}
+
+.search-page-content,
+.search-section,
+.search-results,
+.search-result-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.search-result-card > img,
+.search-result-card .search-result-cover img {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.search-result-card > img {
+  flex: 0 0 60px;
+}
+
+.search-result-card .search-result-info {
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.search-result-card .search-result-info h3,
+.search-result-card .search-result-info p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .public-playlist-result .search-result-info {
+    padding-right: 12px;
+  }
+}

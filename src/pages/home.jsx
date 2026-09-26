@@ -1,7 +1,7 @@
 import Nav from "../home-components/nav";
 import PlaylistSidebar from "../home-components/playlistsidebar";
 import PlaylistModal from "../home-components/playlistTrueComponent";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import "../styling/home.css";
 
@@ -12,6 +12,8 @@ function Home({ player }) {
   const [minimized, setMinimized] =
     useState(true);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const {
     current,
     setCurrent,
@@ -20,6 +22,7 @@ function Home({ player }) {
     isPlaying,
     setIsPlaying,
     setPlaybackTracks,
+    setPlaybackPlaylistId,
     addToQueue,
     playNext,
   } = player;
@@ -53,6 +56,50 @@ function Home({ player }) {
     checkLogIn();
   }, [navigate]);
 
+  useEffect(() => {
+    const spotifyPlaylistId = searchParams.get("spotifyPlaylist");
+
+    if (!spotifyPlaylistId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function openPublicPlaylist() {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+            spotifyPlaylistId,
+          )}`,
+          { credentials: "include" },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load Spotify playlist");
+        }
+
+        if (!cancelled) {
+          setSelectedPlaylist(data);
+          setSearchParams({}, { replace: true });
+        }
+      } catch (error) {
+        console.error("FAILED TO OPEN PUBLIC SPOTIFY PLAYLIST:", error);
+
+        if (!cancelled) {
+          setSearchParams({}, { replace: true });
+        }
+      }
+    }
+
+    openPublicPlaylist();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, setSearchParams]);
+
   return (
     <div
       className={`home-div${
@@ -84,6 +131,7 @@ function Home({ player }) {
           setCurrentPlaylistId
         }
         setPlaybackTracks={setPlaybackTracks}
+        setPlaybackPlaylistId={setPlaybackPlaylistId}
         isPlaying={isPlaying}
         setIsPlaying={setIsPlaying}
       />
@@ -109,6 +157,9 @@ function Home({ player }) {
           setIsPlaying={setIsPlaying}
           setPlaybackTracks={
             setPlaybackTracks
+          }
+          setPlaybackPlaylistId={
+            setPlaybackPlaylistId
           }
           onAddToQueue={addToQueue}
           onPlayNext={playNext}
