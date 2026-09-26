@@ -81,12 +81,34 @@ function SearchPage({ player }) {
       setLoading(true);
 
       try {
-        const response = await fetch(
-          `http://localhost:3000/search?q=${encodeURIComponent(searchValue.trim())}`,
-          { credentials: "include" },
+        const trimmedSearch = searchValue.trim();
+        const playlistMatch = trimmedSearch.match(
+          /^https?:\/\/open\.spotify\.com\/playlist\/([A-Za-z0-9]+)(?:[/?#].*)?$/i,
         );
 
+        const requestUrl = playlistMatch
+          ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+              playlistMatch[1],
+            )}`
+          : `http://localhost:3000/search?q=${encodeURIComponent(trimmedSearch)}`;
+
+        const response = await fetch(requestUrl, {
+          credentials: "include",
+        });
+
         const data = await response.json();
+
+        // The direct public-playlist endpoint returns the playlist itself.
+        // Normalize it to the same shape used by the normal search renderer.
+        if (playlistMatch && response.ok && data?.type === "spotify-public") {
+          setResults({
+            playlist: data,
+            tracks: { items: [] },
+            artists: { items: [] },
+            albums: { items: [] },
+          });
+          return;
+        }
 
         if (!response.ok) {
           throw new Error(data.message || "Search failed");
