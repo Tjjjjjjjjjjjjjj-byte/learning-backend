@@ -39,7 +39,9 @@ function LyricsSection({ currentTrack, currentTime }) {
     setLoading(true);
 
     async function loadLyrics() {
+      console.log("LYRICS: loadLyrics STARTED");
       try {
+        console.log("LYRICS: ABOUT TO FETCH", trackId);
         const response = await fetch(
           `http://localhost:3000/lyrics/${encodeURIComponent(trackId)}`,
           {
@@ -51,9 +53,7 @@ function LyricsSection({ currentTrack, currentTime }) {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Lyrics unavailable",
-          );
+          throw new Error(data.message || "Lyrics unavailable");
         }
 
         const apiLines = Array.isArray(data?.lyrics?.lines)
@@ -65,15 +65,8 @@ function LyricsSection({ currentTrack, currentTime }) {
             startTimeMs: Number(line?.startTimeMs),
             words: String(line?.words || "").trim(),
           }))
-          .filter(
-            (line) =>
-              Number.isFinite(line.startTimeMs) &&
-              line.words,
-          )
-          .sort(
-            (a, b) =>
-              a.startTimeMs - b.startTimeMs,
-          );
+          .filter((line) => Number.isFinite(line.startTimeMs) && line.words)
+          .sort((a, b) => a.startTimeMs - b.startTimeMs);
 
         lyricsCache.set(trackId, normalizedLines);
 
@@ -111,10 +104,7 @@ function LyricsSection({ currentTrack, currentTime }) {
       return;
     }
 
-    const currentTimeMs = Math.max(
-      0,
-      Number(currentTime || 0) * 1000,
-    );
+    const currentTimeMs = Math.max(0, Number(currentTime || 0) * 1000);
 
     let nextActiveLine = 0;
 
@@ -144,22 +134,14 @@ function LyricsSection({ currentTrack, currentTime }) {
         <span>LYRICS</span>
 
         <span>
-          {loading
-            ? "Loading"
-            : unavailable
-              ? "Unavailable"
-              : "Synced"}
+          {loading ? "Loading" : unavailable ? "Unavailable" : "Synced"}
         </span>
       </div>
 
       {loading ? (
-        <div className="lyrics-placeholder">
-          Loading lyrics...
-        </div>
+        <div className="lyrics-placeholder">Loading lyrics...</div>
       ) : unavailable ? (
-        <div className="lyrics-placeholder">
-          Lyrics unavailable
-        </div>
+        <div className="lyrics-placeholder">Lyrics unavailable</div>
       ) : (
         <div className="lyrics-lines">
           {lines.map((line, index) => (
@@ -169,9 +151,7 @@ function LyricsSection({ currentTrack, currentTime }) {
                 lineRefs.current[index] = element;
               }}
               className={
-                index === activeLine
-                  ? "lyrics-line active"
-                  : "lyrics-line"
+                index === activeLine ? "lyrics-line active" : "lyrics-line"
               }
             >
               {line.words}
