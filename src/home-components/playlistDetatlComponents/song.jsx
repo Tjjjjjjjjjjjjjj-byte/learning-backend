@@ -1,3 +1,4 @@
+import { getImageUrl } from "../../utils/imageUrl";
 import { useState } from "react";
 import { formatRelativeDate } from "../../utils/dateUtils.js";
 
@@ -294,7 +295,7 @@ function Song({
 
         <div className="song-title">
           <img
-            src={track.album?.images?.[0]?.url}
+            src={getImageUrl(track.album?.images?.[0]?.url)}
             alt={track.album?.name || track.name}
           />
 

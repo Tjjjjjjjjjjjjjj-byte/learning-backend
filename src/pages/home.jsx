@@ -74,7 +74,23 @@ function Home({ player }) {
           { credentials: "include" },
         );
 
-        const data = await response.json();
+        const contentType = response.headers.get("content-type") || "";
+        const text = await response.text();
+
+        if (!contentType.toLowerCase().includes("application/json")) {
+          throw new Error(
+            response.ok
+              ? "Server returned a non-JSON response"
+              : `Server returned HTTP ${response.status} instead of JSON`,
+          );
+        }
+
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error("Server returned invalid JSON");
+        }
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to load Spotify playlist");

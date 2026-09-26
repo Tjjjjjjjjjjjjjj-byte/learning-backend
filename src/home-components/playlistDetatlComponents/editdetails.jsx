@@ -1,3 +1,4 @@
+import { getImageUrl } from "../../utils/imageUrl";
 import { useEffect, useState } from "react";
 import "../../styling/editdetails.css";
 
@@ -126,7 +127,7 @@ function EditPlaylistDetails({
               setHidden(true);
             }}
           >
-            <img src={cover} alt="Playlist cover" />
+            <img src={getImageUrl(cover)} alt="Playlist cover" />
 
             {hovering && (
               <div className="edit-dots">

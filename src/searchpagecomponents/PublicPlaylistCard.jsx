@@ -1,3 +1,5 @@
+import { getImageUrl } from "../utils/imageUrl";
+
 function PublicPlaylistCard({ playlist, saved, onOpen, onSave, saving }) {
   return (
     <article
@@ -14,7 +16,7 @@ function PublicPlaylistCard({ playlist, saved, onOpen, onSave, saving }) {
     >
       <div className="search-result-cover">
         <img
-          src={playlist.cover}
+          src={getImageUrl(playlist.cover)}
           alt={playlist.name || "Spotify playlist"}
         />
       </div>

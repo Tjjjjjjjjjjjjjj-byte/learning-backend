@@ -62,10 +62,37 @@ function Playlist({
 
       const contentType = response.headers.get("content-type") || "";
       const text = await response.text();
-      const data = contentType.includes("application/json") && text ? JSON.parse(text) : {};
+
+      if (!contentType.toLowerCase().includes("application/json")) {
+        throw new Error(
+          response.ok
+            ? "Server returned a non-JSON response"
+            : `Server returned HTTP ${response.status} instead of JSON`,
+        );
+      }
+
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error("Server returned invalid JSON");
+      }
 
       if (!response.ok) {
         throw new Error(data.message || `Failed to load playlist (HTTP ${response.status})`);
+      }
+
+      if (
+        type === "spotify-public" &&
+        data.itemsStatus &&
+        data.itemsStatus !== "available"
+      ) {
+        throw new Error(
+          data.itemsMessage ||
+            (data.itemsStatus === "empty"
+              ? "This Spotify playlist is empty."
+              : "Spotify playlist songs are currently unavailable."),
+        );
       }
 
       const rawTracks = type === "spotify-public" ? data.tracks : data;

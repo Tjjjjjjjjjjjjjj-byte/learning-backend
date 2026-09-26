@@ -111,8 +111,22 @@ export function registerRoutes(app, context) {
           : new Set();
 
         return res.status(200).json({
+          ok: true,
+          type: playlist.type,
+          spotifyPlaylistId: playlist.spotifyPlaylistId,
+          playlist: {
+            id: playlist.spotifyPlaylistId,
+            name: playlist.name,
+            owner: playlist.owner,
+            description: playlist.description,
+            cover: playlist.cover,
+            externalUrl: playlist.externalUrl,
+            trackCount: playlist.trackCount,
+          },
           itemsStatus: playlist.itemsStatus,
           itemsMessage: playlist.itemsMessage,
+          tracksAvailable: playlist.tracksAvailable,
+          tracksReason: playlist.tracksReason,
           trackCount: playlist.trackCount,
           tracks: playlist.tracks.map((track, index) => ({
             ...track,

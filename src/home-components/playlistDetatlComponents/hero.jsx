@@ -1,4 +1,5 @@
 import "../../styling/hero.css";
+import { getImageUrl } from "../../utils/imageUrl";
 import { formatRelativeDate } from "../../utils/dateUtils.js";
 
 function Hero({
@@ -15,7 +16,7 @@ function Hero({
     <section className="playlist-hero">
       <div className="playlist-hero-cover">
         <img
-          src={selectedPlaylist.cover}
+          src={getImageUrl(selectedPlaylist.cover)}
           alt={selectedPlaylist.name || "Playlist"}
         />
       </div>

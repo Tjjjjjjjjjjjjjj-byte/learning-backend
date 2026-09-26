@@ -1,3 +1,4 @@
+import { getImageUrl } from "../utils/imageUrl";
 import {
   useState,
   useEffect,
@@ -264,10 +265,7 @@ function TrackCard({
     >
       <div className="search-result-cover">
         <img
-          src={
-            track.album
-              ?.images?.[0]?.url
-          }
+          src={getImageUrl(track.album?.images?.[0]?.url)}
           alt={
             track.album?.name ||
             track.name

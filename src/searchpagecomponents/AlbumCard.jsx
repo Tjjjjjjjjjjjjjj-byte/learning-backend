@@ -1,3 +1,5 @@
+import { getImageUrl } from "../utils/imageUrl";
+
 function AlbumCard({ album }) {
   const href = album.external_urls?.spotify;
 
@@ -14,7 +16,7 @@ function AlbumCard({ album }) {
         }
       }}
     >
-      <img src={album.images?.[0]?.url} alt={album.name} />
+      <img src={getImageUrl(album.images?.[0]?.url)} alt={album.name} />
       <div className="search-result-info">
         <h3>{album.name}</h3>
         <p>{album.artists?.map((artist) => artist.name).join(", ")}</p>

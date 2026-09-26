@@ -1,3 +1,5 @@
+import { getImageUrl } from "../utils/imageUrl";
+
 function ArtistCard({ artist }) {
   const href = artist.external_urls?.spotify;
 
@@ -14,7 +16,7 @@ function ArtistCard({ artist }) {
         }
       }}
     >
-      <img src={artist.images?.[0]?.url} alt={artist.name} />
+      <img src={getImageUrl(artist.images?.[0]?.url)} alt={artist.name} />
       <div className="search-result-info">
         <h3>{artist.name}</h3>
       </div>

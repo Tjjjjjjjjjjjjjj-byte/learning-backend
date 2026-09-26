@@ -1,3 +1,4 @@
+import { getImageUrl } from "../utils/imageUrl";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import LyricsSection from "./lyricsSection.jsx";
@@ -101,7 +102,7 @@ function TrackLine({
         )}
 
         <img
-          src={getCover(track)}
+          src={getImageUrl(getCover(track))}
           alt=""
         />
 
@@ -339,7 +340,7 @@ function ExpandedPlayer({
           <div className="now-playing-expanded-content">
             <img
               className="now-playing-large-cover"
-              src={getCover(currentTrack)}
+              src={getImageUrl(getCover(currentTrack))}
               alt={
                 currentTrack?.album?.name ||
                 currentTrack?.name ||
