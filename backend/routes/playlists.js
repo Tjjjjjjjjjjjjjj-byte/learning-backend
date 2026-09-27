@@ -17,18 +17,9 @@ app.get("/home", (req, res) => {
   const playlists = loadPlaylists();
   const username = req.session.user.username;
 
-  const userPlaylists = playlists
-    .filter((playlist) => playlist.owner === username)
-    .map((playlist) => {
-      if (!playlist.importedSpotifyPlaylistId) return playlist;
-
-      return {
-        ...playlist,
-        type: "spotify-public",
-        spotifyPlaylistId:
-          playlist.spotifyPlaylistId || playlist.importedSpotifyPlaylistId,
-      };
-    });
+  const userPlaylists = playlists.filter(
+    (playlist) => playlist.owner === username,
+  );
 
   const savedPublicPlaylists = loadSpotifyPublicPlaylists();
   const publicPlaylists = Array.isArray(savedPublicPlaylists[username])
@@ -61,7 +52,6 @@ app.post("/create", (req, res) => {
     id,
     cover: "https://picsum.photos/seed/picsum/200/300",
     owner: username,
-    status: "private",
     songs: [],
     downloaded: [],
     createdAt: now,
@@ -99,7 +89,7 @@ app.patch("/home/playlist/:id", (req, res) => {
     });
   }
 
-  const { name, description, status, cover } = req.body;
+  const { name, description, cover } = req.body;
 
   if (name !== undefined) {
     playlist.name = name;
@@ -107,10 +97,6 @@ app.patch("/home/playlist/:id", (req, res) => {
 
   if (description !== undefined) {
     playlist.description = description;
-  }
-
-  if (status !== undefined) {
-    playlist.status = status;
   }
 
   if (cover !== undefined) {

@@ -31,9 +31,7 @@ export function registerRoutes(app, context) {
     const saved = loadSpotifyPublicPlaylists();
 
     return res.status(200).json({
-      playlists: Array.isArray(saved[username])
-        ? saved[username]
-        : [],
+      playlists: Array.isArray(saved[username]) ? saved[username] : [],
     });
   });
 
@@ -43,48 +41,40 @@ export function registerRoutes(app, context) {
    * Example:
    * GET /spotify/playlist/5PGMpxcsrMTutimlXMVlE8
    */
-  app.get(
-    "/spotify/playlist/:playlistId",
-    async (req, res) => {
-      try {
-        const playlist = await getSpotifyPublicPlaylist(
-          req.params.playlistId,
-          getSpotifyToken,
-        );
+  app.get("/spotify/playlist/:playlistId", async (req, res) => {
+    try {
+      const playlist = await getSpotifyPublicPlaylist(
+        req.params.playlistId,
+        getSpotifyToken,
+      );
 
-        /*
-         * The search page only needs playlist metadata here.
-         * Track loading is handled by the /tracks endpoint.
-         */
-        return res.status(200).json({
-          ...playlist,
-          tracks: playlist.tracks,
-        });
-      } catch (error) {
-        console.error(
-          "PUBLIC SPOTIFY PLAYLIST ERROR:",
-          error,
-        );
+      /*
+       * The search page only needs playlist metadata here.
+       * Track loading is handled by the /tracks endpoint.
+       */
+      return res.status(200).json({
+        ...playlist,
+        tracks: playlist.tracks,
+      });
+    } catch (error) {
+      console.error("PUBLIC SPOTIFY PLAYLIST ERROR:", error);
 
-        /*
-         * Preserve Spotify's actual HTTP status instead of
-         * converting every failure into 404.
-         */
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
+      /*
+       * Preserve Spotify's actual HTTP status instead of
+       * converting every failure into 404.
+       */
+      const status =
+        Number.isInteger(error?.status) &&
+        error.status >= 400 &&
+        error.status <= 599
+          ? error.status
+          : 502;
 
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to load public Spotify playlist",
-        });
-      }
-    },
-  );
+      return res.status(status).json({
+        message: error?.message || "Failed to load public Spotify playlist",
+      });
+    }
+  });
 
   /*
    * GET PUBLIC SPOTIFY PLAYLIST TRACKS
@@ -92,72 +82,63 @@ export function registerRoutes(app, context) {
    * Example:
    * GET /spotify/playlist/5PGMpxcsrMTutimlXMVlE8/tracks
    */
-  app.get(
-    "/spotify/playlist/:playlistId/tracks",
-    async (req, res) => {
-      try {
-        const playlist = await getSpotifyPublicPlaylist(
-          req.params.playlistId,
-          getSpotifyToken,
-        );
+  app.get("/spotify/playlist/:playlistId/tracks", async (req, res) => {
+    try {
+      const playlist = await getSpotifyPublicPlaylist(
+        req.params.playlistId,
+        getSpotifyToken,
+      );
 
-        const username =
-          req.session.user?.username;
+      const username = req.session.user?.username;
 
-        const downloadedIds = username
-          ? new Set(
-              context
-                .getUserDownloads(username)
-                .map((download) => download.trackId),
-            )
-          : new Set();
+      const downloadedIds = username
+        ? new Set(
+            context
+              .getUserDownloads(username)
+              .map((download) => download.trackId),
+          )
+        : new Set();
 
-        return res.status(200).json({
-          ok: true,
-          type: playlist.type,
-          spotifyPlaylistId: playlist.spotifyPlaylistId,
-          playlist: {
-            id: playlist.spotifyPlaylistId,
-            name: playlist.name,
-            owner: playlist.owner,
-            description: playlist.description,
-            cover: playlist.cover,
-            externalUrl: playlist.externalUrl,
-            trackCount: playlist.trackCount,
-          },
-          itemsStatus: playlist.itemsStatus,
-          itemsMessage: playlist.itemsMessage,
-          tracksAvailable: playlist.tracksAvailable,
-          tracksReason: playlist.tracksReason,
+      return res.status(200).json({
+        ok: true,
+        type: playlist.type,
+        spotifyPlaylistId: playlist.spotifyPlaylistId,
+        playlist: {
+          id: playlist.spotifyPlaylistId,
+          name: playlist.name,
+          owner: playlist.owner,
+          description: playlist.description,
+          cover: playlist.cover,
+          externalUrl: playlist.externalUrl,
           trackCount: playlist.trackCount,
-          tracks: playlist.tracks.map((track, index) => ({
-            ...track,
-            downloaded: downloadedIds.has(track.id),
-            addedAt: null,
-            publicPlaylistIndex: index,
-          })),
-        });
-      } catch (error) {
-        console.error(
-          "PUBLIC SPOTIFY PLAYLIST TRACKS ERROR:",
-          error,
-        );
+        },
+        itemsStatus: playlist.itemsStatus,
+        itemsMessage: playlist.itemsMessage,
+        tracksAvailable: playlist.tracksAvailable,
+        tracksReason: playlist.tracksReason,
+        trackCount: playlist.trackCount,
+        tracks: playlist.tracks.map((track, index) => ({
+          ...track,
+          downloaded: downloadedIds.has(track.id),
+          addedAt: null,
+          publicPlaylistIndex: index,
+        })),
+      });
+    } catch (error) {
+      console.error("PUBLIC SPOTIFY PLAYLIST TRACKS ERROR:", error);
 
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
+      const status =
+        Number.isInteger(error?.status) &&
+        error.status >= 400 &&
+        error.status <= 599
+          ? error.status
+          : 502;
 
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to load Spotify playlist tracks",
-        });
-      }
-    },
-  );
+      return res.status(status).json({
+        message: error?.message || "Failed to load Spotify playlist tracks",
+      });
+    }
+  });
 
   /*
    * IMPORT PUBLIC SPOTIFY PLAYLIST INTO A NORMAL USER PLAYLIST
@@ -166,130 +147,124 @@ export function registerRoutes(app, context) {
    * playlists are references, while imported playlists become normal
    * numeric local playlists.
    */
-  app.post(
-    "/spotify/playlist/:playlistId/import",
-    async (req, res) => {
-      if (!requireUser(req, res)) return;
+  app.post("/spotify/playlist/:playlistId/import", async (req, res) => {
+    if (!requireUser(req, res)) return;
 
-      try {
-        const playlist = await getSpotifyPublicPlaylist(
-          req.params.playlistId,
-          getSpotifyToken,
-          { skipCache: true },
-        );
+    try {
+      const playlist = await getSpotifyPublicPlaylist(
+        req.params.playlistId,
+        getSpotifyToken,
+        { skipCache: true },
+      );
 
-        const tracks = Array.isArray(playlist.tracks)
-          ? playlist.tracks.filter(
-              (track) =>
-                typeof track?.id === "string" &&
-                /^[A-Za-z0-9]{22}$/.test(track.id),
-            )
-          : [];
+      const tracks = Array.isArray(playlist.tracks)
+        ? playlist.tracks.filter((track) => {
+            const id = track?.spotifyTrackId || track?.id;
+            return typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id);
+          })
+        : [];
 
-        if (tracks.length === 0) {
-          return res.status(409).json({
-            message:
-              playlist.tracksReason ||
-              playlist.itemsMessage ||
-              "No Spotify tracks could be resolved through the official Spotify API.",
-            itemsStatus: playlist.itemsStatus || "unavailable",
-            unresolvedTracks: playlist.unresolvedTracks || [],
-          });
-        }
+      if (tracks.length === 0) {
+        return res.status(409).json({
+          message:
+            playlist.itemsMessage ||
+            "No Spotify tracks could be resolved through the official Spotify API.",
+          itemsStatus: playlist.itemsStatus || "unavailable",
+          unresolvedTracks: playlist.unresolvedTracks || [],
+        });
+      }
 
-        const username = req.session.user.username;
-        const playlists = loadPlaylists();
+      const username = req.session.user.username;
+      const playlists = loadPlaylists();
 
-        const existing = playlists.find(
-          (item) =>
-            item.owner === username &&
-            item.importedSpotifyPlaylistId === playlist.spotifyPlaylistId,
-        );
+      const existing = playlists.find(
+        (item) =>
+          item.owner === username &&
+          item.importedSpotifyPlaylistId === playlist.spotifyPlaylistId,
+      );
 
-        if (existing) {
-          const now = new Date().toISOString();
-          existing.type = "spotify-public";
-          existing.spotifyPlaylistId = playlist.spotifyPlaylistId;
-          existing.importedSpotifyPlaylistId = playlist.spotifyPlaylistId;
-          existing.cover = playlist.cover || existing.cover || "";
-          existing.originalOwner = playlist.owner || existing.originalOwner || "Spotify";
-          existing.externalUrl =
-            playlist.externalUrl ||
-            existing.externalUrl ||
-            `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`;
-          existing.songs = tracks.map((track) => track.id);
-          existing.songAddedAt = Object.fromEntries(
-            tracks.map((track) => [
-              track.id,
-              existing.songAddedAt?.[track.id] || existing.createdAt || now,
-            ]),
-          );
-          existing.updatedAt = now;
-          savePlaylists(playlists);
+      const trackIds = tracks.map((track) => track.spotifyTrackId || track.id);
 
-          return res.status(200).json({
-            alreadyImported: true,
-            repaired: true,
-            playlist: existing,
-          });
-        }
-
-        const ids = playlists
-          .map((item) => Number(item.id))
-          .filter(Number.isFinite);
-
-        const id = ids.length ? Math.max(...ids) + 1 : 1;
-        const now = new Date().toISOString();
-
-        const imported = {
-          name: playlist.name || "My Playlist",
-          id,
-          cover: playlist.cover || "",
-          owner: username,
-          originalOwner: playlist.owner || "Spotify",
-          type: "spotify-public",
-          spotifyPlaylistId: playlist.spotifyPlaylistId,
-          importedSpotifyPlaylistId: playlist.spotifyPlaylistId,
-          importedFrom:
-            playlist.externalUrl ||
-            `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`,
-          status: "private",
-          description: playlist.description || "",
-          songs: tracks.map((track) => track.id),
-          downloaded: [],
-          createdAt: now,
-          updatedAt: now,
+      if (existing) {
+        const repaired = {
+          ...existing,
+          name: playlist.name || existing.name || "My Playlist",
+          cover: playlist.cover || existing.cover || "",
+          originalOwner: playlist.owner || existing.originalOwner || "Spotify",
+          description: playlist.description || existing.description || "",
+          songs: trackIds,
+          updatedAt: new Date().toISOString(),
           songAddedAt: Object.fromEntries(
-            tracks.map((track) => [track.id, now]),
+            trackIds.map((trackId) => [
+              trackId,
+              existing.songAddedAt?.[trackId] || new Date().toISOString(),
+            ]),
           ),
         };
 
-        playlists.push(imported);
-        savePlaylists(playlists);
+        const repairedPlaylists = playlists.map((item) =>
+          item === existing ? repaired : item,
+        );
 
-        return res.status(201).json({
-          alreadyImported: false,
-          unresolvedTracks: playlist.unresolvedTracks || [],
-          playlist: imported,
-        });
-      } catch (error) {
-        console.error("IMPORT PUBLIC SPOTIFY PLAYLIST ERROR:", error);
+        savePlaylists(repairedPlaylists);
 
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
-
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to import Spotify playlist",
+        return res.status(200).json({
+          alreadyImported: true,
+          repaired: true,
+          playlist: repaired,
         });
       }
-    },
-  );
+
+      const ids = playlists
+        .map((item) => Number(item.id))
+        .filter(Number.isFinite);
+
+      const id = ids.length ? Math.max(...ids) + 1 : 1;
+      const now = new Date().toISOString();
+
+      const imported = {
+        name: playlist.name || "My Playlist",
+        id,
+        cover: playlist.cover || "",
+        owner: username,
+        originalOwner: playlist.owner || "Spotify",
+        importedSpotifyPlaylistId: playlist.spotifyPlaylistId,
+        importedFrom:
+          playlist.externalUrl ||
+          `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`,
+        description: playlist.description || "",
+        songs: trackIds,
+        downloaded: [],
+        createdAt: now,
+        updatedAt: now,
+        songAddedAt: Object.fromEntries(
+          trackIds.map((trackId) => [trackId, now]),
+        ),
+      };
+
+      playlists.push(imported);
+      savePlaylists(playlists);
+
+      return res.status(201).json({
+        alreadyImported: false,
+        unresolvedTracks: playlist.unresolvedTracks || [],
+        playlist: imported,
+      });
+    } catch (error) {
+      console.error("IMPORT PUBLIC SPOTIFY PLAYLIST ERROR:", error);
+
+      const status =
+        Number.isInteger(error?.status) &&
+        error.status >= 400 &&
+        error.status <= 599
+          ? error.status
+          : 502;
+
+      return res.status(status).json({
+        message: error?.message || "Failed to import Spotify playlist",
+      });
+    }
+  });
 
   /*
    * Diagnostic: proves the import route is registered.
@@ -303,130 +278,98 @@ export function registerRoutes(app, context) {
   /*
    * SAVE PUBLIC SPOTIFY PLAYLIST
    */
-  app.post(
-    "/spotify/playlist/:playlistId/save",
-    async (req, res) => {
-      if (!requireUser(req, res)) return;
+  app.post("/spotify/playlist/:playlistId/save", async (req, res) => {
+    if (!requireUser(req, res)) return;
 
-      try {
-        const playlist =
-          await getSpotifyPublicPlaylist(
-            req.params.playlistId,
-            getSpotifyToken,
-          );
-
-        const username =
-          req.session.user.username;
-
-        const saved =
-          loadSpotifyPublicPlaylists();
-
-        const userSaved =
-          Array.isArray(saved[username])
-            ? saved[username]
-            : [];
-
-        const reference = {
-          id: `spotify:${playlist.spotifyPlaylistId}`,
-
-          type: "spotify-public",
-
-          spotifyPlaylistId:
-            playlist.spotifyPlaylistId,
-
-          name: playlist.name,
-
-          owner: playlist.owner,
-
-          description: playlist.description,
-
-          cover: playlist.cover,
-
-          externalUrl:
-            playlist.externalUrl,
-
-          trackCount:
-            playlist.trackCount,
-
-          updatedAt:
-            new Date().toISOString(),
-        };
-
-        const next = [
-          ...userSaved.filter(
-            (item) =>
-              item.spotifyPlaylistId !==
-              playlist.spotifyPlaylistId,
-          ),
-
-          reference,
-        ];
-
-        saved[username] = next;
-
-        saveSpotifyPublicPlaylists(saved);
-
-        return res.status(200).json({
-          message:
-            "Public Spotify playlist saved",
-
-          playlist: reference,
-        });
-      } catch (error) {
-        console.error(
-          "SAVE PUBLIC SPOTIFY PLAYLIST ERROR:",
-          error,
-        );
-
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
-
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to save Spotify playlist",
-        });
-      }
-    },
-  );
-
-  /*
-   * REMOVE SAVED PUBLIC SPOTIFY PLAYLIST
-   */
-  app.delete(
-    "/spotify/playlist/:playlistId/save",
-    (req, res) => {
-      if (!requireUser(req, res)) return;
-
-      const username =
-        req.session.user.username;
-
-      const saved =
-        loadSpotifyPublicPlaylists();
-
-      const userSaved =
-        Array.isArray(saved[username])
-          ? saved[username]
-          : [];
-
-      saved[username] = userSaved.filter(
-        (item) =>
-          item.spotifyPlaylistId !==
-          req.params.playlistId,
+    try {
+      const playlist = await getSpotifyPublicPlaylist(
+        req.params.playlistId,
+        getSpotifyToken,
       );
+
+      const username = req.session.user.username;
+
+      const saved = loadSpotifyPublicPlaylists();
+
+      const userSaved = Array.isArray(saved[username]) ? saved[username] : [];
+
+      const reference = {
+        id: `spotify:${playlist.spotifyPlaylistId}`,
+
+        type: "spotify-public",
+
+        spotifyPlaylistId: playlist.spotifyPlaylistId,
+
+        name: playlist.name,
+
+        owner: playlist.owner,
+
+        description: playlist.description,
+
+        cover: playlist.cover,
+
+        externalUrl: playlist.externalUrl,
+
+        trackCount: playlist.trackCount,
+
+        updatedAt: new Date().toISOString(),
+      };
+
+      const next = [
+        ...userSaved.filter(
+          (item) => item.spotifyPlaylistId !== playlist.spotifyPlaylistId,
+        ),
+
+        reference,
+      ];
+
+      saved[username] = next;
 
       saveSpotifyPublicPlaylists(saved);
 
       return res.status(200).json({
-        message:
-          "Saved Spotify playlist removed",
+        message: "Public Spotify playlist saved",
+
+        playlist: reference,
       });
-    },
-  );
+    } catch (error) {
+      console.error("SAVE PUBLIC SPOTIFY PLAYLIST ERROR:", error);
+
+      const status =
+        Number.isInteger(error?.status) &&
+        error.status >= 400 &&
+        error.status <= 599
+          ? error.status
+          : 502;
+
+      return res.status(status).json({
+        message: error?.message || "Failed to save Spotify playlist",
+      });
+    }
+  });
+
+  /*
+   * REMOVE SAVED PUBLIC SPOTIFY PLAYLIST
+   */
+  app.delete("/spotify/playlist/:playlistId/save", (req, res) => {
+    if (!requireUser(req, res)) return;
+
+    const username = req.session.user.username;
+
+    const saved = loadSpotifyPublicPlaylists();
+
+    const userSaved = Array.isArray(saved[username]) ? saved[username] : [];
+
+    saved[username] = userSaved.filter(
+      (item) => item.spotifyPlaylistId !== req.params.playlistId,
+    );
+
+    saveSpotifyPublicPlaylists(saved);
+
+    return res.status(200).json({
+      message: "Saved Spotify playlist removed",
+    });
+  });
 
   /*
    * RESOLVE SPOTIFY PLAYLIST URL
@@ -436,53 +379,40 @@ export function registerRoutes(app, context) {
    *   "url": "https://open.spotify.com/playlist/..."
    * }
    */
-  app.post(
-    "/spotify/playlist/resolve",
-    async (req, res) => {
-      if (!requireUser(req, res)) return;
+  app.post("/spotify/playlist/resolve", async (req, res) => {
+    if (!requireUser(req, res)) return;
 
-      const playlistId =
-        extractSpotifyPlaylistId(
-          req.body?.url,
-        );
+    const playlistId = extractSpotifyPlaylistId(req.body?.url);
 
-      if (!playlistId) {
-        return res.status(400).json({
-          message:
-            "Invalid Spotify public playlist URL",
-        });
-      }
+    if (!playlistId) {
+      return res.status(400).json({
+        message: "Invalid Spotify public playlist URL",
+      });
+    }
 
-      try {
-        const playlist =
-          await getSpotifyPublicPlaylist(
-            playlistId,
-            getSpotifyToken,
-          );
+    try {
+      const playlist = await getSpotifyPublicPlaylist(
+        playlistId,
+        getSpotifyToken,
+      );
 
-        return res.status(200).json({
-          ...playlist,
-          tracks: playlist.tracks,
-        });
-      } catch (error) {
-        console.error(
-          "RESOLVE PUBLIC SPOTIFY PLAYLIST ERROR:",
-          error,
-        );
+      return res.status(200).json({
+        ...playlist,
+        tracks: playlist.tracks,
+      });
+    } catch (error) {
+      console.error("RESOLVE PUBLIC SPOTIFY PLAYLIST ERROR:", error);
 
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
+      const status =
+        Number.isInteger(error?.status) &&
+        error.status >= 400 &&
+        error.status <= 599
+          ? error.status
+          : 502;
 
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to load Spotify playlist",
-        });
-      }
-    },
-  );
+      return res.status(status).json({
+        message: error?.message || "Failed to load Spotify playlist",
+      });
+    }
+  });
 }

@@ -17,14 +17,12 @@ function EditPlaylistDetails({
   const [description, setDescription] = useState(
     selectedPlaylist.description || "",
   );
-  const [status, setStatus] = useState(selectedPlaylist.status || "private");
   const [cover, setCover] = useState(selectedPlaylist.cover || DEFAULT_COVER);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setName(selectedPlaylist.name || "");
     setDescription(selectedPlaylist.description || "");
-    setStatus(selectedPlaylist.status || "private");
     setCover(selectedPlaylist.cover || DEFAULT_COVER);
     setHidden(true);
   }, [selectedPlaylist]);
@@ -57,7 +55,6 @@ function EditPlaylistDetails({
       const updatedPlaylist = await updatePlaylist({
         name: name.trim() || "My Playlist",
         description: description.trim(),
-        status,
         cover,
       });
 
@@ -184,19 +181,6 @@ function EditPlaylistDetails({
         </div>
 
         <div className="edit-actions">
-          <button
-            className="edit-private"
-            type="button"
-            onClick={() =>
-              setStatus(status === "private" ? "public" : "private")
-            }
-          >
-            <span className="material-symbols-outlined">
-              {status === "private" ? "lock" : "lock_open"}
-            </span>
-            {status === "private" ? "Make public" : "Make private"}
-          </button>
-
           <button
             className="edit-save"
             type="button"

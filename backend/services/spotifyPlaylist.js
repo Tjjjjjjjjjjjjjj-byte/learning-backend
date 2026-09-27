@@ -276,6 +276,27 @@ async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
   });
 }
 
+const ENRICHED_TRACKS_CACHE_TTL_MS = 5 * 60 * 1000;
+const enrichedTracksCache = new Map();
+
+function getCachedEnrichedTracks(key) {
+  const cached = enrichedTracksCache.get(key);
+
+  if (!cached) return null;
+
+  if (Date.now() - cached.createdAt > ENRICHED_TRACKS_CACHE_TTL_MS) {
+    enrichedTracksCache.delete(key);
+    return null;
+  }
+
+  return cached.tracks;
+}
+
+function setCachedEnrichedTracks(key, tracks) {
+  enrichedTracksCache.set(key, { createdAt: Date.now(), tracks });
+  return tracks;
+}
+
 export async function getSpotifyPublicPlaylist(
   playlistId,
   getSpotifyToken,
@@ -299,10 +320,20 @@ export async function getSpotifyPublicPlaylist(
     : [];
 
   if ((resolved.source || "spotify-web") === "spotify-web" && tracks.length > 0) {
-    try {
-      tracks = await enrichTracksWithOfficialArtwork(tracks, getSpotifyToken);
-    } catch (error) {
-      console.error("SPOTIFY TRACK ARTWORK ENRICHMENT ERROR:", error);
+    const enrichmentCacheKey = resolved.playlistId || resolved.spotifyPlaylistId;
+    const cachedTracks = options.skipCache
+      ? null
+      : getCachedEnrichedTracks(enrichmentCacheKey);
+
+    if (cachedTracks) {
+      tracks = cachedTracks;
+    } else {
+      try {
+        tracks = await enrichTracksWithOfficialArtwork(tracks, getSpotifyToken);
+        setCachedEnrichedTracks(enrichmentCacheKey, tracks);
+      } catch (error) {
+        console.error("SPOTIFY TRACK ARTWORK ENRICHMENT ERROR:", error);
+      }
     }
   }
 
