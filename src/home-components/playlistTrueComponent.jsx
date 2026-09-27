@@ -539,10 +539,12 @@ function PlaylistModal({
         <Hero
           selectedPlaylist={selectedPlaylist}
           trackCount={
-            selectedPlaylist.type === "spotify-public" &&
-            Number.isFinite(Number(selectedPlaylist.trackCount))
-              ? Number(selectedPlaylist.trackCount)
-              : track.length
+            track.length > 0
+              ? track.length
+              : selectedPlaylist.type === "spotify-public" &&
+                Number.isFinite(Number(selectedPlaylist.trackCount))
+                ? Number(selectedPlaylist.trackCount)
+                : 0
           }
           totalMinutes={totalMinutes}
           totalSeconds={totalSeconds}

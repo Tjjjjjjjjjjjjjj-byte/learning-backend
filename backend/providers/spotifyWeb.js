@@ -398,7 +398,6 @@ function normalizeEmbedTrack(raw, index, playlistArtwork = "") {
     pickArtwork(raw.item?.images, "") ||
     pickArtwork(raw.item?.album?.images, "") ||
     pickArtwork(raw.item?.album?.coverArt, "") ||
-    playlistArtwork ||
     "";
 
   const externalUrl =
@@ -489,11 +488,16 @@ function parseEmbedPlaylist(html, playlistId) {
     pageDescription,
   );
 
-  const trackCount = firstNumber(
+  const reportedTrackCount = firstNumber(
     entity?.trackCount,
     entity?.tracks?.total,
     entity?.totalTracks,
   );
+
+  const trackCount =
+    tracks.length > 0 && (reportedTrackCount == null || reportedTrackCount === 0)
+      ? tracks.length
+      : reportedTrackCount;
 
   return {
     playlistId,
@@ -501,7 +505,7 @@ function parseEmbedPlaylist(html, playlistId) {
     owner,
     description,
     cover: playlistArtwork,
-    trackCount: trackCount ?? (rawTracks.length > 0 ? tracks.length : null),
+    trackCount,
     tracks,
     source: "spotify-web",
     sourceUrl: `https://open.spotify.com/playlist/${playlistId}`,

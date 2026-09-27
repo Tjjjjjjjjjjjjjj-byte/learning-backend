@@ -172,46 +172,47 @@ async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
 
   if (ids.length === 0) return tracks;
 
-  let token;
+  let token = null;
   try {
     token = await getSpotifyToken();
   } catch (error) {
-    console.error("[spotify-playlist] getSpotifyToken() failed:", error);
-    return tracks;
+    console.error("[spotify-playlist] getSpotifyToken() failed; using embed artwork fallback:", error);
   }
 
   const market = process.env.SPOTIFY_MARKET || "PH";
   const officialTracksById = new Map();
 
-  for (let i = 0; i < ids.length; i += 50) {
-    const batch = ids.slice(i, i + 50);
-    const url =
-      `https://api.spotify.com/v1/tracks?ids=${batch.join(",")}` +
-      `&market=${encodeURIComponent(market)}`;
+  if (token) {
+    for (let i = 0; i < ids.length; i += 50) {
+      const batch = ids.slice(i, i + 50);
+      const url =
+        `https://api.spotify.com/v1/tracks?ids=${batch.join(",")}` +
+        `&market=${encodeURIComponent(market)}`;
 
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      try {
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      if (!response.ok) {
-        console.error(
-          `[spotify-playlist] GET /v1/tracks batch failed: HTTP ${response.status}`,
-        );
-        continue;
-      }
-
-      const data = await response.json();
-
-      for (const officialTrack of data?.tracks || []) {
-        if (officialTrack?.id) {
-          officialTracksById.set(officialTrack.id, officialTrack);
+        if (!response.ok) {
+          console.error(
+            `[spotify-playlist] GET /v1/tracks batch failed: HTTP ${response.status}`,
+          );
+          continue;
         }
+
+        const data = await response.json();
+
+        for (const officialTrack of data?.tracks || []) {
+          if (officialTrack?.id) {
+            officialTracksById.set(officialTrack.id, officialTrack);
+          }
+        }
+      } catch (error) {
+        // Best-effort enrichment -- keep whatever artwork we already have
+        // for this batch and move on.
+        console.error("[spotify-playlist] GET /v1/tracks batch threw:", error);
       }
-    } catch (error) {
-      // Best-effort enrichment -- keep whatever artwork we already have
-      // for this batch and move on.
-      console.error("[spotify-playlist] GET /v1/tracks batch threw:", error);
     }
   }
 
@@ -283,6 +284,7 @@ export async function getSpotifyPublicPlaylist(
   const resolved = await resolveSpotifyPlaylistWithProviders(
     playlistId,
     {
+      skipCache: Boolean(options.skipCache),
       officialApiResolver: (id) =>
         getOfficialSpotifyPlaylist(id, getSpotifyToken),
     },
@@ -319,11 +321,15 @@ export async function getSpotifyPublicPlaylist(
     collaborative: Boolean(resolved.collaborative),
     snapshotId: resolved.snapshotId || null,
     trackCount:
-      Number.isFinite(Number(resolved.trackCount))
-        ? Number(resolved.trackCount)
-        : Array.isArray(resolved.tracks)
-          ? resolved.tracks.length
-          : null,
+      Array.isArray(resolved.tracks) &&
+      resolved.tracks.length > 0 &&
+      Number(resolved.trackCount) === 0
+        ? resolved.tracks.length
+        : Number.isFinite(Number(resolved.trackCount))
+          ? Number(resolved.trackCount)
+          : Array.isArray(resolved.tracks)
+            ? resolved.tracks.length
+            : null,
     itemsStatus: resolved.tracksStatus || "unavailable",
     itemsMessage:
       resolved.tracksReason === "spotify-api-items-unavailable"

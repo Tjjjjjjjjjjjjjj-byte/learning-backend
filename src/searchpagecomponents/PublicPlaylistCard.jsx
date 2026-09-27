@@ -32,8 +32,8 @@ function PublicPlaylistCard({ playlist, saved, onOpen, onSave, saving }) {
           {playlist.owner || "Spotify"} · {
             playlist.itemsStatus === "unavailable"
               ? "songs unavailable to this API client"
-              : playlist.trackCount === 0
-                ? "0 songs"
+              : playlist.trackCount === 0 && Array.isArray(playlist.tracks) && playlist.tracks.length > 0
+                ? `${playlist.tracks.length} songs`
                 : playlist.trackCount != null
                   ? `${playlist.trackCount} songs`
                   : "song count unavailable"
