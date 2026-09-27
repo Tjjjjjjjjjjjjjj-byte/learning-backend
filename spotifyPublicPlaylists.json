@@ -1,0 +1,16 @@
+{
+  "test": [
+    {
+      "id": "spotify:19aCTyg6pihFjqOTyLnn6c",
+      "type": "spotify-public",
+      "spotifyPlaylistId": "19aCTyg6pihFjqOTyLnn6c",
+      "name": "RNB ACOUSTIC COVERS",
+      "owner": "JALYN MA-AYA",
+      "description": "",
+      "cover": "https://mosaic.scdn.co/300/ab67616d00001e02354e2038b68ca95c08a1dc4eab67616d00001e0235ea4cb34cb75dfd9294ac3dab67616d00001e02399bf896dc7b75dfc6fe1ed5ab67616d00001e02de8b0e0ef33197740d1efbf8",
+      "externalUrl": "https://open.spotify.com/playlist/19aCTyg6pihFjqOTyLnn6c",
+      "trackCount": 47,
+      "updatedAt": "2026-09-27T09:32:51.379Z"
+    }
+  ]
+}

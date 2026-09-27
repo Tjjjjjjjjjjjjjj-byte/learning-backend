@@ -41,6 +41,7 @@ function PlaylistModal({
   setPlaybackPlaylistId,
   onAddToQueue,
   onPlayNext,
+  onPlaylistImported,
 }) {
   const [editDetailsOpen, setEditDetailsOpen] = useState(false);
 
@@ -99,15 +100,17 @@ function PlaylistModal({
   }, [selectedPlaylist, setSelectedPlaylist]);
 
   useEffect(() => {
+    let cancelled = false;
+    let retryTimeout = null;
+
     async function getTracks() {
+      if (cancelled) return;
+
       setLoading(true);
       if (selectedPlaylist.type === "spotify-public") {
         setItemsStatus("loading");
         setItemsMessage("");
       }
-
-      let keepLoading = false;
-      let responseStatus = null;
 
       try {
         const endpoint =
@@ -120,19 +123,37 @@ function PlaylistModal({
         const response = await fetch(endpoint, {
           credentials: "include",
         });
-        responseStatus = response.status;
 
         const data = await readJsonResponse(response);
 
         if (!response.ok) {
-          const error = new Error(data.message || "Failed to get tracks");
-          error.status = response.status;
-          throw error;
+          throw new Error(data.message || "Failed to get tracks");
         }
+
+        if (cancelled) return;
 
         if (selectedPlaylist.type === "spotify-public") {
           const nextTracks = Array.isArray(data.tracks) ? data.tracks.filter(Boolean) : [];
-          setItemsStatus(data.itemsStatus || selectedPlaylist.itemsStatus || "unavailable");
+          const status = data.itemsStatus || selectedPlaylist.itemsStatus || "unavailable";
+
+          /*
+           * "unavailable"/"metadata-only" mean Spotify is currently
+           * rate-limiting or restricting the item lookup -- transient,
+           * not permanent. Rather than showing an error, quietly retry
+           * in the background and stay on the loading screen until real
+           * tracks come back (or the playlist turns out to genuinely be
+           * empty, or something actually throws).
+           */
+          const isTransient =
+            nextTracks.length === 0 &&
+            (status === "unavailable" || status === "metadata-only");
+
+          if (isTransient) {
+            retryTimeout = setTimeout(getTracks, 5000);
+            return;
+          }
+
+          setItemsStatus(status);
           setItemsMessage(data.itemsMessage || "");
           setTrack(nextTracks);
 
@@ -140,6 +161,8 @@ function PlaylistModal({
             setPlaybackTracks(nextTracks);
             setPlaybackPlaylistId(selectedPlaylist.id || selectedPlaylist.spotifyPlaylistId);
           }
+
+          setLoading(false);
         } else {
           const nextTracks = Array.isArray(data) ? data.filter(Boolean) : [];
           setItemsStatus("available");
@@ -147,26 +170,28 @@ function PlaylistModal({
           setTrack(nextTracks);
           setPlaybackTracks(nextTracks);
           setPlaybackPlaylistId(selectedPlaylist.id);
+          setLoading(false);
         }
       } catch (error) {
+        if (cancelled) return;
+
         console.error("FAILED TO LOAD TRACKS:", error);
 
-        if (selectedPlaylist.type === "spotify-public" && (error?.status === 429 || responseStatus === 429)) {
-          setItemsStatus("loading");
-          setItemsMessage("");
-          keepLoading = true;
-        } else if (selectedPlaylist.type === "spotify-public") {
+        setTrack([]);
+        if (selectedPlaylist.type === "spotify-public") {
           setItemsStatus("error");
           setItemsMessage(error.message || "Failed to load Spotify playlist items");
         }
-      } finally {
-        if (!keepLoading) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     }
 
     getTracks();
+
+    return () => {
+      cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, [selectedPlaylist]);
 
   useEffect(() => {
@@ -504,16 +529,13 @@ function PlaylistModal({
         <Hero
           selectedPlaylist={selectedPlaylist}
           trackCount={
-            loading
-              ? null
-              : track.length > 0
-                ? track.length
-                : selectedPlaylist.type === "spotify-public" &&
-                  Number.isFinite(Number(selectedPlaylist.trackCount))
-                  ? Number(selectedPlaylist.trackCount)
-                  : 0
+            track.length > 0
+              ? track.length
+              : selectedPlaylist.type === "spotify-public" &&
+                Number.isFinite(Number(selectedPlaylist.trackCount))
+                ? Number(selectedPlaylist.trackCount)
+                : 0
           }
-          loading={loading}
           totalMinutes={totalMinutes}
           totalSeconds={totalSeconds}
         />

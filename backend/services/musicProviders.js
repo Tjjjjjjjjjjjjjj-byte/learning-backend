@@ -1,7 +1,20 @@
 import { createSpotifyWebProvider } from "../providers/spotifyWeb.js";
 
 const PROVIDER_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/*
+ * A "no tracks" result caused by Spotify rate-limiting/blocking us is
+ * transient -- it can clear up within seconds. Caching it for the full
+ * 5 minutes would lock the playlist at "0 songs" for the whole window
+ * even once Spotify would let a fresh request through again, so these
+ * degraded results get a much shorter TTL than a real, full result.
+ */
+const TRANSIENT_CACHE_TTL_MS = 15 * 1000;
 const playlistCache = new Map();
+
+function isTransientResult(result) {
+  return !result.tracksAvailable && result.tracksReason !== "playlist-empty";
+}
 
 const spotifyWebProvider = createSpotifyWebProvider();
 
@@ -18,7 +31,7 @@ function getCached(key) {
 
   if (!cached) return null;
 
-  if (Date.now() - cached.createdAt > PROVIDER_CACHE_TTL_MS) {
+  if (Date.now() - cached.createdAt > cached.ttl) {
     playlistCache.delete(key);
     return null;
   }
@@ -26,9 +39,10 @@ function getCached(key) {
   return cached.value;
 }
 
-function setCached(key, value) {
+function setCached(key, value, ttl = PROVIDER_CACHE_TTL_MS) {
   playlistCache.set(key, {
     createdAt: Date.now(),
+    ttl,
     value,
   });
 
@@ -74,7 +88,11 @@ export async function resolveSpotifyPlaylistWithProviders(
             : "provider-returned-no-items",
     };
 
-    return setCached(cacheKey, result);
+    return setCached(
+      cacheKey,
+      result,
+      isTransientResult(result) ? TRANSIENT_CACHE_TTL_MS : PROVIDER_CACHE_TTL_MS,
+    );
   } catch (error) {
     webError = error;
   }
@@ -108,7 +126,11 @@ export async function resolveSpotifyPlaylistWithProviders(
         providerError: webError?.message || null,
       };
 
-      return setCached(cacheKey, result);
+      return setCached(
+        cacheKey,
+        result,
+        isTransientResult(result) ? TRANSIENT_CACHE_TTL_MS : PROVIDER_CACHE_TTL_MS,
+      );
     } catch (officialError) {
       const error = new Error(
         `Spotify playlist providers failed: ${

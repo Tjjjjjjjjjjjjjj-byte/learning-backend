@@ -18,11 +18,37 @@ import {
   PLAYBACK_STATE_FILE,
   MAX_PLAYBACK_HISTORY,
 } from "./config.js";
-import { ensureStorageDirectories, loadPlaylists, savePlaylists, readDownloads, saveDownloads, getUserDownloads, readPasswordResets, savePasswordResets, sanitizeFilename, findGlobalDownload, loadSpotifyPublicPlaylists, saveSpotifyPublicPlaylists, loadPlaybackState, savePlaybackState } from "./services/storage.js";
-import { getSpotifyToken, getSpotifyTrackForLyrics } from "./services/spotify.js";
-import { extractSpotifyPlaylistId, getSpotifyPublicPlaylist } from "./services/spotifyPlaylist.js";
+import {
+  ensureStorageDirectories,
+  loadPlaylists,
+  savePlaylists,
+  readDownloads,
+  saveDownloads,
+  getUserDownloads,
+  readPasswordResets,
+  savePasswordResets,
+  sanitizeFilename,
+  findGlobalDownload,
+  loadSpotifyPublicPlaylists,
+  saveSpotifyPublicPlaylists,
+  loadPlaybackState,
+  savePlaybackState,
+} from "./services/storage.js";
+import {
+  getSpotifyToken,
+  getSpotifyTrackForLyrics,
+} from "./services/spotify.js";
+import {
+  extractSpotifyPlaylistId,
+  getSpotifyPublicPlaylist,
+} from "./services/spotifyPlaylist.js";
 import { findYoutubeVideo } from "./services/youtube.js";
-import { cleanupPlaybackCache, readPlaybackCache, getOrCreatePlaybackUrl, runWithConcurrency } from "./services/playback.js";
+import {
+  cleanupPlaybackCache,
+  readPlaybackCache,
+  getOrCreatePlaybackUrl,
+  runWithConcurrency,
+} from "./services/playback.js";
 import { parseLrcLyrics, createLyricsCache } from "./services/lyrics.js";
 
 import { registerRoutes as registerAuthRoutes } from "./routes/auth.js";
@@ -95,6 +121,7 @@ const context = {
   getOrCreatePlaybackUrl,
   runWithConcurrency,
   parseLrcLyrics,
+  lyricsCache,
 };
 
 registerAuthRoutes(app, context);

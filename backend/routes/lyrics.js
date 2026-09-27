@@ -57,11 +57,26 @@ app.get("/lyrics/:trackId", async (req, res) => {
       !Number.isFinite(durationSeconds) ||
       durationSeconds <= 0
     ) {
-      console.warn("LYRICS: Incomplete Spotify metadata:", trackId);
+      /*
+       * A totally blank result (no name, no artists, no album at all)
+       * means Spotify's embed page didn't actually resolve -- almost
+       * always because we're being rate-limited right at this moment,
+       * not because the track has no metadata. That's transient and
+       * worth retrying; a partially-populated result is more likely a
+       * genuinely unusual track and isn't worth retrying forever.
+       */
+      const isTransient = !trackName && !artistName && !albumName;
+
+      console.warn(
+        `LYRICS: Incomplete Spotify metadata${isTransient ? " (transient)" : ""}:`,
+        trackId,
+      );
+
       return res.status(200).json({
         lyrics: {
           lines: [],
         },
+        status: isTransient ? "retry" : "unavailable",
       });
     }
 

@@ -181,16 +181,15 @@ function SearchPage({ player }) {
           item.spotifyPlaylistId === playlist.spotifyPlaylistId),
     );
 
-    // Do not short-circuit here. The backend can repair an existing
-    // imported Spotify playlist whose saved metadata came from an older
-    // broken import.
+    if (alreadySaved) return;
+
     setSavingPlaylistId(playlist.spotifyPlaylistId);
 
     try {
       const response = await fetch(
         `http://localhost:3000/spotify/playlist/${encodeURIComponent(
           playlist.spotifyPlaylistId,
-        )}/import`,
+        )}/save`,
         {
           method: "POST",
           credentials: "include",

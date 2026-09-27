@@ -157,8 +157,36 @@ async function getOfficialSpotifyPlaylist(
  * track's own embed page individually (resolveTrackViaEmbed), which isn't
  * gated behind that same restriction.
  */
+/*
+ * Per-track cache, independent of which playlist a track was seen in and
+ * much longer-lived than the playlist-level caches above -- a track's
+ * artwork/link essentially never changes. Once a track has been resolved
+ * once (through any playlist, on any route), every future playlist that
+ * contains it reuses the cached data instead of hitting Spotify again.
+ */
+const TRACK_DATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const trackDataCache = new Map();
+
+function getCachedTrackData(id) {
+  const cached = trackDataCache.get(id);
+
+  if (!cached) return null;
+
+  if (Date.now() - cached.createdAt > TRACK_DATA_CACHE_TTL_MS) {
+    trackDataCache.delete(id);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCachedTrackData(id, data) {
+  trackDataCache.set(id, { createdAt: Date.now(), data });
+  return data;
+}
+
 async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
-  const ids = [
+  const allIds = [
     ...new Set(
       tracks
         .map((track) => track.spotifyTrackId)
@@ -167,10 +195,27 @@ async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
   ];
 
   console.log(
-    `[spotify-playlist] ${ids.length} of ${tracks.length} tracks had a usable Spotify track ID`,
+    `[spotify-playlist] ${allIds.length} of ${tracks.length} tracks had a usable Spotify track ID`,
   );
 
-  if (ids.length === 0) return tracks;
+  if (allIds.length === 0) return tracks;
+
+  const officialTracksById = new Map();
+
+  for (const id of allIds) {
+    const cached = getCachedTrackData(id);
+    if (cached) officialTracksById.set(id, cached);
+  }
+
+  const ids = allIds.filter((id) => !officialTracksById.has(id));
+
+  console.log(
+    `[spotify-playlist] ${allIds.length - ids.length} of ${allIds.length} track IDs already cached from a previous lookup`,
+  );
+
+  if (ids.length === 0) {
+    return applyOfficialTracks(tracks, officialTracksById);
+  }
 
   let token = null;
   try {
@@ -180,7 +225,6 @@ async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
   }
 
   const market = process.env.SPOTIFY_MARKET || "PH";
-  const officialTracksById = new Map();
 
   if (token) {
     for (let i = 0; i < ids.length; i += 50) {
@@ -206,6 +250,7 @@ async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
         for (const officialTrack of data?.tracks || []) {
           if (officialTrack?.id) {
             officialTracksById.set(officialTrack.id, officialTrack);
+            setCachedTrackData(officialTrack.id, officialTrack);
           }
         }
       } catch (error) {
@@ -246,6 +291,7 @@ async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
     for (const track of scraped) {
       if (track?.id) {
         officialTracksById.set(track.id, track);
+        setCachedTrackData(track.id, track);
         scrapedCount += 1;
       }
     }
@@ -255,6 +301,10 @@ async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
     );
   }
 
+  return applyOfficialTracks(tracks, officialTracksById);
+}
+
+function applyOfficialTracks(tracks, officialTracksById) {
   if (officialTracksById.size === 0) return tracks;
 
   return tracks.map((track) => {
@@ -319,7 +369,11 @@ export async function getSpotifyPublicPlaylist(
     ? resolved.tracks.map(normalizeTrackForApplication).filter(Boolean)
     : [];
 
-  if ((resolved.source || "spotify-web") === "spotify-web" && tracks.length > 0) {
+  if (
+    !options.skipTrackEnrichment &&
+    (resolved.source || "spotify-web") === "spotify-web" &&
+    tracks.length > 0
+  ) {
     const enrichmentCacheKey = resolved.playlistId || resolved.spotifyPlaylistId;
     const cachedTracks = options.skipCache
       ? null
