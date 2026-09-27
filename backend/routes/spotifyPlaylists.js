@@ -179,10 +179,11 @@ export function registerRoutes(app, context) {
         );
 
         const tracks = Array.isArray(playlist.tracks)
-          ? playlist.tracks.filter((track) => {
-              const id = track?.spotifyTrackId || track?.id;
-              return typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id);
-            })
+          ? playlist.tracks.filter(
+              (track) =>
+                typeof track?.id === "string" &&
+                /^[A-Za-z0-9]{22}$/.test(track.id),
+            )
           : [];
 
         if (tracks.length === 0) {
@@ -205,34 +206,31 @@ export function registerRoutes(app, context) {
             item.importedSpotifyPlaylistId === playlist.spotifyPlaylistId,
         );
 
-        const trackIds = tracks.map(
-          (track) => track.spotifyTrackId || track.id,
-        );
-
         if (existing) {
-          const repaired = {
-            ...existing,
-            name: playlist.name || existing.name || "My Playlist",
-            cover: playlist.cover || existing.cover || "",
-            originalOwner: playlist.owner || existing.originalOwner || "Spotify",
-            description: playlist.description || existing.description || "",
-            songs: trackIds,
-            updatedAt: new Date().toISOString(),
-            songAddedAt: Object.fromEntries(
-              trackIds.map((trackId) => [trackId, existing.songAddedAt?.[trackId] || new Date().toISOString()]),
-            ),
-          };
-
-          const repairedPlaylists = playlists.map((item) =>
-            item === existing ? repaired : item,
+          const now = new Date().toISOString();
+          existing.type = "spotify-public";
+          existing.spotifyPlaylistId = playlist.spotifyPlaylistId;
+          existing.importedSpotifyPlaylistId = playlist.spotifyPlaylistId;
+          existing.cover = playlist.cover || existing.cover || "";
+          existing.originalOwner = playlist.owner || existing.originalOwner || "Spotify";
+          existing.externalUrl =
+            playlist.externalUrl ||
+            existing.externalUrl ||
+            `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`;
+          existing.songs = tracks.map((track) => track.id);
+          existing.songAddedAt = Object.fromEntries(
+            tracks.map((track) => [
+              track.id,
+              existing.songAddedAt?.[track.id] || existing.createdAt || now,
+            ]),
           );
-
-          savePlaylists(repairedPlaylists);
+          existing.updatedAt = now;
+          savePlaylists(playlists);
 
           return res.status(200).json({
             alreadyImported: true,
             repaired: true,
-            playlist: repaired,
+            playlist: existing,
           });
         }
 
@@ -249,18 +247,20 @@ export function registerRoutes(app, context) {
           cover: playlist.cover || "",
           owner: username,
           originalOwner: playlist.owner || "Spotify",
+          type: "spotify-public",
+          spotifyPlaylistId: playlist.spotifyPlaylistId,
           importedSpotifyPlaylistId: playlist.spotifyPlaylistId,
           importedFrom:
             playlist.externalUrl ||
             `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`,
           status: "private",
           description: playlist.description || "",
-          songs: trackIds,
+          songs: tracks.map((track) => track.id),
           downloaded: [],
           createdAt: now,
           updatedAt: now,
           songAddedAt: Object.fromEntries(
-            trackIds.map((trackId) => [trackId, now]),
+            tracks.map((track) => [track.id, now]),
           ),
         };
 

@@ -59,15 +59,39 @@ function parseTrackId(value) {
   const text = asString(value);
   if (!text) return "";
 
-  const uriMatch = text.match(/^spotify:track:([A-Za-z0-9]{22})$/i);
+  const uriMatch = text.match(/spotify:track:([A-Za-z0-9]{22})(?:$|[?#])/i);
   if (uriMatch) return uriMatch[1];
 
-  const urlMatch = text.match(
-    /(?:https?:\/\/open\.spotify\.com\/(?:embed\/)?track\/|spotify:track:)([A-Za-z0-9]{22})(?:[/?#].*)?$/i,
-  );
+  const urlMatch = text.match(/open\.spotify\.com\/(?:embed\/)?track\/([A-Za-z0-9]{22})(?:[/?#]|$)/i);
   if (urlMatch) return urlMatch[1];
 
-  if (/^[A-Za-z0-9]{22}$/.test(text)) return text;
+  return /^[A-Za-z0-9]{22}$/.test(text) ? text : "";
+}
+
+function findTrackId(value, seen = new Set()) {
+  if (typeof value === "string") return parseTrackId(value);
+  if (!value || typeof value !== "object" || seen.has(value)) return "";
+  seen.add(value);
+
+  for (const key of [
+    "uri",
+    "trackUri",
+    "spotifyUri",
+    "url",
+    "externalUrl",
+    "sourceUrl",
+    "href",
+    "id",
+    "trackId",
+  ]) {
+    const id = parseTrackId(value[key]);
+    if (id) return id;
+  }
+
+  for (const child of Object.values(value)) {
+    const id = findTrackId(child, seen);
+    if (id) return id;
+  }
 
   return "";
 }
@@ -329,24 +353,11 @@ function normalizeEmbedTrack(raw, index, playlistArtwork = "") {
     raw.item?.uri,
   );
 
-  const id = firstString(
-    parseTrackId(uri),
-    parseTrackId(raw.externalUrl),
-    parseTrackId(raw.external_urls?.spotify),
-    parseTrackId(raw.url),
-    parseTrackId(raw.href),
-    parseTrackId(raw.trackUrl),
-    parseTrackId(raw.track?.uri),
-    parseTrackId(raw.track?.externalUrl),
-    parseTrackId(raw.track?.external_urls?.spotify),
-    parseTrackId(raw.item?.uri),
-    parseTrackId(raw.item?.externalUrl),
-    parseTrackId(raw.item?.external_urls?.spotify),
-    parseTrackId(raw.id),
-    parseTrackId(raw.trackId),
-    parseTrackId(raw.track?.id),
-    parseTrackId(raw.item?.id),
-  );
+  const id =
+    parseTrackId(uri) ||
+    findTrackId(raw) ||
+    parseTrackId(raw.id) ||
+    parseTrackId(raw.trackId);
 
   const title = firstString(
     raw.title,

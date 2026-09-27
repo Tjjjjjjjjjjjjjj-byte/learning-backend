@@ -17,9 +17,18 @@ app.get("/home", (req, res) => {
   const playlists = loadPlaylists();
   const username = req.session.user.username;
 
-  const userPlaylists = playlists.filter(
-    (playlist) => playlist.owner === username,
-  );
+  const userPlaylists = playlists
+    .filter((playlist) => playlist.owner === username)
+    .map((playlist) => {
+      if (!playlist.importedSpotifyPlaylistId) return playlist;
+
+      return {
+        ...playlist,
+        type: "spotify-public",
+        spotifyPlaylistId:
+          playlist.spotifyPlaylistId || playlist.importedSpotifyPlaylistId,
+      };
+    });
 
   const savedPublicPlaylists = loadSpotifyPublicPlaylists();
   const publicPlaylists = Array.isArray(savedPublicPlaylists[username])
