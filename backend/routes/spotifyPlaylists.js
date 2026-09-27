@@ -179,7 +179,10 @@ export function registerRoutes(app, context) {
         );
 
         const tracks = Array.isArray(playlist.tracks)
-          ? playlist.tracks.filter((track) => track?.id)
+          ? playlist.tracks.filter((track) => {
+              const id = track?.spotifyTrackId || track?.id;
+              return typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id);
+            })
           : [];
 
         if (tracks.length === 0) {
@@ -202,10 +205,34 @@ export function registerRoutes(app, context) {
             item.importedSpotifyPlaylistId === playlist.spotifyPlaylistId,
         );
 
+        const trackIds = tracks.map(
+          (track) => track.spotifyTrackId || track.id,
+        );
+
         if (existing) {
+          const repaired = {
+            ...existing,
+            name: playlist.name || existing.name || "My Playlist",
+            cover: playlist.cover || existing.cover || "",
+            originalOwner: playlist.owner || existing.originalOwner || "Spotify",
+            description: playlist.description || existing.description || "",
+            songs: trackIds,
+            updatedAt: new Date().toISOString(),
+            songAddedAt: Object.fromEntries(
+              trackIds.map((trackId) => [trackId, existing.songAddedAt?.[trackId] || new Date().toISOString()]),
+            ),
+          };
+
+          const repairedPlaylists = playlists.map((item) =>
+            item === existing ? repaired : item,
+          );
+
+          savePlaylists(repairedPlaylists);
+
           return res.status(200).json({
             alreadyImported: true,
-            playlist: existing,
+            repaired: true,
+            playlist: repaired,
           });
         }
 
@@ -228,12 +255,12 @@ export function registerRoutes(app, context) {
             `https://open.spotify.com/playlist/${playlist.spotifyPlaylistId}`,
           status: "private",
           description: playlist.description || "",
-          songs: tracks.map((track) => track.id),
+          songs: trackIds,
           downloaded: [],
           createdAt: now,
           updatedAt: now,
           songAddedAt: Object.fromEntries(
-            tracks.map((track) => [track.id, now]),
+            trackIds.map((trackId) => [trackId, now]),
           ),
         };
 

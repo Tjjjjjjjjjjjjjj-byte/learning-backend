@@ -55,9 +55,21 @@ function parseDurationMs(value) {
   return null;
 }
 
-function parseTrackId(uri) {
-  const match = asString(uri).match(/^spotify:track:([A-Za-z0-9]+)$/);
-  return match ? match[1] : "";
+function parseTrackId(value) {
+  const text = asString(value);
+  if (!text) return "";
+
+  const uriMatch = text.match(/^spotify:track:([A-Za-z0-9]{22})$/i);
+  if (uriMatch) return uriMatch[1];
+
+  const urlMatch = text.match(
+    /(?:https?:\/\/open\.spotify\.com\/(?:embed\/)?track\/|spotify:track:)([A-Za-z0-9]{22})(?:[/?#].*)?$/i,
+  );
+  if (urlMatch) return urlMatch[1];
+
+  if (/^[A-Za-z0-9]{22}$/.test(text)) return text;
+
+  return "";
 }
 
 function normalizeArtistList(value) {
@@ -319,10 +331,21 @@ function normalizeEmbedTrack(raw, index, playlistArtwork = "") {
 
   const id = firstString(
     parseTrackId(uri),
-    raw.id,
-    raw.trackId,
-    raw.track?.id,
-    raw.item?.id,
+    parseTrackId(raw.externalUrl),
+    parseTrackId(raw.external_urls?.spotify),
+    parseTrackId(raw.url),
+    parseTrackId(raw.href),
+    parseTrackId(raw.trackUrl),
+    parseTrackId(raw.track?.uri),
+    parseTrackId(raw.track?.externalUrl),
+    parseTrackId(raw.track?.external_urls?.spotify),
+    parseTrackId(raw.item?.uri),
+    parseTrackId(raw.item?.externalUrl),
+    parseTrackId(raw.item?.external_urls?.spotify),
+    parseTrackId(raw.id),
+    parseTrackId(raw.trackId),
+    parseTrackId(raw.track?.id),
+    parseTrackId(raw.item?.id),
   );
 
   const title = firstString(
