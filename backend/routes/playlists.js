@@ -1,8 +1,6 @@
 // API routes for this feature area.
-import {
-  resolveTrackViaEmbed,
-  mapWithConcurrency,
-} from "../providers/spotifyWeb.js";
+import { getTracksByIds } from "../services/spotifyTracks.js";
+import { sendSpotifyError } from "../services/spotifyHttp.js";
 
 export function registerRoutes(app, context) {
   const { fs, path, PROJECT_ROOT, loadPlaylists, savePlaylists, loadSpotifyPublicPlaylists, getUserDownloads, getSpotifyToken } = context;
@@ -235,64 +233,35 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
       return res.status(200).json([]);
     }
 
-    const token = await getSpotifyToken();
     const userDownloads = getUserDownloads(username);
 
     const downloadedIds = new Set(
       userDownloads.map((download) => download.trackId),
     );
 
-    // Batch up to 50 IDs per request (Spotify's max for GET /v1/tracks)
-    // instead of firing one request per track -- doing it one-at-a-time
-    // for a large playlist quickly trips Spotify's rate limit and silently
-    // drops every track that gets a 429.
-    const officialTracksById = new Map();
+    // Shared resolver: 24h per-track cache, official batch endpoint only
+    // when it works, embed fallback with capped concurrency, and it stops
+    // hammering Spotify once a 429 is seen.
+    const {
+      tracks: officialTracksById,
+      missingIds,
+      rateLimited,
+      retryAfterSeconds,
+    } = await getTracksByIds(songs);
 
-    for (let i = 0; i < songs.length; i += 50) {
-      const batch = songs.slice(i, i + 50);
+    // Don't silently return a playlist with tracks missing because of a
+    // 429: tell the client to retry. Everything resolved so far is cached,
+    // so each retry only needs the remainder and converges quickly.
+    if (rateLimited && missingIds.length > 0) {
+      res.set("Retry-After", String(retryAfterSeconds || 5));
 
-      const response = await fetch(
-        `https://api.spotify.com/v1/tracks?ids=${batch.join(",")}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("SPOTIFY TRACKS BATCH ERROR:", response.status, data);
-        continue;
-      }
-
-      for (const track of data?.tracks || []) {
-        if (track?.id) officialTracksById.set(track.id, track);
-      }
-    }
-
-    // Same 403-from-Spotify's-official-API situation as the public
-    // playlist enrichment: fall back to scraping each missing track's own
-    // embed page, which isn't gated behind that restriction.
-    const missingIds = songs.filter((id) => !officialTracksById.has(id));
-
-    if (missingIds.length > 0) {
-      const scraped = await mapWithConcurrency(missingIds, 6, async (id) => {
-        try {
-          return await resolveTrackViaEmbed(id);
-        } catch (error) {
-          console.error(
-            `SPOTIFY TRACK EMBED SCRAPE FAILED: ${id}`,
-            error.message,
-          );
-          return null;
-        }
+      return res.status(429).json({
+        message: "Spotify is rate-limiting requests. Retrying shortly.",
+        rateLimited: true,
+        retryAfterSeconds: retryAfterSeconds || 5,
+        resolved: officialTracksById.size,
+        total: songs.length,
       });
-
-      for (const track of scraped) {
-        if (track?.id) officialTracksById.set(track.id, track);
-      }
     }
 
     const tracks = [];
@@ -316,9 +285,7 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
   } catch (error) {
     console.error("Failed to get playlist tracks:", error);
 
-    return res.status(500).json({
-      message: error.message,
-    });
+    return sendSpotifyError(res, error, "Failed to get playlist tracks");
   }
 });
 

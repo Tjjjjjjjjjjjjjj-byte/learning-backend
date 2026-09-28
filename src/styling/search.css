@@ -735,3 +735,14 @@
   color: #d7d7d7;
   line-height: 1.5;
 }
+
+
+/* Search-result play click waiting for Spotify's rate limit to clear. */
+.track-play.waiting {
+    opacity: 1;
+    cursor: default;
+}
+
+.track-play.waiting .material-symbols-outlined {
+    animation: playlist-spin 1s linear infinite;
+}

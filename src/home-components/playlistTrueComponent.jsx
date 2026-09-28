@@ -4,6 +4,7 @@ import Hero from "./playlistDetatlComponents/hero";
 import EditPlaylistDetails from "./playlistDetatlComponents/editdetails";
 import Features from "./playlistDetatlComponents/features";
 import "../styling/playlistModal.css";
+import { getRetryDelayMs } from "../utils/retryDelay.js";
 import Song from "./playlistDetatlComponents/song";
 
 async function readJsonResponse(response) {
@@ -102,6 +103,8 @@ function PlaylistModal({
   useEffect(() => {
     let cancelled = false;
     let retryTimeout = null;
+    let retryAttempt = 0;
+    const MAX_RETRY_ATTEMPTS = 8;
 
     async function getTracks() {
       if (cancelled) return;
@@ -126,6 +129,17 @@ function PlaylistModal({
 
         const data = await readJsonResponse(response);
 
+        // 429 = Spotify is rate-limiting the server. Wait as long as the
+        // server says (Retry-After) and try again, instead of showing an
+        // error or hammering it every 5s.
+        if (response.status === 429 && retryAttempt < MAX_RETRY_ATTEMPTS) {
+          if (cancelled) return;
+          const delay = getRetryDelayMs(data.retryAfterSeconds, retryAttempt);
+          retryAttempt += 1;
+          retryTimeout = setTimeout(getTracks, delay);
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(data.message || "Failed to get tracks");
         }
@@ -148,8 +162,10 @@ function PlaylistModal({
             nextTracks.length === 0 &&
             (status === "unavailable" || status === "metadata-only");
 
-          if (isTransient) {
-            retryTimeout = setTimeout(getTracks, 5000);
+          if (isTransient && retryAttempt < MAX_RETRY_ATTEMPTS) {
+            const delay = getRetryDelayMs(null, retryAttempt);
+            retryAttempt += 1;
+            retryTimeout = setTimeout(getTracks, delay);
             return;
           }
 

@@ -1,55 +1,51 @@
-import { resolveTrackViaEmbed } from "../providers/spotifyWeb.js";
+import {
+  guardedFetch,
+  getSpotifyToken,
+  invalidateSpotifyToken,
+  isOfficialTracksDisabled,
+  disableOfficialTracks,
+  SpotifyRateLimitError,
+} from "./spotifyHttp.js";
+import { resolveTrackCached, getCachedTrack } from "./spotifyTracks.js";
 
-export async function getSpotifyToken() {
-  const response = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization:
-        "Basic " +
-        Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString("base64"),
-    },
-    body: new URLSearchParams({ grant_type: "client_credentials" }),
-  });
+// Re-exported so existing imports (server.js etc.) keep working. The token
+// is now cached for its lifetime instead of being re-requested every call.
+export { getSpotifyToken };
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error_description || "failed to fetch token");
-  }
-
-  const data = await response.json();
-  return data.access_token;
-}
-
+/*
+ * Track metadata for the lyrics route. Order: shared cache -> official API
+ * (skipped while it's known to 403) -> embed scrape. Throws
+ * SpotifyRateLimitError (status 429 + retryAfterSeconds) when limited so the
+ * route can tell the client exactly how long to wait.
+ */
 export async function getSpotifyTrackForLyrics(trackId) {
-  try {
-    const token = await getSpotifyToken();
-    const response = await fetch(`https://api.spotify.com/v1/tracks/${encodeURIComponent(trackId)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await response.json().catch(() => null);
+  const cached = getCachedTrack(trackId);
+  if (cached) return cached;
 
-    if (response.ok && data?.id) return data;
+  if (!isOfficialTracksDisabled()) {
+    try {
+      const token = await getSpotifyToken();
+      const response = await guardedFetch(
+        "api",
+        `https://api.spotify.com/v1/tracks/${encodeURIComponent(trackId)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
 
-    if (response.status === 404) return null;
+      if (response.status === 401) invalidateSpotifyToken();
+      if (response.status === 403) disableOfficialTracks();
 
-    console.warn(
-      `[lyrics] official /v1/tracks lookup failed for ${trackId} (HTTP ${response.status}); falling back to embed scrape`,
-    );
-  } catch (error) {
-    console.warn(
-      `[lyrics] official /v1/tracks lookup threw for ${trackId}; falling back to embed scrape:`,
-      error.message,
-    );
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.id) return data;
+      if (response.status === 404) return null;
+    } catch (error) {
+      // Rate limit on the official API: the embed page is a different host,
+      // so still try it below.
+      if (!(error instanceof SpotifyRateLimitError)) {
+        console.warn(`[lyrics] official lookup threw for ${trackId}:`, error.message);
+      }
+    }
   }
 
-  // Same 403-from-Spotify's-official-API situation as the playlist track
-  // enrichment: fall back to scraping the track's own embed page, which
-  // isn't gated behind that restriction.
-  try {
-    return await resolveTrackViaEmbed(trackId);
-  } catch (error) {
-    if (error?.status === 404) return null;
-    throw error;
-  }
+  return resolveTrackCached(trackId);
 }

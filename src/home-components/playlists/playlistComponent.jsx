@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PlaylistCover from "./playlist-cover";
+import { getRetryDelayMs } from "../../utils/retryDelay.js";
 
 function Playlist({
   name,
@@ -51,7 +52,6 @@ function Playlist({
     setStarting(true);
 
     const MAX_RETRIES = 6;
-    const RETRY_DELAY_MS = 5000;
 
     try {
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
@@ -84,6 +84,15 @@ function Playlist({
           throw new Error("Server returned invalid JSON");
         }
 
+        // Rate limited: wait as long as the server (Spotify's Retry-After)
+        // says, then retry, rather than failing the play click.
+        if (response.status === 429 && attempt < MAX_RETRIES) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, getRetryDelayMs(data.retryAfterSeconds, attempt)),
+          );
+          continue;
+        }
+
         if (!response.ok) {
           throw new Error(data.message || `Failed to load playlist (HTTP ${response.status})`);
         }
@@ -99,7 +108,9 @@ function Playlist({
           (data.itemsStatus === "unavailable" || data.itemsStatus === "metadata-only") &&
           attempt < MAX_RETRIES
         ) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          await new Promise((resolve) =>
+            setTimeout(resolve, getRetryDelayMs(null, attempt)),
+          );
           continue;
         }
 

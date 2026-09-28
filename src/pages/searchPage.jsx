@@ -3,6 +3,8 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { getRetryDelayMs } from "../utils/retryDelay.js";
+import { waitForSpotifyReady } from "../utils/spotifyGate.js";
 import Nav from "../home-components/nav";
 import TrackCard from "../searchpagecomponents/Trackcard";
 import AlbumCard from "../searchpagecomponents/AlbumCard";
@@ -57,13 +59,20 @@ function SearchPage({ player }) {
     playNext,
   } = player;
 
-  function playFromSearch(track) {
+  async function playFromSearch(track) {
     if (
       current === track.id &&
       currentPlaylistId === SEARCH_QUEUE_ID
     ) {
       setIsPlaying(!isPlaying);
       return;
+    }
+
+    // Wait (with the spinner on the track card) while Spotify is rate
+    // limiting us and this track isn't cached; downloaded files skip it.
+    if (!track.downloaded) {
+      const ok = await waitForSpotifyReady(track.id);
+      if (!ok) return; // superseded by a newer click
     }
 
     const queue = results?.tracks?.items || [];
@@ -103,7 +112,6 @@ function SearchPage({ player }) {
     let retryTimeout = null;
     let retryCount = 0;
     const MAX_RETRIES = 6;
-    const RETRY_DELAY_MS = 5000;
 
     async function getResults() {
       if (cancelled) return;
@@ -129,6 +137,14 @@ function SearchPage({ player }) {
 
         const data = await readJsonResponse(response);
 
+        if (response.status === 429 && retryCount < MAX_RETRIES) {
+          if (cancelled) return;
+          const delay = getRetryDelayMs(data.retryAfterSeconds, retryCount);
+          retryCount += 1;
+          retryTimeout = setTimeout(getResults, delay);
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(data.message || `Search failed (HTTP ${response.status})`);
         }
@@ -153,8 +169,9 @@ function SearchPage({ player }) {
             retryCount < MAX_RETRIES;
 
           if (isTransient) {
+            const delay = getRetryDelayMs(null, retryCount);
             retryCount += 1;
-            retryTimeout = setTimeout(getResults, RETRY_DELAY_MS);
+            retryTimeout = setTimeout(getResults, delay);
             return;
           }
 

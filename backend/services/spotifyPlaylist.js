@@ -1,8 +1,6 @@
 import { resolveSpotifyPlaylistWithProviders } from "./musicProviders.js";
-import {
-  resolveTrackViaEmbed,
-  mapWithConcurrency,
-} from "../providers/spotifyWeb.js";
+import { guardedFetch } from "./spotifyHttp.js";
+import { getTracksByIds } from "./spotifyTracks.js";
 
 export function extractSpotifyPlaylistId(value) {
   if (typeof value !== "string") return null;
@@ -45,7 +43,7 @@ async function getOfficialSpotifyPlaylist(
     `https://api.spotify.com/v1/playlists/${encodeURIComponent(playlistId)}` +
     `?market=${encodeURIComponent(market)}`;
 
-  const response = await fetch(url, {
+  const response = await guardedFetch("api", url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -84,7 +82,7 @@ async function getOfficialSpotifyPlaylist(
   let nextUrl = data.items?.next || null;
 
   while (nextUrl) {
-    const itemsResponse = await fetch(nextUrl, {
+    const itemsResponse = await guardedFetch("api", nextUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -145,163 +143,31 @@ async function getOfficialSpotifyPlaylist(
 }
 
 /*
- * The playlist embed-page scraper never has per-track artwork available at
- * all -- only a single playlist-level cover comes back from that page.
- * Every track therefore falls back to the playlist cover unless we look
- * each one up individually. We try Spotify's official batched "Get Several
- * Tracks" endpoint first (cheap: up to 50 tracks per request), but this
- * app's credentials currently get a flat 403 from that endpoint regardless
- * of batching -- Spotify restricting official Web API access for apps
- * without Extended Quota approval, not something fixable here. Whatever
- * doesn't come back from the official endpoint falls back to scraping each
- * track's own embed page individually (resolveTrackViaEmbed), which isn't
- * gated behind that same restriction.
+ * The playlist embed page only has a playlist-level cover, so per-track
+ * artwork comes from a per-track lookup -- done through the shared,
+ * cached, rate-limit-aware resolver (spotifyTracks.js).
+ * `complete` is false when a 429 stopped us early; the caller must then
+ * NOT cache the result as final, so the next request fills in the rest
+ * (everything already resolved is served from the 24h track cache).
  */
-/*
- * Per-track cache, independent of which playlist a track was seen in and
- * much longer-lived than the playlist-level caches above -- a track's
- * artwork/link essentially never changes. Once a track has been resolved
- * once (through any playlist, on any route), every future playlist that
- * contains it reuses the cached data instead of hitting Spotify again.
- */
-const TRACK_DATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const trackDataCache = new Map();
+async function enrichTracksWithOfficialArtwork(tracks) {
+  const ids = tracks
+    .map((track) => track.spotifyTrackId)
+    .filter((id) => typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id));
 
-function getCachedTrackData(id) {
-  const cached = trackDataCache.get(id);
+  if (ids.length === 0) return { tracks, complete: true };
 
-  if (!cached) return null;
-
-  if (Date.now() - cached.createdAt > TRACK_DATA_CACHE_TTL_MS) {
-    trackDataCache.delete(id);
-    return null;
-  }
-
-  return cached.data;
-}
-
-function setCachedTrackData(id, data) {
-  trackDataCache.set(id, { createdAt: Date.now(), data });
-  return data;
-}
-
-async function enrichTracksWithOfficialArtwork(tracks, getSpotifyToken) {
-  const allIds = [
-    ...new Set(
-      tracks
-        .map((track) => track.spotifyTrackId)
-        .filter((id) => typeof id === "string" && /^[A-Za-z0-9]{22}$/.test(id)),
-    ),
-  ];
+  const { tracks: byId, missingIds, rateLimited } = await getTracksByIds(ids);
 
   console.log(
-    `[spotify-playlist] ${allIds.length} of ${tracks.length} tracks had a usable Spotify track ID`,
+    `[spotify-playlist] enriched ${byId.size}/${new Set(ids).size} tracks` +
+      (rateLimited ? " (rate limited, will finish on next request)" : ""),
   );
 
-  if (allIds.length === 0) return tracks;
-
-  const officialTracksById = new Map();
-
-  for (const id of allIds) {
-    const cached = getCachedTrackData(id);
-    if (cached) officialTracksById.set(id, cached);
-  }
-
-  const ids = allIds.filter((id) => !officialTracksById.has(id));
-
-  console.log(
-    `[spotify-playlist] ${allIds.length - ids.length} of ${allIds.length} track IDs already cached from a previous lookup`,
-  );
-
-  if (ids.length === 0) {
-    return applyOfficialTracks(tracks, officialTracksById);
-  }
-
-  let token = null;
-  try {
-    token = await getSpotifyToken();
-  } catch (error) {
-    console.error("[spotify-playlist] getSpotifyToken() failed; using embed artwork fallback:", error);
-  }
-
-  const market = process.env.SPOTIFY_MARKET || "PH";
-
-  if (token) {
-    for (let i = 0; i < ids.length; i += 50) {
-      const batch = ids.slice(i, i + 50);
-      const url =
-        `https://api.spotify.com/v1/tracks?ids=${batch.join(",")}` +
-        `&market=${encodeURIComponent(market)}`;
-
-      try {
-        const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          console.error(
-            `[spotify-playlist] GET /v1/tracks batch failed: HTTP ${response.status}`,
-          );
-          continue;
-        }
-
-        const data = await response.json();
-
-        for (const officialTrack of data?.tracks || []) {
-          if (officialTrack?.id) {
-            officialTracksById.set(officialTrack.id, officialTrack);
-            setCachedTrackData(officialTrack.id, officialTrack);
-          }
-        }
-      } catch (error) {
-        // Best-effort enrichment -- keep whatever artwork we already have
-        // for this batch and move on.
-        console.error("[spotify-playlist] GET /v1/tracks batch threw:", error);
-      }
-    }
-  }
-
-  console.log(
-    `[spotify-playlist] fetched official data for ${officialTracksById.size} of ${ids.length} track IDs`,
-  );
-
-  // Spotify's official API can be (and currently is, for this app) walled
-  // off with a flat 403 regardless of batching. Fall back to scraping each
-  // remaining track's embed page individually -- slower, but not gated
-  // behind the same app-level restriction, since it's the same technique
-  // that already works for the playlist itself.
-  const missingIds = ids.filter((id) => !officialTracksById.has(id));
-
-  if (missingIds.length > 0) {
-    console.log(
-      `[spotify-playlist] falling back to embed scrape for ${missingIds.length} track(s)`,
-    );
-
-    const scraped = await mapWithConcurrency(missingIds, 6, async (id) => {
-      try {
-        return await resolveTrackViaEmbed(id);
-      } catch (error) {
-        console.error(`[spotify-playlist] embed scrape failed for ${id}:`, error.message);
-        return null;
-      }
-    });
-
-    let scrapedCount = 0;
-
-    for (const track of scraped) {
-      if (track?.id) {
-        officialTracksById.set(track.id, track);
-        setCachedTrackData(track.id, track);
-        scrapedCount += 1;
-      }
-    }
-
-    console.log(
-      `[spotify-playlist] embed scrape recovered ${scrapedCount} of ${missingIds.length} track(s)`,
-    );
-  }
-
-  return applyOfficialTracks(tracks, officialTracksById);
+  return {
+    tracks: applyOfficialTracks(tracks, byId),
+    complete: !rateLimited || missingIds.length === 0,
+  };
 }
 
 function applyOfficialTracks(tracks, officialTracksById) {
@@ -383,8 +249,9 @@ export async function getSpotifyPublicPlaylist(
       tracks = cachedTracks;
     } else {
       try {
-        tracks = await enrichTracksWithOfficialArtwork(tracks, getSpotifyToken);
-        setCachedEnrichedTracks(enrichmentCacheKey, tracks);
+        const enriched = await enrichTracksWithOfficialArtwork(tracks);
+        tracks = enriched.tracks;
+        if (enriched.complete) setCachedEnrichedTracks(enrichmentCacheKey, tracks);
       } catch (error) {
         console.error("SPOTIFY TRACK ARTWORK ENRICHMENT ERROR:", error);
       }

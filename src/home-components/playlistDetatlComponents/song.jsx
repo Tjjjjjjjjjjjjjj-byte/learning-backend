@@ -1,6 +1,7 @@
 import { getImageUrl } from "../../utils/imageUrl";
 import { useState } from "react";
 import { formatRelativeDate } from "../../utils/dateUtils.js";
+import { useSpotifyGate, waitForSpotifyReady } from "../../utils/spotifyGate.js";
 
 function Song({
   track,
@@ -27,19 +28,33 @@ function Song({
   const [removing, setRemoving] = useState(false);
   const [deletingDownload, setDeletingDownload] = useState(false);
 
+  const gate = useSpotifyGate();
+
   if (!track) return null;
 
+  const isWaitingForSpotify = gate.pendingTrackId === track.id;
   const isCurrentTrack = current === track.id;
   const isDownloading = downloadingTrackId === track.id;
 
-  function togglePlay(e) {
+  async function togglePlay(e) {
     if (e) {
       e.stopPropagation();
     }
 
+    if (isWaitingForSpotify) return;
+
     if (isCurrentTrack) {
       setIsPlaying(!isPlaying);
       return;
+    }
+
+    // Downloaded files never touch Spotify. Everything else first checks
+    // that Spotify isn't rate limiting us (unless this track is cached);
+    // while it is, the play button shows the normal loading spinner and
+    // playback starts on its own once the cooldown clears.
+    if (!track.downloaded) {
+      const ok = await waitForSpotifyReady(track.id);
+      if (!ok) return; // superseded by a newer click
     }
 
     setCurrent(track.id);
@@ -219,7 +234,9 @@ function Song({
       <div
         className={`song-card${
           isCurrentTrack ? " current" : ""
-        }${isSelected ? " selected" : ""}`}
+        }${isSelected ? " selected" : ""}${
+          isWaitingForSpotify ? " waiting" : ""
+        }`}
         onClick={handleRowClick}
       >
         <div className="song-number">
@@ -286,8 +303,21 @@ function Song({
               type="button"
               onClick={togglePlay}
             >
-              <span className="material-symbols-outlined">
-                {isCurrentTrack && isPlaying ? "pause" : "play_arrow"}
+              <span
+                className={`material-symbols-outlined${
+                  isWaitingForSpotify ? " song-play-loading" : ""
+                }`}
+                title={
+                  isWaitingForSpotify
+                    ? `Spotify is rate limited - starting in ~${gate.retryAfterSeconds}s`
+                    : undefined
+                }
+              >
+                {isWaitingForSpotify
+                  ? "progress_activity"
+                  : isCurrentTrack && isPlaying
+                    ? "pause"
+                    : "play_arrow"}
               </span>
             </button>
           )}

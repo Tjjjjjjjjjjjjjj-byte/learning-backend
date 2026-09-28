@@ -1,4 +1,5 @@
 import { createSpotifyWebProvider } from "../providers/spotifyWeb.js";
+import { embedFetch, singleFlight, SpotifyRateLimitError } from "./spotifyHttp.js";
 
 const PROVIDER_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -26,7 +27,7 @@ function isTransientResult(result) {
   return !result.tracksAvailable && result.tracksReason !== "playlist-empty";
 }
 
-const spotifyWebProvider = createSpotifyWebProvider();
+const spotifyWebProvider = createSpotifyWebProvider({ fetchImpl: embedFetch });
 
 export function getMetadataProviders() {
   return [spotifyWebProvider];
@@ -84,7 +85,14 @@ function resultOrLastGood(cacheKey, result) {
   return lastGood ? { ...lastGood, fromCache: true, stale: true } : result;
 }
 
-export async function resolveSpotifyPlaylistWithProviders(
+export function resolveSpotifyPlaylistWithProviders(playlistId, options = {}) {
+  // /spotify/playlist/:id and /:id/tracks (and React StrictMode) fire the
+  // same lookup at once -- share one upstream request.
+  const key = `playlist:${String(playlistId || "").trim()}:${Boolean(options.skipCache)}`;
+  return singleFlight(key, () => resolvePlaylistUncoalesced(playlistId, options));
+}
+
+async function resolvePlaylistUncoalesced(
   playlistId,
   { officialApiResolver, skipCache = false } = {},
 ) {
@@ -145,6 +153,12 @@ export async function resolveSpotifyPlaylistWithProviders(
    * turn the official API's restricted playlist response into an empty
    * playlist.
    */
+  if (webError instanceof SpotifyRateLimitError) {
+    const stale = getLastGood(cacheKey);
+    if (stale) return { ...stale, fromCache: true, stale: true };
+    throw webError;
+  }
+
   if (typeof officialApiResolver === "function") {
     try {
       const official = await officialApiResolver(id);

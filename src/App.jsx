@@ -349,26 +349,91 @@ function App() {
       return;
     }
 
+    // Public Spotify playlists ("spotify:<id>") don't exist under
+    // /home/playlist/... (that route only knows the user's own playlists,
+    // hence the 404 "Playlist not found"). They're served by the Spotify
+    // playlist routes instead.
+    const isSpotifyPublic =
+      typeof currentPlaylistId === "string" &&
+      currentPlaylistId.startsWith("spotify:");
+
+    // The queue already contains the track being played (the playlist page
+    // loaded it) -- nothing to fetch, just record which playlist it is.
+    if (
+      isSpotifyPublic &&
+      tracksRef.current.some((track) => track?.id === currentRef.current)
+    ) {
+      setPlaybackPlaylistId(currentPlaylistId);
+      return;
+    }
+
     let cancelled = false;
+    let retryTimeout = null;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 6;
+
+    // Never throw away a working queue because a refetch failed.
+    function queueHasCurrentTrack() {
+      return tracksRef.current.some(
+        (track) => track?.id === currentRef.current,
+      );
+    }
 
     async function getPlaybackTracks() {
+      if (cancelled) return;
+
       try {
-        const response = await fetch(
-          `http://localhost:3000/home/playlist/${currentPlaylistId}/tracks`,
-          {
-            credentials: "include",
-          },
-        );
+        const endpoint = isSpotifyPublic
+          ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+              currentPlaylistId.slice("spotify:".length),
+            )}/tracks`
+          : `http://localhost:3000/home/playlist/${currentPlaylistId}/tracks`;
+
+        const response = await fetch(endpoint, {
+          credentials: "include",
+        });
 
         const data = await readJsonResponse(response);
+
+        // Spotify is rate limiting the server: wait as long as it says
+        // (Retry-After), then try again, instead of failing.
+        if (response.status === 429 && attempt < MAX_ATTEMPTS) {
+          const hinted = Number(data.retryAfterSeconds);
+          const delay =
+            (Number.isFinite(hinted) && hinted > 0
+              ? hinted
+              : Math.min(5 * 2 ** attempt, 60)) *
+              1000 +
+            Math.random() * 1000;
+
+          attempt += 1;
+          retryTimeout = setTimeout(getPlaybackTracks, delay);
+          return;
+        }
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to load playback tracks");
         }
 
-        if (!cancelled) {
-          const nextTracks = data.filter(Boolean);
+        const rawTracks = isSpotifyPublic ? data.tracks : data;
+        const nextTracks = Array.isArray(rawTracks)
+          ? rawTracks.filter(Boolean)
+          : [];
 
+        // Spotify sometimes answers 200 with no items while limited.
+        if (
+          isSpotifyPublic &&
+          nextTracks.length === 0 &&
+          data.itemsStatus !== "empty" &&
+          attempt < MAX_ATTEMPTS
+        ) {
+          const delay = Math.min(5 * 2 ** attempt, 60) * 1000 + Math.random() * 1000;
+          attempt += 1;
+          retryTimeout = setTimeout(getPlaybackTracks, delay);
+          return;
+        }
+
+        if (!cancelled) {
           originalQueueRef.current = nextTracks;
 
           setPlaybackTracks(
@@ -385,8 +450,14 @@ function App() {
       } catch (error) {
         if (!cancelled) {
           console.error("FAILED TO LOAD PLAYBACK TRACKS:", error);
-          setPlaybackTracks([]);
-          setPlaybackPlaylistId(null);
+
+          if (queueHasCurrentTrack()) {
+            // Keep playing from the queue we already have.
+            setPlaybackPlaylistId(currentPlaylistId);
+          } else {
+            setPlaybackTracks([]);
+            setPlaybackPlaylistId(null);
+          }
         }
       }
     }
@@ -395,6 +466,7 @@ function App() {
 
     return () => {
       cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
     };
   }, [
     currentPlaylistId,

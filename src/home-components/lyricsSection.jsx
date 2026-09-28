@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getRetryDelayMs } from "../utils/retryDelay.js";
 
 const lyricsCache = new Map();
 
@@ -36,7 +37,6 @@ function LyricsSection({ currentTrack, currentTime }) {
     let retryTimeout = null;
     let retryCount = 0;
     const MAX_RETRIES = 6;
-    const RETRY_DELAY_MS = 5000;
 
     setLines([]);
     setUnavailable(false);
@@ -46,8 +46,25 @@ function LyricsSection({ currentTrack, currentTime }) {
       if (controller.signal.aborted) return;
 
       try {
+        // Send what we already know about the track so the backend doesn't
+        // have to ask (rate-limited) Spotify for it again.
+        const params = new URLSearchParams();
+        const artistNames = (currentTrack.artists || [])
+          .map((artist) => artist?.name)
+          .filter(Boolean);
+
+        if (currentTrack.name) params.set("name", currentTrack.name);
+        if (artistNames.length) {
+          params.set("artist", artistNames.join(", "));
+          params.set("primaryArtist", artistNames[0]);
+        }
+        if (currentTrack.album?.name) params.set("album", currentTrack.album.name);
+        if (Number(currentTrack.duration_ms) > 0) {
+          params.set("durationMs", String(Math.round(Number(currentTrack.duration_ms))));
+        }
+
         const response = await fetch(
-          `http://localhost:3000/lyrics/${encodeURIComponent(trackId)}`,
+          `http://localhost:3000/lyrics/${encodeURIComponent(trackId)}?${params}`,
           {
             credentials: "include",
             signal: controller.signal,
@@ -68,8 +85,9 @@ function LyricsSection({ currentTrack, currentTime }) {
           response.status === 429 || data?.status === "retry";
 
         if (isRateLimited && retryCount < MAX_RETRIES) {
+          const delay = getRetryDelayMs(data?.retryAfterSeconds, retryCount);
           retryCount += 1;
-          retryTimeout = setTimeout(loadLyrics, RETRY_DELAY_MS);
+          retryTimeout = setTimeout(loadLyrics, delay);
           return;
         }
 
@@ -89,7 +107,9 @@ function LyricsSection({ currentTrack, currentTime }) {
           .filter((line) => Number.isFinite(line.startTimeMs) && line.words)
           .sort((a, b) => a.startTimeMs - b.startTimeMs);
 
-        lyricsCache.set(trackId, normalizedLines);
+        // Only remember definitive answers; a status (retry/unavailable)
+        // means "couldn't find out", so let a later attempt try again.
+        if (!data?.status) lyricsCache.set(trackId, normalizedLines);
 
         if (controller.signal.aborted) return;
 

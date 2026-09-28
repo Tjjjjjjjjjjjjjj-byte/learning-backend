@@ -5,6 +5,7 @@ import {
   useRef,
 } from "react";
 import Playlist from "../home-components/playlists/playlistComponent";
+import { useSpotifyGate } from "../utils/spotifyGate.js";
 
 function TrackCard({
   track,
@@ -15,6 +16,9 @@ function TrackCard({
   onAddToQueue,
   onPlayNext,
 }) {
+  const gate = useSpotifyGate();
+  const isWaitingForSpotify = gate.pendingTrackId === track.id;
+
   const [hidden, setHidden] =
     useState(true);
 
@@ -40,6 +44,8 @@ function TrackCard({
     if (e) {
       e.stopPropagation();
     }
+
+    if (isWaitingForSpotify) return;
 
     onPlay?.(track);
   }
@@ -274,27 +280,35 @@ function TrackCard({
 
         <button
           className={
-            isCurrentTrack
+            (isCurrentTrack
               ? "track-play playing"
-              : "track-play"
+              : "track-play") +
+            (isWaitingForSpotify
+              ? " waiting"
+              : "")
           }
           type="button"
           title={
-            isCurrentTrack &&
-            isPlaying
-              ? "Pause"
-              : "Play"
+            isWaitingForSpotify
+              ? `Spotify is rate limited - starting in ~${gate.retryAfterSeconds}s`
+              : isCurrentTrack &&
+                  isPlaying
+                ? "Pause"
+                : "Play"
           }
           onClick={(e) => {
             e.stopPropagation();
+            if (isWaitingForSpotify) return;
             onPlay?.(track);
           }}
         >
           <span className="material-symbols-outlined">
-            {isCurrentTrack &&
-            isPlaying
-              ? "pause"
-              : "play_arrow"}
+            {isWaitingForSpotify
+              ? "progress_activity"
+              : isCurrentTrack &&
+                  isPlaying
+                ? "pause"
+                : "play_arrow"}
           </span>
         </button>
       </div>

@@ -1,3 +1,9 @@
+import {
+  sendSpotifyError,
+  getSpotifyRateLimitStatus,
+} from "../services/spotifyHttp.js";
+import { getCachedTrack } from "../services/spotifyTracks.js";
+
 export function registerRoutes(app, context) {
   const {
     getSpotifyToken,
@@ -18,6 +24,35 @@ export function registerRoutes(app, context) {
 
     return true;
   }
+
+  /*
+   * GET /spotify/status?trackId=XXXX
+   *
+   * Cheap, no Spotify call: reads the in-memory cooldown state. The client
+   * asks this before starting a track so it can show the normal loading
+   * state (instead of silently doing nothing) while Spotify is limiting us.
+   *
+   * `ready` is true when we can play right now: either Spotify isn't
+   * limiting us, or everything needed for this track is already cached.
+   */
+  app.get("/spotify/status", (req, res) => {
+    const status = getSpotifyRateLimitStatus();
+    const trackId = String(req.query.trackId || "").trim();
+
+    const trackCached = trackId ? Boolean(getCachedTrack(trackId)) : false;
+    const playbackCached =
+      trackId && typeof context.readPlaybackCache === "function"
+        ? Boolean(context.readPlaybackCache(trackId))
+        : false;
+
+    return res.status(200).json({
+      ...status,
+      trackId: trackId || null,
+      trackCached,
+      playbackCached,
+      ready: !status.rateLimited || trackCached || playbackCached,
+    });
+  });
 
   /*
    * GET SAVED PUBLIC PLAYLISTS
@@ -68,18 +103,7 @@ export function registerRoutes(app, context) {
          * Preserve Spotify's actual HTTP status instead of
          * converting every failure into 404.
          */
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
-
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to load public Spotify playlist",
-        });
+        return sendSpotifyError(res, error, "Failed to load public Spotify playlist");
       }
     },
   );
@@ -141,18 +165,7 @@ export function registerRoutes(app, context) {
           error,
         );
 
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
-
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to load Spotify playlist tracks",
-        });
+        return sendSpotifyError(res, error, "Failed to load Spotify playlist tracks");
       }
     },
   );
@@ -241,18 +254,7 @@ export function registerRoutes(app, context) {
           error,
         );
 
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
-
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to save Spotify playlist",
-        });
+        return sendSpotifyError(res, error, "Failed to save Spotify playlist");
       }
     },
   );
@@ -333,18 +335,7 @@ export function registerRoutes(app, context) {
           error,
         );
 
-        const status =
-          Number.isInteger(error?.status) &&
-          error.status >= 400 &&
-          error.status <= 599
-            ? error.status
-            : 502;
-
-        return res.status(status).json({
-          message:
-            error?.message ||
-            "Failed to load Spotify playlist",
-        });
+        return sendSpotifyError(res, error, "Failed to load Spotify playlist");
       }
     },
   );

@@ -1347,3 +1347,19 @@
   color: #d65a5a;
   font-size: 14px;
 }
+
+
+/* Play click is waiting for Spotify's rate limit to clear -- same spinner
+   as the other loading states, kept visible even when not hovered. */
+.song-card.waiting .song-index {
+    opacity: 0;
+}
+
+.song-card.waiting .song-row-play {
+    opacity: 1;
+    cursor: default;
+}
+
+.song-play-loading {
+    animation: playlist-spin 1s linear infinite;
+}
