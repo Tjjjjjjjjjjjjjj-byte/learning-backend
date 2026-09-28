@@ -318,6 +318,27 @@ function extractNextData(html) {
   }
 }
 
+/*
+ * Deterministic, content-based fallback id for a track whose real Spotify
+ * ID couldn't be extracted. Deliberately NOT based on array index/position:
+ * an index-based id breaks the moment the same playlist gets re-fetched
+ * and the array order shifts even slightly (which happens often now, given
+ * how much retry logic exists around Spotify rate-limiting) -- the player
+ * matches tracks purely by id, so a shifting id makes the now-playing bar
+ * lose track of what's actually playing. Hashing the track's own content
+ * keeps the same track's fallback id stable across re-fetches instead.
+ */
+function hashTrackContent(...parts) {
+  const input = parts.filter(Boolean).join("|");
+  let hash = 0;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+  }
+
+  return `spotify-embed-${(hash >>> 0).toString(36)}`;
+}
+
 function normalizeEmbedTrack(raw, index, playlistArtwork = "") {
   if (!raw || typeof raw !== "object") return null;
 
@@ -433,8 +454,11 @@ function normalizeEmbedTrack(raw, index, playlistArtwork = "") {
     ) ||
     (id ? `https://open.spotify.com/track/${id}` : "");
 
+  const fallbackId =
+    id || hashTrackContent(title, artists.join(","), album, String(index));
+
   return {
-    id: id || `spotify-embed-${index}`,
+    id: id || fallbackId,
     name: title,
     title,
     artists: artists.map((name) => ({ name })),

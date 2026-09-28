@@ -50,72 +50,93 @@ function Playlist({
 
     setStarting(true);
 
+    const MAX_RETRIES = 6;
+    const RETRY_DELAY_MS = 5000;
+
     try {
-      const endpoint =
-        type === "spotify-public"
-          ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
-              spotifyPlaylistId,
-            )}/tracks`
-          : `http://localhost:3000/home/playlist/${id}/tracks`;
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+        const endpoint =
+          type === "spotify-public"
+            ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+                spotifyPlaylistId,
+              )}/tracks`
+            : `http://localhost:3000/home/playlist/${id}/tracks`;
 
-      const response = await fetch(endpoint, {
-        credentials: "include",
-      });
+        const response = await fetch(endpoint, {
+          credentials: "include",
+        });
 
-      const contentType = response.headers.get("content-type") || "";
-      const text = await response.text();
+        const contentType = response.headers.get("content-type") || "";
+        const text = await response.text();
 
-      if (!contentType.toLowerCase().includes("application/json")) {
-        throw new Error(
-          response.ok
-            ? "Server returned a non-JSON response"
-            : `Server returned HTTP ${response.status} instead of JSON`,
-        );
+        if (!contentType.toLowerCase().includes("application/json")) {
+          throw new Error(
+            response.ok
+              ? "Server returned a non-JSON response"
+              : `Server returned HTTP ${response.status} instead of JSON`,
+          );
+        }
+
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error("Server returned invalid JSON");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || `Failed to load playlist (HTTP ${response.status})`);
+        }
+
+        /*
+         * "unavailable"/"metadata-only" mean Spotify is currently
+         * rate-limiting or restricting the item lookup -- transient, not
+         * a real failure. Quietly retry a few times (still showing the
+         * loading spinner via `starting`) before giving up.
+         */
+        if (
+          type === "spotify-public" &&
+          (data.itemsStatus === "unavailable" || data.itemsStatus === "metadata-only") &&
+          attempt < MAX_RETRIES
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          continue;
+        }
+
+        if (
+          type === "spotify-public" &&
+          data.itemsStatus &&
+          data.itemsStatus !== "available"
+        ) {
+          throw new Error(
+            data.itemsMessage ||
+              (data.itemsStatus === "empty"
+                ? "This Spotify playlist is empty."
+                : "Spotify playlist songs are currently unavailable."),
+          );
+        }
+
+        const rawTracks = type === "spotify-public" ? data.tracks : data;
+        const playableTracks = Array.isArray(rawTracks)
+          ? rawTracks.filter(
+              (track) =>
+                track?.id &&
+                track?.name &&
+                track?.artists?.[0]?.name,
+            )
+          : [];
+
+        if (!playableTracks.length) return;
+
+        const firstTrack = playableTracks[0];
+
+        setPlaybackTracks(playableTracks);
+        setPlaybackPlaylistId?.(id);
+        setCurrent(firstTrack.id);
+        setCurrentPlaylistId(id);
+        setIsPlaying(true);
+        return;
       }
-
-      let data = {};
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        throw new Error("Server returned invalid JSON");
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || `Failed to load playlist (HTTP ${response.status})`);
-      }
-
-      if (
-        type === "spotify-public" &&
-        data.itemsStatus &&
-        data.itemsStatus !== "available"
-      ) {
-        throw new Error(
-          data.itemsMessage ||
-            (data.itemsStatus === "empty"
-              ? "This Spotify playlist is empty."
-              : "Spotify playlist songs are currently unavailable."),
-        );
-      }
-
-      const rawTracks = type === "spotify-public" ? data.tracks : data;
-      const playableTracks = Array.isArray(rawTracks)
-        ? rawTracks.filter(
-            (track) =>
-              track?.id &&
-              track?.name &&
-              track?.artists?.[0]?.name,
-          )
-        : [];
-
-      if (!playableTracks.length) return;
-
-      const firstTrack = playableTracks[0];
-
-      setPlaybackTracks(playableTracks);
-      setPlaybackPlaylistId?.(id);
-      setCurrent(firstTrack.id);
-      setCurrentPlaylistId(id);
-      setIsPlaying(true);
     } catch (error) {
       console.error("Failed to play playlist:", error);
     } finally {

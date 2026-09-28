@@ -99,9 +99,17 @@ function SearchPage({ player }) {
       return;
     }
 
+    let cancelled = false;
+    let retryTimeout = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 6;
+    const RETRY_DELAY_MS = 5000;
+
     async function getResults() {
+      if (cancelled) return;
+
       setLoading(true);
-    setError("");
+      setError("");
 
       try {
         const trimmedSearch = searchValue.trim();
@@ -125,28 +133,59 @@ function SearchPage({ player }) {
           throw new Error(data.message || `Search failed (HTTP ${response.status})`);
         }
 
+        if (cancelled) return;
+
         if (playlistMatch && data?.type === "spotify-public") {
           const playlistTracks = Array.isArray(data.tracks) ? data.tracks : [];
+
+          /*
+           * "unavailable"/"metadata-only" mean Spotify is currently
+           * rate-limiting or restricting the item lookup -- transient,
+           * not a genuinely empty playlist. Quietly retry a few times
+           * in the background, staying on the loading state, instead of
+           * showing "0 songs" for something that might resolve seconds
+           * later.
+           */
+          const status = data.itemsStatus || "unavailable";
+          const isTransient =
+            playlistTracks.length === 0 &&
+            (status === "unavailable" || status === "metadata-only") &&
+            retryCount < MAX_RETRIES;
+
+          if (isTransient) {
+            retryCount += 1;
+            retryTimeout = setTimeout(getResults, RETRY_DELAY_MS);
+            return;
+          }
+
           setResults({
             playlist: data,
             tracks: { items: playlistTracks },
             artists: { items: [] },
             albums: { items: [] },
           });
+          setLoading(false);
           return;
         }
 
         setResults(data);
+        setLoading(false);
       } catch (error) {
+        if (cancelled) return;
+
         console.error(error);
         setError(error.message || "Search failed");
         setResults(null);
-      } finally {
         setLoading(false);
       }
     }
 
     getResults();
+
+    return () => {
+      cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, [searchValue]);
 
   async function fetchPlaylists() {

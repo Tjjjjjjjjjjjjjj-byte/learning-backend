@@ -12,6 +12,16 @@ const PROVIDER_CACHE_TTL_MS = 5 * 60 * 1000;
 const TRANSIENT_CACHE_TTL_MS = 15 * 1000;
 const playlistCache = new Map();
 
+/*
+ * Separate from the short-lived cache above: the last result we ACTUALLY
+ * got real tracks for, per playlist. This never expires on its own (only
+ * gets overwritten by a newer good result). If a fresh attempt comes back
+ * degraded (rate-limited, 0 tracks) but we already know this playlist has
+ * tracks, we serve the last-good data instead of flashing "0 songs" for a
+ * playlist that was working moments ago.
+ */
+const lastGoodPlaylistCache = new Map();
+
 function isTransientResult(result) {
   return !result.tracksAvailable && result.tracksReason !== "playlist-empty";
 }
@@ -49,6 +59,31 @@ function setCached(key, value, ttl = PROVIDER_CACHE_TTL_MS) {
   return value;
 }
 
+function getLastGood(key) {
+  return lastGoodPlaylistCache.get(key) || null;
+}
+
+function setLastGood(key, value) {
+  lastGoodPlaylistCache.set(key, value);
+  return value;
+}
+
+/*
+ * Central place every code path below routes a freshly-computed result
+ * through: a real result updates (and is returned from) the last-good
+ * cache; a degraded/transient result instead falls back to whatever
+ * last-good data we already have for this playlist, if any.
+ */
+function resultOrLastGood(cacheKey, result) {
+  if (!isTransientResult(result)) {
+    return setLastGood(cacheKey, result);
+  }
+
+  const lastGood = getLastGood(cacheKey);
+
+  return lastGood ? { ...lastGood, fromCache: true, stale: true } : result;
+}
+
 export async function resolveSpotifyPlaylistWithProviders(
   playlistId,
   { officialApiResolver, skipCache = false } = {},
@@ -60,6 +95,11 @@ export async function resolveSpotifyPlaylistWithProviders(
   const cached = skipCache ? null : getCached(cacheKey);
 
   if (cached) {
+    if (isTransientResult(cached)) {
+      const lastGood = getLastGood(cacheKey);
+      if (lastGood) return { ...lastGood, fromCache: true, stale: true };
+    }
+
     return {
       ...cached,
       fromCache: true,
@@ -88,11 +128,13 @@ export async function resolveSpotifyPlaylistWithProviders(
             : "provider-returned-no-items",
     };
 
-    return setCached(
+    setCached(
       cacheKey,
       result,
       isTransientResult(result) ? TRANSIENT_CACHE_TTL_MS : PROVIDER_CACHE_TTL_MS,
     );
+
+    return resultOrLastGood(cacheKey, result);
   } catch (error) {
     webError = error;
   }
@@ -126,12 +168,17 @@ export async function resolveSpotifyPlaylistWithProviders(
         providerError: webError?.message || null,
       };
 
-      return setCached(
+      setCached(
         cacheKey,
         result,
         isTransientResult(result) ? TRANSIENT_CACHE_TTL_MS : PROVIDER_CACHE_TTL_MS,
       );
+
+      return resultOrLastGood(cacheKey, result);
     } catch (officialError) {
+      const lastGood = getLastGood(cacheKey);
+      if (lastGood) return { ...lastGood, fromCache: true, stale: true };
+
       const error = new Error(
         `Spotify playlist providers failed: ${
           webError?.message || "web provider failed"
@@ -152,6 +199,9 @@ export async function resolveSpotifyPlaylistWithProviders(
       throw error;
     }
   }
+
+  const lastGood = getLastGood(cacheKey);
+  if (lastGood) return { ...lastGood, fromCache: true, stale: true };
 
   throw webError || new Error("No Spotify playlist provider succeeded");
 }
