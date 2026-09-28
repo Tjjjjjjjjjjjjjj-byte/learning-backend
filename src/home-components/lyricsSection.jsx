@@ -64,9 +64,10 @@ function LyricsSection({ currentTrack, currentTime }) {
          * of surfacing "unavailable" for something that might resolve
          * a few seconds later.
          */
-        const isTransient = !response.ok || data?.status === "retry";
+        const isRateLimited =
+          response.status === 429 || data?.status === "retry";
 
-        if (isTransient && retryCount < MAX_RETRIES) {
+        if (isRateLimited && retryCount < MAX_RETRIES) {
           retryCount += 1;
           retryTimeout = setTimeout(loadLyrics, RETRY_DELAY_MS);
           return;

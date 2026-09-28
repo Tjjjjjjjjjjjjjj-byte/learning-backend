@@ -138,6 +138,22 @@ app.get("/lyrics/:trackId", async (req, res) => {
 
     return res.status(200).json(result);
   } catch (error) {
+    if (error?.status === 429) {
+      const retryAfterSeconds = Number(error.retryAfterSeconds);
+
+      console.warn(
+        `LYRICS: Spotify rate limit detected for ${trackId}; using existing retry/loading flow`,
+      );
+
+      return res.status(200).json({
+        lyrics: { lines: [] },
+        status: "retry",
+        ...(Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0
+          ? { retryAfterSeconds }
+          : {}),
+      });
+    }
+
     console.error(
       "LYRICS LOAD ERROR:",
       error instanceof Error ? error.message : error,

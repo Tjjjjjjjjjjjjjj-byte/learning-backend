@@ -1,19 +1,19 @@
 {
   "test": {
-    "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-    "title": "Palagi - TJxKZ Version",
-    "artist": "TJ Monterde, KZ Tandingan",
+    "trackId": "2Dhdu4YB3y5U3RiIcCJduv",
+    "title": "Tibok",
+    "artist": "Earl Agustin",
     "album": "",
-    "artwork": "https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e025099a62a37fbc03709cce6f9",
-    "duration": 237.641,
+    "artwork": "https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e02e0021775c459dd31cdc7115a",
+    "duration": 326.666,
     "source": "youtube-playback",
-    "sourceUrl": "https://rr7---sn-2aqu-n4xl.googlevideo.com/videoplayback?expire=1790610220&ei=zDa6atKcFp_NssUP3caqsAE&ip=2001%3A4452%3A36c%3Abc00%3Aa434%3A7b83%3A283b%3Aa4f5&id=o-AEzAzy-a1r0i0PkNTqxDE0-yO8GT7deBJGNZsGSOmPxH&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=258&met=1790588620%2C&mh=lE&mm=31%2C29&mn=sn-2aqu-n4xl%2Csn-2aqu-hoaly&ms=au%2Crdu&mv=m&mvi=7&pl=41&rms=au%2Cau&initcwndbps=1465750&bui=AWzQHwpQPDDW88sVxMlD8-yW0f5BY5OBoelcfIr_tNLI6hWFtH7HOBXxv8DMtbiKkeB02dKn9hkt1lgn&spc=I-rgIVtt9fSSZd1sx5HnX1sWief4U8squqexdHMziiCFauLW_35ENzYrUA&vprv=1&svpuc=1&mime=audio%2Fwebm&rqh=1&gir=yes&clen=3785849&dur=237.641&lmt=1735592793246352&mt=1790588245&fvip=2&keepalive=yes&fexp=51565116%2C52178456&c=VISIONOS&txp=5532434&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&sig=AE0s2JYwRQIgGMVR8AM04A8S5S3hGGUPD3UKCSmcRXnXfILyzNZkARoCIQDPTENTfNQg_E6KGKCTByG7ao9WgT4WdenfY8NPGfKEeg%3D%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRgIhAOz-K3cYfBvufm7a9aX7h_1e8LSUf1sG6nTsb852fLY5AiEA2XlwTbB0XDWVHpZgk-I3LV0Ai4a4a741dq6n3KexBUM%3D",
-    "position": 5.186899,
-    "updatedAt": "2026-09-28T10:10:11.130Z",
+    "sourceUrl": "http://localhost:3000/song/stream/2Dhdu4YB3y5U3RiIcCJduv",
+    "position": 0,
+    "updatedAt": "2026-09-28T11:08:25.266Z",
     "completed": false,
-    "playlistId": 8,
+    "playlistId": "spotify:0EEsBKKpRiEUXEKPsc4R3c",
     "playlistName": "",
-    "queueIndex": 0,
+    "queueIndex": 1,
     "history": [
       {
         "trackId": "0ARK753YaiJbpLUk7z5yIM",
@@ -154,6 +154,56 @@
         "liked": false,
         "title": "Palagi - TJxKZ Version",
         "artist": "TJ Monterde, KZ Tandingan"
+      },
+      {
+        "trackId": "1qbmS6ep2hbBRaEZFpn7BX",
+        "playedAt": "2026-09-28T10:28:16.088Z",
+        "position": 7.894492,
+        "duration": 183.741,
+        "completed": false,
+        "liked": false,
+        "title": "Man I Need",
+        "artist": "Olivia Dean"
+      },
+      {
+        "trackId": "5mEqD00bdFcsiVd0MfvEeF",
+        "playedAt": "2026-09-28T10:49:29.940Z",
+        "position": 0,
+        "duration": 131.666,
+        "completed": false,
+        "liked": false,
+        "title": "Dream lantern",
+        "artist": "RADWIMPS"
+      },
+      {
+        "trackId": "6CRX3ENpLq42r0iBSjOqr1",
+        "playedAt": "2026-09-28T10:49:41.789Z",
+        "position": 29.734988,
+        "duration": 339.181,
+        "completed": false,
+        "liked": false,
+        "title": "Grand Escape (feat. Toko Miura)",
+        "artist": "RADWIMPS, Toko Miura"
+      },
+      {
+        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
+        "playedAt": "2026-09-28T10:50:12.482Z",
+        "position": 53.198518,
+        "duration": 244.101,
+        "completed": false,
+        "liked": false,
+        "title": "Palagi - TJxKZ Version",
+        "artist": "TJ Monterde, KZ Tandingan"
+      },
+      {
+        "trackId": "2Dhdu4YB3y5U3RiIcCJduv",
+        "playedAt": "2026-09-28T11:08:24.145Z",
+        "position": 0,
+        "duration": 326.666,
+        "completed": false,
+        "liked": false,
+        "title": "Tibok",
+        "artist": "Earl Agustin"
       }
     ]
   }
