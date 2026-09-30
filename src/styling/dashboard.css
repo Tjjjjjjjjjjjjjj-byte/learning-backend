@@ -1,10 +1,54 @@
+/* Homepage card: same fixed-panel geometry as .playlist-detail in home.css
+   (below the nav, right of the sidebar, above the now-playing bar) so the
+   dashboard sits in a rounded card instead of flowing under the nav/sidebar. */
+.dashboard,
+.dashboard-loading {
+  position: fixed;
+  top: calc(var(--sidebar-top, 80px));
+  right: var(--page-margin, 8px);
+  bottom: var(--now-playing-reserved, 104px);
+  left: 88px;
+  box-sizing: border-box;
+  border-radius: var(--panel-radius, 10px);
+  background: var(--auth-surface, #121212);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 1;
+  transition: left 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-div.sidebar-expanded .dashboard,
+.home-div.sidebar-expanded .dashboard-loading {
+  left: 336px;
+}
+
 .dashboard {
   display: flex;
   flex-direction: column;
   gap: 40px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 32px 40px 64px;
+  padding: 32px 40px 48px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.dashboard > * {
+  flex-shrink: 0;
+}
+
+.dashboard::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 4px;
+}
+
+.dashboard::-webkit-scrollbar-thumb:hover {
+  background: #535353;
 }
 
 .dashboard-loading {
@@ -13,8 +57,6 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  width: 100%;
-  min-height: 60vh;
   color: #b3b3b3;
 }
 
@@ -73,12 +115,20 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
+  font-family: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.dashboard-tile:focus-visible {
+  outline: 2px solid var(--auth-accent, #1db954);
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
 .dashboard-tile-cover {
@@ -128,6 +178,32 @@
   font-size: 0.82rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .dashboard,
+  .dashboard-loading {
+    left: calc(72px + var(--page-margin, 8px) * 2);
+  }
+
+  .home-div.sidebar-expanded .dashboard,
+  .home-div.sidebar-expanded .dashboard-loading {
+    left: calc(320px + var(--page-margin, 8px) * 2);
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard,
+  .dashboard-loading {
+    top: calc(var(--nav-height) + 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard,
+  .dashboard-loading {
+    transition: none;
+  }
 }
 
 @media (max-width: 640px) {

@@ -1,0 +1,332 @@
+import { useState } from "react";
+import PlaylistCover from "./playlist-cover";
+import { getRetryDelayMs } from "../../utils/retryDelay.js";
+
+function Playlist({
+  name,
+  owner,
+  id,
+  minimized,
+  setMaximized,
+  maximized,
+  viewMode = "list",
+  cover,
+  status,
+  description,
+  type,
+  spotifyPlaylistId,
+  externalUrl,
+  originalOwner,
+  importedSpotifyPlaylistId,
+  selectedPlaylist,
+  setSelectedPlaylist,
+  nonSidebar = false,
+  onAddToPlaylist,
+  exists,
+  currentPlaylistId,
+  setCurrent,
+  setCurrentPlaylistId,
+  setPlaybackTracks,
+  setPlaybackPlaylistId,
+  isPlaying,
+  setIsPlaying,
+  onPlaylistDeleted,
+}) {
+  const [hovering, setHovering] = useState(false);
+  const [hidden, setHidden] = useState(true);
+  const [starting, setStarting] = useState(false);
+
+  const isThisPlaylistCurrent = currentPlaylistId === id;
+  const isThisPlaylistPlaying = isThisPlaylistCurrent && isPlaying;
+
+  async function togglePlay(e) {
+    e?.stopPropagation();
+
+    if (isThisPlaylistCurrent) {
+      setIsPlaying(!isPlaying);
+      return;
+    }
+
+    if (starting) return;
+
+    setStarting(true);
+
+    const MAX_RETRIES = 6;
+
+    try {
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+        const endpoint =
+          type === "spotify-public"
+            ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+                spotifyPlaylistId,
+              )}/tracks`
+            : `http://localhost:3000/home/playlist/${id}/tracks`;
+
+        const response = await fetch(endpoint, {
+          credentials: "include",
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        const text = await response.text();
+
+        if (!contentType.toLowerCase().includes("application/json")) {
+          throw new Error(
+            response.ok
+              ? "Server returned a non-JSON response"
+              : `Server returned HTTP ${response.status} instead of JSON`,
+          );
+        }
+
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error("Server returned invalid JSON");
+        }
+
+        // Rate limited: wait as long as the server (Spotify's Retry-After)
+        // says, then retry, rather than failing the play click.
+        if (response.status === 429 && attempt < MAX_RETRIES) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, getRetryDelayMs(data.retryAfterSeconds, attempt)),
+          );
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || `Failed to load playlist (HTTP ${response.status})`);
+        }
+
+        /*
+         * "unavailable"/"metadata-only" mean Spotify is currently
+         * rate-limiting or restricting the item lookup -- transient, not
+         * a real failure. Quietly retry a few times (still showing the
+         * loading spinner via `starting`) before giving up.
+         */
+        if (
+          type === "spotify-public" &&
+          (data.itemsStatus === "unavailable" || data.itemsStatus === "metadata-only") &&
+          attempt < MAX_RETRIES
+        ) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, getRetryDelayMs(null, attempt)),
+          );
+          continue;
+        }
+
+        if (
+          type === "spotify-public" &&
+          data.itemsStatus &&
+          data.itemsStatus !== "available"
+        ) {
+          throw new Error(
+            data.itemsMessage ||
+              (data.itemsStatus === "empty"
+                ? "This Spotify playlist is empty."
+                : "Spotify playlist songs are currently unavailable."),
+          );
+        }
+
+        const rawTracks = type === "spotify-public" ? data.tracks : data;
+        const playableTracks = Array.isArray(rawTracks)
+          ? rawTracks.filter(
+              (track) =>
+                track?.id &&
+                track?.name &&
+                track?.artists?.[0]?.name,
+            )
+          : [];
+
+        if (!playableTracks.length) return;
+
+        const firstTrack = playableTracks[0];
+
+        setPlaybackTracks(playableTracks);
+        setPlaybackPlaylistId?.(id);
+        setCurrent(firstTrack.id);
+        setCurrentPlaylistId(id);
+        setIsPlaying(true);
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to play playlist:", error);
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  const deletePlaylist = async (event) => {
+    if (event) event.stopPropagation();
+
+    try {
+      const endpoint =
+        type === "spotify-public"
+          ? `http://localhost:3000/spotify/playlist/${encodeURIComponent(
+              spotifyPlaylistId,
+            )}/save`
+          : `http://localhost:3000/home/playlist/${id}`;
+
+      const response = await fetch(endpoint, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete playlist");
+      }
+
+      if (selectedPlaylist?.id === id) {
+        setSelectedPlaylist(null);
+      }
+
+      onPlaylistDeleted?.(id);
+      setHidden(true);
+    } catch (error) {
+      console.error("Failed to delete playlist:", error);
+    }
+  };
+
+  function selectPlaylist() {
+    setSelectedPlaylist(
+      selectedPlaylist?.id === id
+        ? null
+        : {
+            name,
+            owner,
+            cover,
+            status,
+            description,
+            type,
+            originalOwner,
+            importedSpotifyPlaylistId,
+            spotifyPlaylistId,
+            externalUrl,
+            id,
+          },
+    );
+
+    if (setMaximized) {
+      setMaximized(false);
+    }
+  }
+
+  if (nonSidebar) {
+    return (
+      <div className="add-playlist-item">
+        <PlaylistCover cover={cover} />
+
+        <div className="add-playlist-info">
+          <p className="add-playlist-name">{name || "My Playlist"}</p>
+          <p className="add-playlist-owner">Playlist · {owner}</p>
+        </div>
+
+        <button
+          className={
+            exists
+              ? "add-playlist-button exists"
+              : "add-playlist-button"
+          }
+          type="button"
+          onClick={() => onAddToPlaylist(id)}
+        >
+          <span className="material-symbols-outlined">
+            {exists ? "add" : "add_circle"}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  if (!minimized || maximized) {
+    return (
+      <div
+        className={
+          (viewMode === "grid"
+            ? "playlistComponent-div grid-view"
+            : "playlistComponent-div") +
+          (isThisPlaylistCurrent ? " playing" : "")
+        }
+        onClick={selectPlaylist}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+      >
+        <button className="playlist" type="button">
+          <PlaylistCover
+            cover={cover}
+            isCurrent={isThisPlaylistCurrent}
+            isPlaying={isThisPlaylistPlaying || starting}
+            onTogglePlay={togglePlay}
+          />
+        </button>
+
+        <div className="playlist-info">
+          <p>{name || "My Playlist"} · {owner}</p>
+
+          {!minimized && hovering && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setHidden(false);
+              }}
+              aria-label="Delete playlist"
+            >
+              <span className="material-symbols-outlined">delete</span>
+            </button>
+          )}
+
+          {!hidden && (
+            <div
+              className="confirmDelete"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p>
+                {type === "spotify-public"
+                  ? "Remove this Spotify playlist from your library?"
+                  : "Are you sure? This action cannot be undone!"}
+              </p>
+
+              <button
+                className="del"
+                onClick={(e) => {
+                  setHidden(true);
+                  deletePlaylist(e);
+                }}
+              >
+                DELETE
+              </button>
+
+              <button
+                className="cancel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHidden(true);
+                }}
+              >
+                CANCEL
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      className="playlist"
+      type="button"
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      onClick={selectPlaylist}
+    >
+      <PlaylistCover
+        cover={cover}
+        isCurrent={isThisPlaylistCurrent}
+        isPlaying={isThisPlaylistPlaying || starting}
+        onTogglePlay={togglePlay}
+      />
+    </button>
+  );
+}
+
+export default Playlist;

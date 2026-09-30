@@ -63,6 +63,7 @@ import { registerRoutes as registerPlaybackRoutes } from "./routes/playback.js";
 import { registerRoutes as registerSpotifyPlaylistRoutes } from "./routes/spotifyPlaylists.js";
 import { registerRoutes as registerImageProxyRoutes } from "./routes/imageProxy.js";
 import { registerRoutes as registerDashboardRoutes } from "./routes/dashboard.js";
+import { registerRoutes as registerAccountRoutes } from "./routes/account.js";
 
 const app = express();
 const lyricsCache = createLyricsCache();
@@ -136,6 +137,7 @@ registerSearchRoutes(app, context);
 registerSpotifyPlaylistRoutes(app, context);
 registerImageProxyRoutes(app, context);
 registerDashboardRoutes(app, context);
+registerAccountRoutes(app, context);
 registerSongRoutes(app, context);
 registerLyricsRoutes(app, context);
 registerLegacyStreamRoutes(app, context);

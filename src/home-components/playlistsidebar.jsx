@@ -9,6 +9,54 @@ import "../styling/sidebar-animations.css";
 import "../styling/playlistModal.css";
 import LibrarySearch from "./playlists/librarySearch";
 
+const collator = new Intl.Collator(undefined, {
+  sensitivity: "base",
+  numeric: true,
+});
+
+function toEpoch(value) {
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : 0;
+}
+
+function addedAt(playlist) {
+  return toEpoch(playlist.createdAt || playlist.updatedAt);
+}
+
+function sortPlaylists(list, sort) {
+  const sorted = [...list];
+
+  const byName = (a, b) => collator.compare(a.name || "", b.name || "");
+  const byNewest = (a, b) => addedAt(b) - addedAt(a);
+
+  switch (sort) {
+    case "Alphabetical":
+      return sorted.sort(byName);
+
+    case "Creator":
+      return sorted.sort(
+        (a, b) => collator.compare(a.owner || "", b.owner || "") || byName(a, b),
+      );
+
+    case "Recently Added":
+      return sorted.sort(byNewest);
+
+    case "Recents":
+    default:
+      // Most recently played first; never-played ones follow, newest first.
+      return sorted.sort((a, b) => {
+        const aRanked = Number.isFinite(a.recentRank);
+        const bRanked = Number.isFinite(b.recentRank);
+
+        if (aRanked && bRanked) return a.recentRank - b.recentRank;
+        if (aRanked) return -1;
+        if (bRanked) return 1;
+
+        return byNewest(a, b);
+      });
+  }
+}
+
 function PlaylistSidebar({
   selectedPlaylist,
   setSelectedPlaylist,
@@ -30,8 +78,8 @@ function PlaylistSidebar({
   const [viewMode, setViewMode] = useState("list");
   const [query, setQuery] = useState("");
 
-  const fetchPlaylists = async () => {
-    setLoading(true);
+  const fetchPlaylists = async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
 
     try {
       const response = await fetch("http://localhost:3000/home", {
@@ -55,6 +103,15 @@ function PlaylistSidebar({
   useEffect(() => {
     fetchPlaylists();
   }, []);
+
+  // Playing a playlist changes "Recents"; pull the new order without
+  // flashing the loading state.
+  useEffect(() => {
+    if (!currentPlaylistId) return;
+
+    const timeout = setTimeout(() => fetchPlaylists({ quiet: true }), 1500);
+    return () => clearTimeout(timeout);
+  }, [currentPlaylistId]);
 
   useEffect(() => {
     if (!selectedPlaylist) return;
@@ -86,19 +143,12 @@ function PlaylistSidebar({
     );
   }
 
-  const searchedPlaylist = playlists.filter((playlist) =>
-    (playlist.name || "").toLowerCase().includes(query.toLowerCase()),
+  const searchedPlaylist = sortPlaylists(
+    playlists.filter((playlist) =>
+      (playlist.name || "").toLowerCase().includes(query.toLowerCase()),
+    ),
+    sort,
   );
-
-  if (sort === "Alphabetical") {
-    searchedPlaylist.sort((a, b) =>
-      (a.name || "").localeCompare(b.name || ""),
-    );
-  } else if (sort === "Creator") {
-    searchedPlaylist.sort((a, b) =>
-      (a.owner || "").localeCompare(b.owner || ""),
-    );
-  }
 
   const listClassName =
     !minimized && viewMode === "grid"
@@ -129,6 +179,7 @@ function PlaylistSidebar({
           setCurrent={setCurrent}
           setCurrentPlaylistId={setCurrentPlaylistId}
           setPlaybackTracks={setPlaybackTracks}
+          setPlaybackPlaylistId={setPlaybackPlaylistId}
           isPlaying={isPlaying}
           setIsPlaying={setIsPlaying}
           onPlaylistDeleted={handlePlaylistDeleted}

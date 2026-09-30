@@ -38,6 +38,7 @@ function LibrarySort({ minimized, maximized, viewMode, setViewMode, setSort, sor
               }
               onClick={() => {
                 setSort(option);
+                setOpen(false);
               }}
             >
               <span>{option}</span>

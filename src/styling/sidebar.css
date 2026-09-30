@@ -1121,3 +1121,124 @@
 .sidebar:not(.minimized) {
   bottom: var(--now-playing-reserved);
 }
+
+/* ============================================
+   Fixes: stacking, maximized bounds, grid "boxes", loading spinner
+   ============================================ */
+
+/* The homepage card (z-index 1) and playlist modal were painting over the
+   library panels because they had no z-index. Panels sit above the page
+   content but below the nav (100) and now-playing bar (1000). */
+.sidebar.minimized,
+.sidebar:not(.minimized),
+.maximized {
+  z-index: 50;
+}
+
+/* Maximized used to run behind the now-playing bar. */
+.maximized {
+  bottom: var(--now-playing-reserved, 104px);
+}
+
+/* ---- Grid view: real cards ----
+   No transform on these (the delete confirm is position:fixed inside the
+   card, and a transformed ancestor would trap it). */
+.sidebar:not(.minimized) .library-list.grid-mode,
+.maximized .library-list.grid-mode {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+.maximized .library-list.grid-mode {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.sidebar:not(.minimized) .library-list.grid-mode {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div.grid-view,
+.maximized .playlistComponent-div.grid-view {
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  width: auto;
+  min-width: 0;
+  box-sizing: border-box;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--auth-border);
+  border-radius: 10px;
+  background: var(--auth-tile-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div.grid-view:hover,
+.maximized .playlistComponent-div.grid-view:hover {
+  background: #2e2e2e;
+  border-color: var(--auth-border-hover, #444);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar:not(.minimized) .playlistComponent-div.grid-view.playing,
+.maximized .playlistComponent-div.grid-view.playing {
+  border-color: var(--auth-accent);
+}
+
+.sidebar:not(.minimized) .playlistComponent-div.grid-view .playlist,
+.maximized .playlistComponent-div.grid-view .playlist {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+}
+
+.playlistComponent-div.grid-view .playlist img,
+.playlistComponent-div.grid-view .playlist .playlist-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sidebar:not(.minimized) .playlistComponent-div.grid-view .playlist-info,
+.maximized .playlistComponent-div.grid-view .playlist-info {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow: hidden;
+  font-size: 0.85rem;
+}
+
+.playlistComponent-div.grid-view .playlist-info p {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ---- Play click waiting on Spotify's rate limit ----
+   Same spinner as the track rows (playlist-spin). Kept visible without hover. */
+.play-icon.loading {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  color: var(--auth-text) !important;
+  cursor: progress;
+}
+
+.play-icon.loading .material-symbols-outlined {
+  animation: playlist-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play-icon.loading .material-symbols-outlined {
+    animation-duration: 3s;
+  }
+}

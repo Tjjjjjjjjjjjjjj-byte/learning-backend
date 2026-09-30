@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PlaylistCover from "./playlist-cover";
 import { getRetryDelayMs } from "../../utils/retryDelay.js";
+import { useSpotifyGate, waitForSpotifyReady } from "../../utils/spotifyGate.js";
 
 function Playlist({
   name,
@@ -35,6 +36,13 @@ function Playlist({
   const [hovering, setHovering] = useState(false);
   const [hidden, setHidden] = useState(true);
   const [starting, setStarting] = useState(false);
+  const gate = useSpotifyGate();
+
+  const gateKey = `playlist:${id}`;
+  const waitingOnSpotify = gate.pendingTrackId === gateKey;
+  const loadingTitle = waitingOnSpotify
+    ? `Spotify is rate limited - starting in ~${gate.retryAfterSeconds}s`
+    : "Loading playlist...";
 
   const isThisPlaylistCurrent = currentPlaylistId === id;
   const isThisPlaylistPlaying = isThisPlaylistCurrent && isPlaying;
@@ -51,9 +59,16 @@ function Playlist({
 
     setStarting(true);
 
-    const MAX_RETRIES = 6;
+    const MAX_RETRIES = 12;
 
     try {
+      // Same wait the track rows use: if Spotify is cooling down, keep the
+      // spinner up and start on its own once the cooldown clears.
+      if (type === "spotify-public") {
+        const ok = await waitForSpotifyReady(gateKey);
+        if (!ok) return; // superseded by a newer click
+      }
+
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
         const endpoint =
           type === "spotify-public"
@@ -254,7 +269,9 @@ function Playlist({
           <PlaylistCover
             cover={cover}
             isCurrent={isThisPlaylistCurrent}
-            isPlaying={isThisPlaylistPlaying || starting}
+            isPlaying={isThisPlaylistPlaying}
+            isLoading={starting}
+            loadingTitle={loadingTitle}
             onTogglePlay={togglePlay}
           />
         </button>
@@ -322,7 +339,9 @@ function Playlist({
       <PlaylistCover
         cover={cover}
         isCurrent={isThisPlaylistCurrent}
-        isPlaying={isThisPlaylistPlaying || starting}
+        isPlaying={isThisPlaylistPlaying}
+        isLoading={starting}
+        loadingTitle={loadingTitle}
         onTogglePlay={togglePlay}
       />
     </button>

@@ -1,0 +1,234 @@
+/* ============================================
+   Sidebar animations, take two.
+   Each motion is chosen for what the element actually IS,
+   rather than reusing one fade+scale everywhere:
+
+   - The sidebar/maximized panel is the SAME <aside> DOM node
+     across all three states (React reuses it — same element
+     type, same tree position), so it gets a real `transition`
+     on width, not a keyframe pop-in. A panel resizing is
+     literally what "minimize/expand/maximize" means, so
+     animating width IS the fitting animation here.
+   - Dropdown menus get a quick "unfurl from the trigger" with
+     a slight overshoot — the character of a menu snapping open,
+     distinct from the panel's smooth expo-ease resize.
+   - Playlist rows slide in horizontally (tracks entering the
+     rail), not vertically — different axis than the menus/panel
+     so it doesn't read as "the same animation again".
+   - Minimized icon tiles pop from center (compact, tile-like)
+     rather than sliding, since they're not part of a list flow.
+
+   Import this AFTER sidebar.css.
+   ============================================ */
+
+/* ---- Panel resize (minimized <-> expanded <-> maximized) ----
+   Declared on all three state rules so the transition is armed
+   no matter which state is currently active when the class
+   changes. sidebar.css gives all three explicit pixel/calc
+   widths (not `auto`), which is what makes this interpolate
+   smoothly instead of snapping. */
+.sidebar.minimized,
+.sidebar:not(.minimized),
+.maximized {
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.26s ease, border-radius 0.26s ease, gap 0.22s ease;
+}
+
+/* Text that only exists once the panel isn't minimized (the
+   button's children are literally different elements in that
+   state, not a class toggle) fades in after the panel has
+   mostly finished widening, so it reads as "revealed by the
+   opening drawer" instead of popping in immediately. */
+@keyframes text-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sidebar:not(.minimized) .expandP,
+.sidebar:not(.minimized) .createText,
+.maximized .expandP,
+.maximized .createText {
+  animation: text-reveal 0.2s ease 0.16s both;
+}
+
+/* ---- Dropdown menus (sort/view, create-options) ----
+   A slight overshoot ("back" easing) gives it the snap of a
+   menu popping open, rather than a soft generic fade — distinct
+   in character from the panel's smooth expo-ease resize above. */
+@keyframes menu-unfurl {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-6px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02) translateY(0);
+  }
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sort-dropdown,
+.createOptions {
+  animation: menu-unfurl 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top right;
+}
+
+/* ---- Playlist rows (expanded rail / maximized list) ----
+   Horizontal slide, not vertical — tracks entering the rail,
+   deliberately a different axis than the menus/panel so it
+   doesn't read as the same motion recycled. Staggered so a
+   freshly-loaded or re-sorted library cascades in rather than
+   popping in as one block. Capped at the first 10 rows. */
+@keyframes row-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.library-list .playlistComponent-div {
+  animation: row-slide-in 0.22s ease-out both;
+}
+
+.library-list .playlistComponent-div:nth-child(1) { animation-delay: 0ms; }
+.library-list .playlistComponent-div:nth-child(2) { animation-delay: 20ms; }
+.library-list .playlistComponent-div:nth-child(3) { animation-delay: 40ms; }
+.library-list .playlistComponent-div:nth-child(4) { animation-delay: 60ms; }
+.library-list .playlistComponent-div:nth-child(5) { animation-delay: 80ms; }
+.library-list .playlistComponent-div:nth-child(6) { animation-delay: 100ms; }
+.library-list .playlistComponent-div:nth-child(7) { animation-delay: 120ms; }
+.library-list .playlistComponent-div:nth-child(8) { animation-delay: 140ms; }
+.library-list .playlistComponent-div:nth-child(9) { animation-delay: 160ms; }
+.library-list .playlistComponent-div:nth-child(10) { animation-delay: 180ms; }
+
+/* Grid-view cards slide up instead of sideways — they're laid
+   out as a wrapping row of cards, not a vertical list, so rows
+   entering "from the left" wouldn't make sense for them. */
+.library-list.grid-mode .playlistComponent-div {
+  animation-name: row-rise-in;
+}
+
+@keyframes row-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Minimized rail icon tiles ----
+   Compact tiles, not list rows — a center pop-out fits a small
+   square icon better than a directional slide. */
+@keyframes tile-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sidebar.minimized .library-list .playlist {
+  animation: tile-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- List <-> grid view switch ----
+   Smooths the size change of the thumbnail/card itself; the
+   flex-direction flip still can't transition (hard CSS limit),
+   but the width/height change no longer snaps on its own. */
+.playlistComponent-div,
+.playlistComponent-div.grid-view {
+  transition: background 0.15s ease, padding 0.2s ease, gap 0.2s ease,
+    width 0.22s ease;
+}
+
+.playlistComponent-div .playlist {
+  transition: background 0.15s ease, transform 0.1s ease, width 0.22s ease,
+    height 0.22s ease;
+}
+
+/* ---- Expanded-rail search reveal ----
+   A search box's natural motion is growing sideways to receive
+   text, not fading/popping. */
+@keyframes search-grow-in {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 100px;
+    opacity: 1;
+  }
+}
+
+.library-search.open .LibrarySearch {
+  animation: search-grow-in 0.18s ease;
+}
+
+/* ---- Sort option checkmark ----
+   A quick "tick being drawn" — rotate out of a check-like angle
+   rather than a plain scale pop, so it reads as confirming a
+   choice rather than just appearing. */
+@keyframes check-draw {
+  from {
+    opacity: 0;
+    transform: rotate(-40deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.sort-option .material-symbols-outlined {
+  animation: check-draw 0.18s ease-out;
+}
+
+/* ---- Empty/loading message ---- */
+.library-empty {
+  animation: text-reveal 0.2s ease;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar.minimized,
+  .sidebar:not(.minimized),
+  .maximized {
+    transition: none;
+  }
+
+  .sidebar:not(.minimized) .expandP,
+  .sidebar:not(.minimized) .createText,
+  .maximized .expandP,
+  .maximized .createText,
+  .sort-dropdown,
+  .createOptions,
+  .library-list .playlistComponent-div,
+  .sidebar.minimized .library-list .playlist,
+  .library-search.open .LibrarySearch,
+  .sort-option .material-symbols-outlined,
+  .library-empty {
+    animation: none;
+  }
+
+  .playlistComponent-div,
+  .playlistComponent-div.grid-view,
+  .playlistComponent-div .playlist {
+    transition: none;
+  }
+}

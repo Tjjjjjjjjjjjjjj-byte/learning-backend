@@ -13,6 +13,7 @@ export function registerRoutes(app, context) {
     getUserDownloads,
     getSpotifyToken,
     recordRecentPlaylist,
+    getRecentPlaylistIds,
   } = context;
 
 app.get("/home", (req, res) => {
@@ -34,8 +35,20 @@ app.get("/home", (req, res) => {
     ? savedPublicPlaylists[username]
     : [];
 
+  // Position in the user's recently-played list (0 = most recent) so the
+  // library can sort by "Recents".
+  const recentIds =
+    typeof getRecentPlaylistIds === "function"
+      ? getRecentPlaylistIds(username, 30).map(String)
+      : [];
+
+  const withRank = (playlist) => {
+    const index = recentIds.indexOf(String(playlist.id));
+    return { ...playlist, recentRank: index === -1 ? null : index };
+  };
+
   return res.status(200).json({
-    playlists: [...userPlaylists, ...publicPlaylists],
+    playlists: [...userPlaylists, ...publicPlaylists].map(withRank),
   });
 });
 

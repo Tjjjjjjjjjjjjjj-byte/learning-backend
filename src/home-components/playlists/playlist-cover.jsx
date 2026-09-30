@@ -1,6 +1,23 @@
 import { getImageUrl } from "../../utils/imageUrl";
 
-function PlaylistCover({ cover, isCurrent, isPlaying, onTogglePlay }) {
+function PlaylistCover({
+  cover,
+  isCurrent,
+  isPlaying,
+  isLoading = false,
+  loadingTitle,
+  onTogglePlay,
+}) {
+  const icon = isLoading
+    ? "progress_activity"
+    : isPlaying
+      ? "pause"
+      : "play_arrow";
+
+  const classes = ["play-icon"];
+  if (isCurrent) classes.push("active");
+  if (isLoading) classes.push("loading");
+
   return (
     <>
       {getImageUrl(cover) ? (
@@ -10,15 +27,14 @@ function PlaylistCover({ cover, isCurrent, isPlaying, onTogglePlay }) {
       )}
 
       <span
-        className={isCurrent ? "play-icon active" : "play-icon"}
+        className={classes.join(" ")}
+        title={isLoading ? loadingTitle : undefined}
         onClick={(e) => {
           e.stopPropagation();
           onTogglePlay?.(e);
         }}
       >
-        <span className="material-symbols-outlined">
-          {isPlaying ? "pause" : "play_arrow"}
-        </span>
+        <span className="material-symbols-outlined">{icon}</span>
       </span>
     </>
   );

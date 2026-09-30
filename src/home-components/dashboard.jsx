@@ -158,6 +158,11 @@ function Dashboard({ setSelectedPlaylist }) {
     hasAnyPlaylists,
   } = data;
 
+  // With few playlists, "newest" and "oldest" overlap and the same
+  // playlist showed up twice in the row.
+  const newestIds = new Set(newest.map((playlist) => playlist.id));
+  const oldestOnly = oldest.filter((playlist) => !newestIds.has(playlist.id));
+
   return (
     <div className="dashboard">
       {recents.length > 0 && (
@@ -177,7 +182,7 @@ function Dashboard({ setSelectedPlaylist }) {
         </DashboardRow>
       )}
 
-      {(oldest.length > 0 || newest.length > 0) && (
+      {(oldestOnly.length > 0 || newest.length > 0) && (
         <DashboardRow title="From when you started">
           {newest.map((playlist) => (
             <PlaylistTile
@@ -188,7 +193,7 @@ function Dashboard({ setSelectedPlaylist }) {
             />
           ))}
 
-          {oldest.map((playlist) => (
+          {oldestOnly.map((playlist) => (
             <PlaylistTile
               key={`oldest-${playlist.id}`}
               playlist={playlist}
