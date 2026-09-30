@@ -1,6 +1,16 @@
 // API routes for this feature area.
 export function registerRoutes(app, context) {
-  const { fs, path, validator, crypto, PROJECT_ROOT, readPasswordResets, savePasswordResets } = context;
+  const {
+    validator,
+    crypto,
+    readPasswordResets,
+    savePasswordResets,
+    findUserByIdentifierOrEmail,
+    findUserByIdentifier,
+    findUserByEmail,
+    createUser,
+    updateUserPassword,
+  } = context;
 
 app.get("/me", (req, res) => {
   if (req.session.user) {
@@ -29,12 +39,7 @@ app.post("/login", (req, res) => {
     });
   }
 
-  const usersData = fs.readFileSync(path.join(PROJECT_ROOT, "users.json"), "utf-8");
-  const users = JSON.parse(usersData);
-
-  const foundUser = users.find(
-    (u) => u.identifier === identifier.trim() || u.email === identifier.trim(),
-  );
+  const foundUser = findUserByIdentifierOrEmail(identifier.trim());
 
   if (!foundUser || foundUser.password !== password) {
     return res.status(401).json({
@@ -70,9 +75,6 @@ app.post("/signUpPage", (req, res) => {
     });
   }
 
-  const usersData = fs.readFileSync(path.join(PROJECT_ROOT, "users.json"), "utf-8");
-  const users = JSON.parse(usersData);
-
   if (password !== confirmPassword) {
     return res.status(400).json({
       message: "Passwords do not match",
@@ -86,9 +88,7 @@ app.post("/signUpPage", (req, res) => {
     });
   }
 
-  const userExists = users.some(
-    (u) => u.identifier === username || u.email === email,
-  );
+  const userExists = findUserByIdentifier(username) || findUserByEmail(email);
 
   if (userExists) {
     return res.status(409).json({
@@ -102,9 +102,17 @@ app.post("/signUpPage", (req, res) => {
     password,
   };
 
-  users.push(newUser);
-
-  fs.writeFileSync(path.join(PROJECT_ROOT, "users.json"), JSON.stringify(users, null, 2), "utf-8");
+  try {
+    createUser(newUser);
+  } catch (error) {
+    // UNIQUE constraint: someone registered the same name/email between the check and the insert.
+    if (String(error?.message).includes("UNIQUE")) {
+      return res.status(409).json({
+        message: "Username or Email already taken",
+      });
+    }
+    throw error;
+  }
 
   return res.status(200).json({
     message: "Registration successful",
@@ -120,11 +128,7 @@ app.post("/forgotPassword", (req, res) => {
     });
   }
 
-  const usersData = fs.readFileSync(path.join(PROJECT_ROOT, "users.json"), "utf-8");
-
-  const users = JSON.parse(usersData);
-
-  const user = users.find((candidate) => candidate.email === email);
+  const user = findUserByEmail(email);
 
   if (!user) {
     return res.status(200).json({
@@ -175,13 +179,7 @@ app.post("/resetPassword", (req, res) => {
     });
   }
 
-  const usersData = fs.readFileSync(path.join(PROJECT_ROOT, "users.json"), "utf-8");
-
-  const users = JSON.parse(usersData);
-
-  const user = users.find(
-    (candidate) => candidate.identifier === reset.username,
-  );
+  const user = findUserByIdentifier(reset.username);
 
   if (!user) {
     delete resets[token];
@@ -193,9 +191,7 @@ app.post("/resetPassword", (req, res) => {
     });
   }
 
-  user.password = password;
-
-  fs.writeFileSync(path.join(PROJECT_ROOT, "users.json"), JSON.stringify(users, null, 2), "utf-8");
+  updateUserPassword(user.identifier, password);
 
   delete resets[token];
 

@@ -2,6 +2,7 @@ import { getImageUrl } from "../../utils/imageUrl";
 import { useState } from "react";
 import { formatRelativeDate } from "../../utils/dateUtils.js";
 import { useSpotifyGate, waitForSpotifyReady } from "../../utils/spotifyGate.js";
+import { saveTracksToDevice } from "../../services/browserDownload.js";
 
 function Song({
   track,
@@ -128,6 +129,10 @@ function Song({
               }
             : song,
         ),
+      );
+
+      saveTracksToDevice([track.id]).catch((error) =>
+        console.error("SAVE TO DEVICE ERROR:", error),
       );
     } catch (error) {
       console.error("DOWNLOAD ERROR:", error);

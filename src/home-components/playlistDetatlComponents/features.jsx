@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { saveTracksToDevice } from "../../services/browserDownload.js";
 
 function Features({
   setEditDetailsOpen,
@@ -132,6 +133,7 @@ function Features({
     );
 
     let failures = 0;
+    const downloadedIds = [];
 
     for (
       let index = 0;
@@ -191,6 +193,8 @@ function Features({
           );
         }
 
+        downloadedIds.push(song.id);
+
         setTrack(
           (prev) =>
             prev.map(
@@ -228,6 +232,13 @@ function Features({
           error,
         );
       }
+    }
+
+    // One zip when more than 5 songs, otherwise one mp3 each.
+    try {
+      await saveTracksToDevice(downloadedIds);
+    } catch (error) {
+      console.error("SAVE TO DEVICE ERROR:", error);
     }
 
     setDownloadingTrackId(

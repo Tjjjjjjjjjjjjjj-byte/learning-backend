@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# SQLite database (contains users and passwords)
+data/
+*.db
+*.db-wal
+*.db-shm

@@ -6,6 +6,7 @@ import {
 } from "react";
 import Playlist from "../home-components/playlists/playlistComponent";
 import { useSpotifyGate } from "../utils/spotifyGate.js";
+import { saveTracksToDevice } from "../services/browserDownload.js";
 
 function TrackCard({
   track,
@@ -98,6 +99,10 @@ function TrackCard({
       }
 
       setDownloaded(true);
+
+      saveTracksToDevice([track.id]).catch((saveError) =>
+        console.error("SAVE TO DEVICE ERROR:", saveError),
+      );
     } catch (error) {
       console.error(
         "DOWNLOAD ERROR:",

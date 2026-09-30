@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node --env-file=.env backend/server.js"
+    "start": "node --disable-warning=ExperimentalWarning --env-file=.env backend/server.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -45,5 +45,8 @@
   "bugs": {
     "url": "https://github.com/Tjjjjjjjjjjjjjj-byte/learning-backend/issues"
   },
-  "homepage": "https://github.com/Tjjjjjjjjjjjjjj-byte/learning-backend#readme"
+  "homepage": "https://github.com/Tjjjjjjjjjjjjjj-byte/learning-backend#readme",
+  "engines": {
+    "node": ">=22.13.0"
+  }
 }

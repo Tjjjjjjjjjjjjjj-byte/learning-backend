@@ -5,9 +5,9 @@ export function registerRoutes(app, context) {
     path,
     PROJECT_ROOT,
     PLAYBACK_CACHE_DIR,
-    PLAYBACK_STATE_FILE,
-    DOWNLOADS_FILE,
     lyricsCache,
+    findUserByIdentifier,
+    deleteUserAccount,
   } = context;
 
   function requireUser(req, res) {
@@ -19,19 +19,6 @@ export function registerRoutes(app, context) {
     }
 
     return username;
-  }
-
-  function readJson(file, fallback) {
-    try {
-      if (!fs.existsSync(file)) return fallback;
-      return JSON.parse(fs.readFileSync(file, "utf-8"));
-    } catch {
-      return fallback;
-    }
-  }
-
-  function writeJson(file, data) {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
   }
 
   /*
@@ -79,9 +66,7 @@ export function registerRoutes(app, context) {
     if (!username) return;
 
     const password = String(req.body?.password ?? "");
-    const usersFile = path.join(PROJECT_ROOT, "users.json");
-    const users = readJson(usersFile, []);
-    const user = users.find((candidate) => candidate.identifier === username);
+    const user = findUserByIdentifier(username);
 
     if (!user) {
       return res.status(404).json({ message: "Account not found" });
@@ -92,65 +77,11 @@ export function registerRoutes(app, context) {
     }
 
     try {
-      // 1. user record
-      writeJson(
-        usersFile,
-        users.filter((candidate) => candidate.identifier !== username),
-      );
+      // Every table is cleaned in one transaction: all of it or none of it.
+      // Returns the mp3 entries no other account still uses.
+      const orphanedDownloads = deleteUserAccount(username);
 
-      // 2. playlists
-      const playlistsFile = path.join(PROJECT_ROOT, "playlists.json");
-      const playlists = readJson(playlistsFile, []);
-      writeJson(
-        playlistsFile,
-        playlists.filter((playlist) => playlist.owner !== username),
-      );
-
-      // 3. saved public Spotify playlists
-      const publicFile = path.join(PROJECT_ROOT, "spotifyPublicPlaylists.json");
-      const publicPlaylists = readJson(publicFile, {});
-      delete publicPlaylists[username];
-      writeJson(publicFile, publicPlaylists);
-
-      // 4. playback state + history
-      const playbackStates = readJson(PLAYBACK_STATE_FILE, {});
-      delete playbackStates[username];
-      writeJson(PLAYBACK_STATE_FILE, playbackStates);
-
-      // 5. recently played
-      const recentFile = path.join(PROJECT_ROOT, "recentlyPlayed.json");
-      if (fs.existsSync(recentFile)) {
-        const recents = readJson(recentFile, {});
-        delete recents[username];
-        writeJson(recentFile, recents);
-      }
-
-      // 6. pending password-reset tokens
-      const resetsFile = path.join(PROJECT_ROOT, "passwordResets.json");
-      if (fs.existsSync(resetsFile)) {
-        const resets = readJson(resetsFile, {});
-        for (const [token, entry] of Object.entries(resets)) {
-          if (entry?.username === username) delete resets[token];
-        }
-        writeJson(resetsFile, resets);
-      }
-
-      // 7. downloads: drop this user's entries, delete a file only if no
-      //    other account still references it
-      const downloads = readJson(DOWNLOADS_FILE, {});
-      const mine = Array.isArray(downloads[username]) ? downloads[username] : [];
-      delete downloads[username];
-
-      const stillUsed = new Set(
-        Object.values(downloads)
-          .flat()
-          .map((entry) => entry?.file)
-          .filter(Boolean),
-      );
-
-      for (const entry of mine) {
-        if (!entry?.file || stillUsed.has(entry.file)) continue;
-
+      for (const entry of orphanedDownloads) {
         try {
           const filePath = path.isAbsolute(entry.file)
             ? entry.file
@@ -160,8 +91,6 @@ export function registerRoutes(app, context) {
           // best effort
         }
       }
-
-      writeJson(DOWNLOADS_FILE, downloads);
     } catch (error) {
       console.error("DELETE ACCOUNT ERROR:", error);
       return res.status(500).json({ message: "Failed to delete account" });

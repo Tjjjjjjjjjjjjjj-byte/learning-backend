@@ -1,8 +1,9 @@
 // API routes for this feature area.
 import { spawn } from "child_process";
+import { prepareZip, writePreparedZip } from "../services/zip.js";
 
 export function registerRoutes(app, context) {
-  const { fs, path, PORT, loadPlaylists, savePlaylists, DOWNLOAD_DIR, getUserDownloads, findGlobalDownload, readDownloads, saveDownloads, sanitizeFilename, findYoutubeVideo, getOrCreatePlaybackUrl, readPlaybackCache, runWithConcurrency, PLAYBACK_PRELOAD_CONCURRENCY } = context;
+  const { fs, path, crypto, PORT, loadPlaylists, savePlaylists, DOWNLOAD_DIR, getUserDownloads, findGlobalDownload, readDownloads, saveDownloads, sanitizeFilename, findYoutubeVideo, getOrCreatePlaybackUrl, readPlaybackCache, runWithConcurrency, PLAYBACK_PRELOAD_CONCURRENCY } = context;
 
 app.get("/downloads", (req, res) => {
   if (!req.session.user) {
@@ -364,6 +365,110 @@ app.get("/song/file/:trackId", (req, res) => {
   }
 
   return res.sendFile(resolvedFile);
+});
+
+/*
+ * "Save to device": send an already-downloaded mp3 to the browser as a normal
+ * file download (Content-Disposition: attachment), like any other Chrome download.
+ */
+function resolveUserDownloadFile(username, trackId) {
+  const download = getUserDownloads(username).find((item) => item.trackId === trackId);
+  if (!download?.file) return null;
+
+  const resolvedFile = path.resolve(download.file);
+  const resolvedDownloadDir = path.resolve(DOWNLOAD_DIR);
+  if (!resolvedFile.startsWith(`${resolvedDownloadDir}${path.sep}`)) return null;
+  if (!fs.existsSync(resolvedFile)) return null;
+
+  return {
+    file: resolvedFile,
+    filename: `${sanitizeFilename(download.artist || "Unknown")} - ${sanitizeFilename(download.name || download.trackId)}.mp3`,
+  };
+}
+
+app.get("/song/save/:trackId", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Must be logged in" });
+  }
+
+  const found = resolveUserDownloadFile(req.session.user.username, req.params.trackId);
+
+  if (!found) {
+    return res.status(404).json({ message: "Downloaded song not found" });
+  }
+
+  return res.download(found.file, found.filename);
+});
+
+/*
+ * Zip download for more than a few songs. Two steps so a big playlist doesn't
+ * have to fit in a URL: POST the track ids, get a one-time token, then the
+ * browser navigates to GET /song/save-zip/:token.
+ */
+const zipTickets = new Map();
+const ZIP_TICKET_TTL_MS = 2 * 60 * 1000;
+const MAX_ZIP_TRACKS = 500;
+
+app.post("/song/save-zip", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Must be logged in" });
+  }
+
+  const username = req.session.user.username;
+  const ids = Array.isArray(req.body?.trackIds) ? req.body.trackIds : null;
+
+  if (!ids || ids.length === 0 || ids.length > MAX_ZIP_TRACKS || !ids.every((id) => typeof id === "string" && id)) {
+    return res.status(400).json({ message: `trackIds must be 1-${MAX_ZIP_TRACKS} track ids` });
+  }
+
+  const entries = [];
+  for (const trackId of new Set(ids)) {
+    const found = resolveUserDownloadFile(username, trackId);
+    if (found) entries.push({ file: found.file, name: found.filename });
+  }
+
+  if (entries.length === 0) {
+    return res.status(404).json({ message: "None of those songs are downloaded" });
+  }
+
+  for (const [token, ticket] of zipTickets) {
+    if (ticket.expiresAt <= Date.now()) zipTickets.delete(token);
+  }
+
+  const token = crypto.randomBytes(24).toString("hex");
+  zipTickets.set(token, { username, entries, expiresAt: Date.now() + ZIP_TICKET_TTL_MS });
+
+  return res.status(200).json({ token, count: entries.length });
+});
+
+app.get("/song/save-zip/:token", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Must be logged in" });
+  }
+
+  const ticket = zipTickets.get(req.params.token);
+  zipTickets.delete(req.params.token); // one-time use
+
+  if (!ticket || ticket.expiresAt <= Date.now() || ticket.username !== req.session.user.username) {
+    return res.status(404).json({ message: "Download link expired, please try again" });
+  }
+
+  try {
+    const zip = await prepareZip(ticket.entries);
+
+    res.status(200);
+    res.type("application/zip");
+    res.attachment(`songs-${new Date().toISOString().slice(0, 10)}.zip`);
+    res.setHeader("Content-Length", String(zip.contentLength));
+
+    await writePreparedZip(res, zip);
+  } catch (error) {
+    console.error("ZIP DOWNLOAD ERROR:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({ message: "Failed to build zip" });
+    }
+    res.destroy();
+  }
 });
 
 app.delete("/song/download/:trackId", (req, res) => {

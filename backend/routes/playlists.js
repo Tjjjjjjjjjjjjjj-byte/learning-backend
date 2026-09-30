@@ -4,11 +4,9 @@ import { sendSpotifyError } from "../services/spotifyHttp.js";
 
 export function registerRoutes(app, context) {
   const {
-    fs,
-    path,
-    PROJECT_ROOT,
     loadPlaylists,
     savePlaylists,
+    nextPlaylistId,
     loadSpotifyPublicPlaylists,
     getUserDownloads,
     getSpotifyToken,
@@ -62,9 +60,7 @@ app.post("/create", (req, res) => {
   const playlists = loadPlaylists();
   const username = req.session.user.username;
 
-  let id = playlists.length
-    ? Number(playlists[playlists.length - 1].id) + 1
-    : 1;
+  const id = nextPlaylistId();
 
   const now = new Date().toISOString();
 
@@ -370,11 +366,7 @@ app.delete("/add/:id", (req, res) => {
     );
   }
 
-  fs.writeFileSync(
-    path.join(PROJECT_ROOT, "playlists.json"),
-    JSON.stringify(playlists, null, 2),
-    "utf-8",
-  );
+  savePlaylists(playlists);
 
   return res.status(200).json({
     message: "Removed successfully",
@@ -427,11 +419,7 @@ app.delete("/playlist/:id", (req, res) => {
     );
   }
 
-  fs.writeFileSync(
-    path.join(PROJECT_ROOT, "playlists.json"),
-    JSON.stringify(playlists, null, 2),
-    "utf-8",
-  );
+  savePlaylists(playlists);
 
   return res.status(200).json({
     message: "Removed successfully",

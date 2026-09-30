@@ -6,6 +6,7 @@ import Features from "./playlistDetatlComponents/features";
 import "../styling/playlistModal.css";
 import { getRetryDelayMs } from "../utils/retryDelay.js";
 import Song from "./playlistDetatlComponents/song";
+import { saveTracksToDevice } from "../services/browserDownload.js";
 
 async function readJsonResponse(response) {
   const contentType = response.headers.get("content-type") || "";
@@ -284,6 +285,8 @@ function PlaylistModal({
 
     setBulkBusy(true);
 
+    const downloadedIds = [];
+
     for (const song of songsToDownload) {
       try {
         const response = await fetch("http://localhost:3000/song/download", {
@@ -305,6 +308,8 @@ function PlaylistModal({
         if (!response.ok) {
           throw new Error(data.message || `Failed to download ${song.name}`);
         }
+
+        downloadedIds.push(song.id);
 
         setTrack((prev) =>
           prev.map((s) =>
@@ -330,6 +335,13 @@ function PlaylistModal({
       } catch (error) {
         console.error(`BULK DOWNLOAD FAILED: ${song.name}`, error);
       }
+    }
+
+    // One zip when more than 5 songs, otherwise one mp3 each.
+    try {
+      await saveTracksToDevice(downloadedIds);
+    } catch (error) {
+      console.error("SAVE TO DEVICE ERROR:", error);
     }
 
     setBulkBusy(false);
