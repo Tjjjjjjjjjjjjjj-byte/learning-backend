@@ -32,12 +32,6 @@ function LoginCard() {
   const handleLogin = async () => {
     setFailed(false);
     setServerError("");
-
-    if (!identifier.trim() || !password) {
-      setServerError("Enter your username/email and password.");
-      return;
-    }
-
     setLoggingIn(true);
 
     try {

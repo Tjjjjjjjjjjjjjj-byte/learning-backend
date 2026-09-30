@@ -32,13 +32,7 @@ function SignUpCard() {
       if (response.status === 409) {
         setFailed(true);
       } else if (response.status === 400) {
-        const data = await response.json().catch(() => ({}));
-
-        if (data.field === "confirmPassword") {
-          setPasswordFailed(true);
-        } else {
-          setServerError(data.message || "Please check the details you entered.");
-        }
+        setPasswordFailed(true);
       } else if (response.status === 422) {
         setEmailFailed(true);
       } else if (response.ok) {

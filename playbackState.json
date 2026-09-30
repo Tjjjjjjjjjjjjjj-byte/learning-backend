@@ -1,453 +1,43 @@
 {
   "test": {
-    "trackId": "2oBd6KgXMeh0alqHHli0J4",
-    "title": "Ni**a Ni**a Ni**a",
-    "artist": "Gangsta Rap",
-    "album": "Gangsta Rap: The Glockumentary",
-    "artwork": "https://i.scdn.co/image/ab67616d0000b2730e14d5727a0dc8550686e996",
-    "duration": 178.301,
+    "trackId": "1HNvADmPBGAExeyIHkcJtd",
+    "title": "Sparkle - Original Version",
+    "artist": "RADWIMPS",
+    "album": "Human Bloom",
+    "artwork": "https://i.scdn.co/image/ab67616d0000b27385b0876389c92ac31f514593",
+    "duration": 409.981,
     "source": "youtube-playback",
-    "sourceUrl": "https://rr2---sn-2aqu-n4xe7.googlevideo.com/videoplayback?expire=1790783715&ei=g9y8aoHnG5Wv2roP5djowQU&ip=2001%3A4452%3A36c%3Abc00%3A816%3Ac280%3A1bb4%3A5479&id=o-AO3Midf1VPfI9-AnwgFHeHU4vgaY3de0e55eI372M2AD&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=281&met=1790762115%2C&mh=vf&mm=31%2C29&mn=sn-2aqu-n4xe7%2Csn-2aqu-hoasr&ms=au%2Crdu&mv=m&mvi=2&pl=44&rms=au%2Cau&initcwndbps=1490750&bui=AWzQHwqNx-Sp_Eejb3jdLfJ2vtb1-knqsRvQaAZV56D6uMTTqgEZwKfMvDydPzFkHevfkayaKxpgBALy&spc=I-rgIfCWFM4etz3_R2_mz8oeqqXeiIMxQmXs2cW7DpcP_B8f13i8Xq12lpi0&vprv=1&svpuc=1&mime=audio%2Fwebm&rqh=1&gir=yes&clen=2953192&dur=178.301&lmt=1713580032186243&mt=1790761530&fvip=9&keepalive=yes&fexp=51565116%2C52112905%2C52184227&c=VISIONOS&txp=4532434&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&sig=AE0s2JYwRgIhAO_9SG7qU9AbSUmNC3VOizflRz7jrImpNoCu1vIRXsMyAiEA3cPNG6x24WurfporZzSaY7ArOmBjp8FKvylWvgUHyxA%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRQIgQK_ea1toAv_e3trDUJM8A8Mda-sqxj5z-6jijZ0EyCkCIQDF_FZkXNn2wfN1Oyz1kVWrbDEEW7zP60SJ9215-BTOhA%3D%3D",
-    "position": 30.629828,
-    "updatedAt": "2026-09-30T09:56:30.007Z",
+    "sourceUrl": "http://localhost:3000/song/stream/1HNvADmPBGAExeyIHkcJtd",
+    "position": 197.092792,
+    "updatedAt": "2026-09-30T10:31:40.156Z",
     "completed": false,
     "playlistId": "search-queue",
     "playlistName": "",
     "queueIndex": 0,
     "history": [
       {
-        "trackId": "0ARK753YaiJbpLUk7z5yIM",
-        "playedAt": "2026-09-26T10:14:40.359Z",
-        "position": 289.4,
-        "duration": 289.421,
+        "trackId": "4VYv4gIbr6XPWKTddnGBlh",
+        "playedAt": "2026-09-30T10:07:26.278Z",
+        "position": 2.06694,
+        "duration": 225.781,
         "completed": false,
         "liked": false,
-        "title": "Dilemma",
-        "artist": "Nelly, Kelly Rowland"
+        "title": "陽光彩虹小白馬",
+        "artist": "Wowkie Da"
       },
       {
-        "trackId": "3Gf5nttwcX9aaSQXRWidEZ",
-        "playedAt": "2026-09-26T12:43:11.939Z",
-        "position": 291.821,
-        "duration": 291.821,
-        "completed": true,
-        "liked": false,
-        "title": "Ride Wit Me",
-        "artist": "Nelly, City Spud"
-      },
-      {
-        "trackId": "1hGy2eLcmC8eKx7qr1tOqx",
-        "playedAt": "2026-09-26T12:43:16.097Z",
-        "position": 18.554774,
-        "duration": 261.821,
+        "trackId": "2oBd6KgXMeh0alqHHli0J4",
+        "playedAt": "2026-09-30T10:07:30.160Z",
+        "position": 79.327111,
+        "duration": 178.301,
         "completed": false,
         "liked": false,
-        "title": "Beautiful Girls",
-        "artist": "Sean Kingston"
-      },
-      {
-        "trackId": "6BaxqcoEM9r3LXisTyJjST",
-        "playedAt": "2026-09-26T12:43:37.645Z",
-        "position": 2.808186,
-        "duration": 216.021,
-        "completed": false,
-        "liked": false,
-        "title": "Ridin' Solo",
-        "artist": "Jason Derulo"
-      },
-      {
-        "trackId": "2iclfHORMqpR3TxuhwVRhD",
-        "playedAt": "2026-09-26T12:43:42.598Z",
-        "position": 0,
-        "duration": 278.801,
-        "completed": false,
-        "liked": false,
-        "title": "Mesmerize",
-        "artist": "Ja Rule, Ashanti"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-27T04:56:19.890Z",
-        "position": 107.249581,
-        "duration": 237.641,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "2zRBppULzQqEnM3HMFDCVV",
-        "playedAt": "2026-09-27T04:56:39.648Z",
-        "position": 17.759512,
-        "duration": 303.821,
-        "completed": false,
-        "liked": false,
-        "title": "Mata Sa Mata",
-        "artist": "7th"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-27T04:57:00.313Z",
-        "position": 0,
-        "duration": 303.821,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "1imaIe1NEAaWnLF0BY0V6F",
-        "playedAt": "2026-09-27T04:57:24.816Z",
-        "position": 70.695175,
-        "duration": 200.601,
-        "completed": false,
-        "liked": false,
-        "title": "sining (feat. Jay R)",
-        "artist": "Dionela, Jay R"
+        "title": "Ni**a Ni**a Ni**a",
+        "artist": "Gangsta Rap"
       },
       {
         "trackId": "5mEqD00bdFcsiVd0MfvEeF",
-        "playedAt": "2026-09-27T09:31:12.379Z",
-        "position": 4.363221,
-        "duration": 131.681,
-        "completed": false,
-        "liked": false,
-        "title": "Dream lantern",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-28T09:43:28.270Z",
-        "position": 0,
-        "duration": 241,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "4jkjxT9tYADyRsOYsCsR74",
-        "playedAt": "2026-09-28T09:43:34.241Z",
-        "position": 6.4974,
-        "duration": 181.661,
-        "completed": false,
-        "liked": false,
-        "title": "At My Worst",
-        "artist": "Will Gittens, Kayla Rae"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-28T09:52:13.739Z",
-        "position": 0,
-        "duration": 241,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-28T10:10:05.498Z",
-        "position": 5.186899,
-        "duration": 237.641,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "1qbmS6ep2hbBRaEZFpn7BX",
-        "playedAt": "2026-09-28T10:28:16.088Z",
-        "position": 7.894492,
-        "duration": 183.741,
-        "completed": false,
-        "liked": false,
-        "title": "Man I Need",
-        "artist": "Olivia Dean"
-      },
-      {
-        "trackId": "5mEqD00bdFcsiVd0MfvEeF",
-        "playedAt": "2026-09-28T10:49:29.940Z",
-        "position": 0,
-        "duration": 131.666,
-        "completed": false,
-        "liked": false,
-        "title": "Dream lantern",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "6CRX3ENpLq42r0iBSjOqr1",
-        "playedAt": "2026-09-28T10:49:41.789Z",
-        "position": 29.734988,
-        "duration": 339.181,
-        "completed": false,
-        "liked": false,
-        "title": "Grand Escape (feat. Toko Miura)",
-        "artist": "RADWIMPS, Toko Miura"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-28T10:50:12.482Z",
-        "position": 53.198518,
-        "duration": 244.101,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "2Dhdu4YB3y5U3RiIcCJduv",
-        "playedAt": "2026-09-28T11:08:24.145Z",
-        "position": 0,
-        "duration": 326.666,
-        "completed": false,
-        "liked": false,
-        "title": "Tibok",
-        "artist": "Earl Agustin"
-      },
-      {
-        "trackId": "3A4FRzgve9BjfKbvVXRIFO",
-        "playedAt": "2026-09-28T11:38:33.308Z",
-        "position": 2.025742,
-        "duration": 534.341,
-        "completed": false,
-        "liked": false,
-        "title": "Sparkle - movie ver.",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "1HNvADmPBGAExeyIHkcJtd",
-        "playedAt": "2026-09-28T11:38:47.216Z",
-        "position": 0.390865,
-        "duration": 409.981,
-        "completed": false,
-        "liked": false,
-        "title": "Sparkle - Original Version",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "503OTo2dSqe7qk76rgsbep",
-        "playedAt": "2026-09-28T11:40:05.485Z",
-        "position": 25.504908,
-        "duration": 270.581,
-        "completed": false,
-        "liked": false,
-        "title": "Still D.R.E.",
-        "artist": "Dr. Dre, Snoop Dogg"
-      },
-      {
-        "trackId": "68SoU7cLk4xBT7WUewXC08",
-        "playedAt": "2026-09-28T11:40:34.854Z",
-        "position": 0,
-        "duration": 225.133,
-        "completed": false,
-        "liked": false,
-        "title": "My Humps - Lil Jon Remix",
-        "artist": "Black Eyed Peas, Lil Jon"
-      },
-      {
-        "trackId": "3A4FRzgve9BjfKbvVXRIFO",
-        "playedAt": "2026-09-28T11:40:56.695Z",
-        "position": 95.18449,
-        "duration": 534.341,
-        "completed": false,
-        "liked": false,
-        "title": "Sparkle - movie ver.",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "2exeLldmRfwD9P0gSBYB9T",
-        "playedAt": "2026-09-28T11:43:38.734Z",
-        "position": 170.453924,
-        "duration": 410.821,
-        "completed": false,
-        "liked": false,
-        "title": "Sparkle - English Version",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "3A4FRzgve9BjfKbvVXRIFO",
-        "playedAt": "2026-09-28T11:46:31.745Z",
-        "position": 28.141714,
-        "duration": 534.341,
-        "completed": false,
-        "liked": false,
-        "title": "Sparkle - movie ver.",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "4Rlbzn3nj9XJMZTijQUXMs",
-        "playedAt": "2026-09-28T11:47:33.783Z",
-        "position": 50.173145,
-        "duration": 220.601,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi",
-        "artist": "TJ Monterde"
-      },
-      {
-        "trackId": "2Y8TOl0ZGgqlS8UydTY4QU",
-        "playedAt": "2026-09-29T09:18:38.127Z",
-        "position": 0,
-        "duration": 221.25,
-        "completed": false,
-        "liked": false,
-        "title": "Weak - Acoustic",
-        "artist": "Will Gittens, Lorea"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-29T09:18:42.314Z",
-        "position": 213.912412,
-        "duration": 237.641,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "5uKVAn44f3V2oxlWQ7nXDY",
-        "playedAt": "2026-09-29T09:22:18.583Z",
-        "position": 53.47668,
-        "duration": 265.181,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi",
-        "artist": "Shanti Dope"
-      },
-      {
-        "trackId": "5mEqD00bdFcsiVd0MfvEeF",
-        "playedAt": "2026-09-29T09:23:15.085Z",
-        "position": 111.115173,
-        "duration": 131.681,
-        "completed": false,
-        "liked": false,
-        "title": "Dream lantern",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "2Gaynwa8ZoYKdc9w3utD1h",
-        "playedAt": "2026-09-29T09:25:06.602Z",
-        "position": 117.966592,
-        "duration": 131.681,
-        "completed": false,
-        "liked": false,
-        "title": "Dream Lantern - English Version",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "1imaIe1NEAaWnLF0BY0V6F",
-        "playedAt": "2026-09-29T09:27:25.819Z",
-        "position": 200.601,
-        "duration": 200.601,
-        "completed": true,
-        "liked": false,
-        "title": "sining (feat. Jay R)",
-        "artist": "Dionela, Jay R"
-      },
-      {
-        "trackId": "2EzjRBSkVsPwprmOpM7TvR",
-        "playedAt": "2026-09-29T09:30:46.769Z",
-        "position": 4.434131,
-        "duration": 192.181,
-        "completed": false,
-        "liked": false,
-        "title": "Sinigang",
-        "artist": "Alamat"
-      },
-      {
-        "trackId": "7bAVndaTleEnfizm6h2d3i",
-        "playedAt": "2026-09-29T09:30:51.687Z",
-        "position": 245.421,
-        "duration": 245.421,
-        "completed": true,
-        "liked": false,
-        "title": "Musika",
-        "artist": "Dionela"
-      },
-      {
-        "trackId": "06VwVWrnYSTIikz801hGwD",
-        "playedAt": "2026-09-29T09:34:57.351Z",
-        "position": 204.061,
-        "duration": 204.061,
-        "completed": true,
-        "liked": false,
-        "title": "Oksihina",
-        "artist": "Dionela"
-      },
-      {
-        "trackId": "47sq83n5WN22ZzYnGn8aTy",
-        "playedAt": "2026-09-29T09:38:23.037Z",
-        "position": 156.655549,
-        "duration": 199.981,
-        "completed": false,
-        "liked": false,
-        "title": "Mahika",
-        "artist": "Adie, Janine Berdin"
-      },
-      {
-        "trackId": "7snm61mHcVmG7pRx79l5Mq",
-        "playedAt": "2026-09-29T09:43:48.566Z",
-        "position": 283.981807,
-        "duration": 295.861,
-        "completed": false,
-        "liked": false,
-        "title": "Hallelujah",
-        "artist": "Bamboo (The Band)"
-      },
-      {
-        "trackId": "5mEqD00bdFcsiVd0MfvEeF",
-        "playedAt": "2026-09-29T09:50:46.533Z",
-        "position": 0.02,
-        "duration": 131.681,
-        "completed": false,
-        "liked": false,
-        "title": "Dream lantern",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "4WgViu9gw3qYOr3iF9OuLG",
-        "playedAt": "2026-09-30T09:38:04.530Z",
-        "position": 4.935863,
-        "duration": 237.641,
-        "completed": false,
-        "liked": false,
-        "title": "Palagi - TJxKZ Version",
-        "artist": "TJ Monterde, KZ Tandingan"
-      },
-      {
-        "trackId": "2Y8TOl0ZGgqlS8UydTY4QU",
-        "playedAt": "2026-09-30T09:38:15.806Z",
-        "position": 2.620739,
-        "duration": 221.661,
-        "completed": false,
-        "liked": false,
-        "title": "Weak - Acoustic",
-        "artist": "Will Gittens, Lorea"
-      },
-      {
-        "trackId": "5mEqD00bdFcsiVd0MfvEeF",
-        "playedAt": "2026-09-30T09:45:54.319Z",
-        "position": 0.985337,
-        "duration": 131.681,
-        "completed": false,
-        "liked": false,
-        "title": "Dream lantern",
-        "artist": "RADWIMPS"
-      },
-      {
-        "trackId": "2Y8TOl0ZGgqlS8UydTY4QU",
-        "playedAt": "2026-09-30T09:46:03.368Z",
-        "position": 26.944842,
-        "duration": 221.661,
-        "completed": false,
-        "liked": false,
-        "title": "Weak - Acoustic",
-        "artist": "Will Gittens, Lorea"
-      },
-      {
-        "trackId": "5mEqD00bdFcsiVd0MfvEeF",
-        "playedAt": "2026-09-30T09:47:35.199Z",
+        "playedAt": "2026-09-30T10:10:49.117Z",
         "position": 131.681,
         "duration": 131.681,
         "completed": true,
@@ -456,34 +46,34 @@
         "artist": "RADWIMPS"
       },
       {
-        "trackId": "6CRX3ENpLq42r0iBSjOqr1",
-        "playedAt": "2026-09-30T09:49:47.970Z",
-        "position": 134.464208,
-        "duration": 339.181,
-        "completed": false,
+        "trackId": "2Gaynwa8ZoYKdc9w3utD1h",
+        "playedAt": "2026-09-30T10:13:00.976Z",
+        "position": 131.681,
+        "duration": 131.681,
+        "completed": true,
         "liked": false,
-        "title": "Grand Escape (feat. Toko Miura)",
-        "artist": "RADWIMPS, Toko Miura"
+        "title": "Dream Lantern - English Version",
+        "artist": "RADWIMPS"
       },
       {
-        "trackId": "1imaIe1NEAaWnLF0BY0V6F",
-        "playedAt": "2026-09-30T09:52:44.465Z",
-        "position": 34.998928,
-        "duration": 200.601,
-        "completed": false,
+        "trackId": "3A4FRzgve9BjfKbvVXRIFO",
+        "playedAt": "2026-09-30T10:15:12.878Z",
+        "position": 534.341,
+        "duration": 534.341,
+        "completed": true,
         "liked": false,
-        "title": "sining (feat. Jay R)",
-        "artist": "Dionela, Jay R"
+        "title": "Sparkle - movie ver.",
+        "artist": "RADWIMPS"
       },
       {
-        "trackId": "2oBd6KgXMeh0alqHHli0J4",
-        "playedAt": "2026-09-30T09:55:10.525Z",
-        "position": 30.629828,
-        "duration": 178.301,
+        "trackId": "1HNvADmPBGAExeyIHkcJtd",
+        "playedAt": "2026-09-30T10:24:07.483Z",
+        "position": 197.092792,
+        "duration": 409.981,
         "completed": false,
         "liked": false,
-        "title": "Ni**a Ni**a Ni**a",
-        "artist": "Gangsta Rap"
+        "title": "Sparkle - Original Version",
+        "artist": "RADWIMPS"
       }
     ]
   }

@@ -16,24 +16,13 @@ app.get("/me", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const { identifier, password } = req.body ?? {};
-
-  if (
-    typeof identifier !== "string" ||
-    typeof password !== "string" ||
-    !identifier.trim() ||
-    !password
-  ) {
-    return res.status(400).json({
-      message: "Username/email and password are required",
-    });
-  }
+  const { identifier, password } = req.body;
 
   const usersData = fs.readFileSync(path.join(PROJECT_ROOT, "users.json"), "utf-8");
   const users = JSON.parse(usersData);
 
   const foundUser = users.find(
-    (u) => u.identifier === identifier.trim() || u.email === identifier.trim(),
+    (u) => u.identifier === identifier || u.email === identifier,
   );
 
   if (!foundUser || foundUser.password !== password) {
@@ -52,23 +41,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/signUpPage", (req, res) => {
-  const { username: rawUsername, email, password, confirmPassword } = req.body ?? {};
-
-  const username = typeof rawUsername === "string" ? rawUsername.trim() : "";
-
-  if (!username) {
-    return res.status(400).json({
-      message: "Username is required",
-      field: "username",
-    });
-  }
-
-  if (typeof password !== "string" || password.length < 6) {
-    return res.status(400).json({
-      message: "Password must be at least 6 characters",
-      field: "password",
-    });
-  }
+  const { username, email, password, confirmPassword } = req.body;
 
   const usersData = fs.readFileSync(path.join(PROJECT_ROOT, "users.json"), "utf-8");
   const users = JSON.parse(usersData);
@@ -76,11 +49,10 @@ app.post("/signUpPage", (req, res) => {
   if (password !== confirmPassword) {
     return res.status(400).json({
       message: "Passwords do not match",
-      field: "confirmPassword",
     });
   }
 
-  if (typeof email !== "string" || !validator.isEmail(email)) {
+  if (!validator.isEmail(email)) {
     return res.status(422).json({
       message: "Must be a valid email",
     });
@@ -222,4 +194,6 @@ app.post("/logout", (req, res) => {
   });
 });
 
+let playing = null;
+let mpvProcess = null;
 }

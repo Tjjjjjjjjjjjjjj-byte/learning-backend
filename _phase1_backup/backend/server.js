@@ -58,6 +58,7 @@ import { registerRoutes as registerPlaylistRoutes } from "./routes/playlists.js"
 import { registerRoutes as registerSearchRoutes } from "./routes/search.js";
 import { registerRoutes as registerSongRoutes } from "./routes/songs.js";
 import { registerRoutes as registerLyricsRoutes } from "./routes/lyrics.js";
+import { registerRoutes as registerLegacyStreamRoutes } from "./routes/stream.js";
 import { registerRoutes as registerPlaybackRoutes } from "./routes/playback.js";
 import { registerRoutes as registerSpotifyPlaylistRoutes } from "./routes/spotifyPlaylists.js";
 import { registerRoutes as registerImageProxyRoutes } from "./routes/imageProxy.js";
@@ -139,6 +140,7 @@ registerDashboardRoutes(app, context);
 registerAccountRoutes(app, context);
 registerSongRoutes(app, context);
 registerLyricsRoutes(app, context);
+registerLegacyStreamRoutes(app, context);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

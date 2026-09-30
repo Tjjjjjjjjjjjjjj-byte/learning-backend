@@ -11,5 +11,17 @@
     "createdAt": "2026-09-26T03:05:40.031Z",
     "updatedAt": "2026-09-26T03:05:40.031Z",
     "songAddedAt": {}
+  },
+  {
+    "name": "hgjhgjj",
+    "id": 8,
+    "cover": "https://picsum.photos/seed/picsum/200/300",
+    "owner": "test",
+    "songs": [],
+    "downloaded": [],
+    "createdAt": "2026-09-30T10:05:29.361Z",
+    "updatedAt": "2026-09-30T10:05:54.333Z",
+    "songAddedAt": {},
+    "description": ""
   }
 ]

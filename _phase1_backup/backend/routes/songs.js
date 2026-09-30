@@ -1,8 +1,6 @@
 // API routes for this feature area.
-import { spawn } from "child_process";
-
 export function registerRoutes(app, context) {
-  const { fs, path, PORT, loadPlaylists, savePlaylists, DOWNLOAD_DIR, getUserDownloads, findGlobalDownload, readDownloads, saveDownloads, sanitizeFilename, findYoutubeVideo, getOrCreatePlaybackUrl, readPlaybackCache, runWithConcurrency, PLAYBACK_PRELOAD_CONCURRENCY } = context;
+  const { fs, path, spawn, PORT, DOWNLOAD_DIR, getUserDownloads, findGlobalDownload, readDownloads, saveDownloads, sanitizeFilename, findYoutubeVideo, getOrCreatePlaybackUrl, readPlaybackCache, runWithConcurrency, PLAYBACK_PRELOAD_CONCURRENCY } = context;
 
 app.get("/downloads", (req, res) => {
   if (!req.session.user) {
@@ -129,16 +127,6 @@ app.post("/song/download", async (req, res) => {
       video.url,
     ]);
 
-    // Exactly one response per request: "error" (e.g. yt-dlp not installed)
-    // and "close" can both fire for the same failed spawn.
-    let responded = false;
-
-    function fail(message) {
-      if (responded) return;
-      responded = true;
-      res.status(500).json({ message });
-    }
-
     download.stdout.on("data", (data) => {
       console.log(data.toString().trim());
     });
@@ -147,23 +135,12 @@ app.post("/song/download", async (req, res) => {
       console.log("yt-dlp:", data.toString().trim());
     });
 
-    download.on("error", (error) => {
-      console.error("YT-DLP SPAWN FAILED:", error.message);
-      fail(
-        error.code === "ENOENT"
-          ? "yt-dlp is not installed on the server"
-          : "Download failed",
-      );
-    });
-
     download.on("close", (exitCode) => {
-      if (responded) return;
-
       if (exitCode !== 0 || !fs.existsSync(mp3File)) {
-        return fail("Download failed");
+        return res.status(500).json({
+          message: "Download failed",
+        });
       }
-
-      responded = true;
 
       const downloads = readDownloads();
 
@@ -377,71 +354,55 @@ app.delete("/song/download/:trackId", (req, res) => {
 
   const trackId = req.params.trackId;
 
-  try {
-    const downloads = readDownloads();
+  const downloads = readDownloads();
 
-    const userDownloads = Array.isArray(downloads[username])
-      ? downloads[username]
-      : [];
+  const userDownloads = Array.isArray(downloads[username])
+    ? downloads[username]
+    : [];
 
-    const download = userDownloads.find((item) => item.trackId === trackId);
+  const download = userDownloads.find((item) => item.trackId === trackId);
 
-    if (!download) {
-      return res.status(404).json({
-        message: "Downloaded song not found",
-      });
-    }
-
-    downloads[username] = userDownloads.filter(
-      (item) => item.trackId !== trackId,
-    );
-
-    const stillUsed = Object.values(downloads).some(
-      (list) =>
-        Array.isArray(list) &&
-        list.some((item) => item.file === download.file),
-    );
-
-    // Update every piece of saved state first. If anything here throws,
-    // the mp3 is still on disk and the user's records still match it.
-    const playlists = loadPlaylists();
-
-    for (const playlist of playlists) {
-      if (playlist.owner !== username) {
-        continue;
-      }
-
-      if (Array.isArray(playlist.downloaded)) {
-        playlist.downloaded = playlist.downloaded.filter((id) => id !== trackId);
-        playlist.updatedAt = new Date().toISOString();
-      }
-    }
-
-    savePlaylists(playlists);
-    saveDownloads(downloads);
-
-    // Only now remove the file (and only if no other account uses it).
-    // A failure here leaves an orphan file, which is harmless, so it
-    // doesn't fail the request.
-    if (!stillUsed) {
-      try {
-        if (fs.existsSync(download.file)) fs.unlinkSync(download.file);
-      } catch (error) {
-        console.error("DELETE DOWNLOAD FILE ERROR:", error.message);
-      }
-    }
-
-    return res.status(200).json({
-      message: "Download deleted",
-      downloaded: false,
-      trackId,
-    });
-  } catch (error) {
-    console.error("DELETE DOWNLOAD ERROR:", error);
-
-    return res.status(500).json({
-      message: "Failed to delete download",
+  if (!download) {
+    return res.status(404).json({
+      message: "Downloaded song not found",
     });
   }
+
+  downloads[username] = userDownloads.filter(
+    (item) => item.trackId !== trackId,
+  );
+
+  const stillUsed = Object.values(downloads).some(
+    (userDownloads) =>
+      Array.isArray(userDownloads) &&
+      userDownloads.some((item) => item.file === download.file),
+  );
+
+  if (!stillUsed && fs.existsSync(download.file)) {
+    fs.unlinkSync(download.file);
+  }
+
+  saveDownloads(downloads);
+
+  const playlists = loadPlaylists();
+
+  for (const playlist of playlists) {
+    if (playlist.owner !== username) {
+      continue;
+    }
+
+    if (Array.isArray(playlist.downloaded)) {
+      playlist.downloaded = playlist.downloaded.filter((id) => id !== trackId);
+      playlist.updatedAt = new Date().toISOString();
+    }
+  }
+
+  savePlaylists(playlists);
+
+  return res.status(200).json({
+    message: "Download deleted",
+    downloaded: false,
+    trackId,
+  });
 });
 }

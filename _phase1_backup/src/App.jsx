@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Home from "./pages/home.jsx";
@@ -1197,11 +1197,6 @@ function App() {
 
       <Routes>
         <Route
-          path="/"
-          element={<Navigate to="/home" replace />}
-        />
-
-        <Route
           path="/home"
           element={<Home player={player} />}
         />
@@ -1234,11 +1229,6 @@ function App() {
         <Route
           path="/resetPasswordPage"
           element={<ResetPasswordPage />}
-        />
-
-        <Route
-          path="*"
-          element={<Navigate to="/home" replace />}
         />
       </Routes>
 

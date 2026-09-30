@@ -1,10 +1,5 @@
 [
   {
-    "identifier": "test",
-    "password": "1234",
-    "email": "test@gmail.com"
-  },
-  {
     "identifier": "test2",
     "password": "1234",
     "email": "test2@gmail.com"
@@ -28,5 +23,10 @@
     "identifier": "testtttt",
     "email": "tjdanielaliado606@gmail.com",
     "password": "cramon"
+  },
+  {
+    "identifier": "test",
+    "email": "test@gmail.com",
+    "password": "1234"
   }
 ]
