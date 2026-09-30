@@ -9,6 +9,20 @@ import {
 // Identical searches (typing, re-renders, StrictMode double effects) are
 // answered from memory instead of costing up to 10 Spotify requests each.
 const SEARCH_CACHE_TTL_MS = 2 * 60 * 1000;
+
+function mapPublicPlaylist(item) {
+  if (!item?.id) return null;
+
+  return {
+    spotifyPlaylistId: item.id,
+    name: item.name || "Spotify Playlist",
+    owner: item.owner?.display_name || item.owner?.id || "Spotify",
+    cover: item.images?.[0]?.url || null,
+    trackCount: Number.isFinite(item.tracks?.total) ? item.tracks.total : null,
+    description: item.description || "",
+    external_urls: item.external_urls,
+  };
+}
 const SEARCH_CACHE_MAX = 200;
 const searchCache = new Map();
 
@@ -64,11 +78,11 @@ export function registerRoutes(app, context) {
 
       const cacheKey = userSearch.toLowerCase();
 
-      const { tracks, artists, albums } =
+      const { tracks, artists, albums, playlists } =
         getCachedSearch(cacheKey) ||
         (await singleFlight(`search:${cacheKey}`, async () => {
           const token = await getSpotifyToken();
-          const found = { tracks: [], artists: [], albums: [] };
+          const found = { tracks: [], artists: [], albums: [], playlists: [] };
 
           let offset = 0;
           const limit = 10;
@@ -82,7 +96,7 @@ export function registerRoutes(app, context) {
               "api",
               `https://api.spotify.com/v1/search?q=${encodeURIComponent(
                 userSearch,
-              )}&type=track,artist,album&limit=${limit}&offset=${offset}`,
+              )}&type=track,artist,album,playlist&limit=${limit}&offset=${offset}`,
               { headers: { Authorization: `Bearer ${token}` } },
             );
 
@@ -105,13 +119,19 @@ export function registerRoutes(app, context) {
             if (data.tracks?.items) found.tracks.push(...data.tracks.items);
             if (data.artists?.items) found.artists.push(...data.artists.items);
             if (data.albums?.items) found.albums.push(...data.albums.items);
+            // Spotify's search results can contain null entries (removed/
+            // region-locked playlists) -- drop them here.
+            if (data.playlists?.items) {
+              found.playlists.push(...data.playlists.items.filter(Boolean));
+            }
 
             offset += limit;
 
             if (
               !data.tracks?.items?.length &&
               !data.artists?.items?.length &&
-              !data.albums?.items?.length
+              !data.albums?.items?.length &&
+              !data.playlists?.items?.length
             ) {
               break;
             }
@@ -123,8 +143,16 @@ export function registerRoutes(app, context) {
 
       const selectedArtists = artists.slice(0, 5);
       const selectedAlbums = albums.slice(0, 5);
-      const remainingSlots = 50 - selectedArtists.length - selectedAlbums.length;
-      const selectedTracks = tracks.slice(0, remainingSlots);
+      const selectedPlaylists = playlists
+        .map(mapPublicPlaylist)
+        .filter(Boolean)
+        .slice(0, 8);
+      const remainingSlots =
+        50 -
+        selectedArtists.length -
+        selectedAlbums.length -
+        selectedPlaylists.length;
+      const selectedTracks = tracks.slice(0, Math.max(0, remainingSlots));
 
       const downloadedIds = req.session.user
         ? new Set(
@@ -144,6 +172,7 @@ export function registerRoutes(app, context) {
         tracks: { items: tracksWithDownloadState },
         artists: { items: selectedArtists },
         albums: { items: selectedAlbums },
+        playlists: { items: selectedPlaylists },
       });
     } catch (error) {
       console.error("Spotify search error:", error);

@@ -1,6 +1,7 @@
 import Nav from "../home-components/nav";
 import PlaylistSidebar from "../home-components/playlistsidebar";
 import PlaylistModal from "../home-components/playlistTrueComponent";
+import Dashboard from "../home-components/dashboard";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import "../styling/home.css";
@@ -151,6 +152,10 @@ function Home({ player }) {
         isPlaying={isPlaying}
         setIsPlaying={setIsPlaying}
       />
+
+      {!selectedPlaylist && (
+        <Dashboard setSelectedPlaylist={setSelectedPlaylist} />
+      )}
 
       {selectedPlaylist && (
         <PlaylistModal

@@ -155,3 +155,53 @@ export function savePlaybackState(username, state) {
   states[username] = state;
   fs.writeFileSync(PLAYBACK_STATE_FILE, JSON.stringify(states, null, 2), "utf-8");
 }
+
+/* ---------- recently played playlists (for the home dashboard) ---------- */
+
+const RECENTLY_PLAYED_FILE = path.join(PROJECT_ROOT, "recentlyPlayed.json");
+const MAX_RECENTS_PER_USER = 30;
+
+function readRecentlyPlayed() {
+  if (!fs.existsSync(RECENTLY_PLAYED_FILE)) return {};
+
+  try {
+    const data = JSON.parse(fs.readFileSync(RECENTLY_PLAYED_FILE, "utf-8"));
+    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeRecentlyPlayed(data) {
+  fs.writeFileSync(RECENTLY_PLAYED_FILE, JSON.stringify(data, null, 2), "utf-8");
+}
+
+/*
+ * Records that `username` just started playing `playlistId` (the combined
+ * id scheme used everywhere else: a number for a local playlist, or
+ * "spotify:<id>" for an imported/public one). Moves it to the front if it
+ * was already there, so "recently played" reflects the last time each
+ * playlist was played, not every play.
+ */
+export function recordRecentPlaylist(username, playlistId) {
+  if (!username || playlistId == null) return;
+
+  const key = String(playlistId);
+  const data = readRecentlyPlayed();
+  const existing = Array.isArray(data[username]) ? data[username] : [];
+
+  const next = [
+    { id: key, playedAt: new Date().toISOString() },
+    ...existing.filter((entry) => entry?.id !== key),
+  ].slice(0, MAX_RECENTS_PER_USER);
+
+  data[username] = next;
+  writeRecentlyPlayed(data);
+}
+
+// Most-recently-played id first.
+export function getRecentPlaylistIds(username, limit = 10) {
+  const data = readRecentlyPlayed();
+  const entries = Array.isArray(data[username]) ? data[username] : [];
+  return entries.slice(0, limit).map((entry) => entry.id);
+}

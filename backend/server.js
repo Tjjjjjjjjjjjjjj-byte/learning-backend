@@ -33,6 +33,8 @@ import {
   saveSpotifyPublicPlaylists,
   loadPlaybackState,
   savePlaybackState,
+  recordRecentPlaylist,
+  getRecentPlaylistIds,
 } from "./services/storage.js";
 import {
   getSpotifyToken,
@@ -60,6 +62,7 @@ import { registerRoutes as registerLegacyStreamRoutes } from "./routes/stream.js
 import { registerRoutes as registerPlaybackRoutes } from "./routes/playback.js";
 import { registerRoutes as registerSpotifyPlaylistRoutes } from "./routes/spotifyPlaylists.js";
 import { registerRoutes as registerImageProxyRoutes } from "./routes/imageProxy.js";
+import { registerRoutes as registerDashboardRoutes } from "./routes/dashboard.js";
 
 const app = express();
 const lyricsCache = createLyricsCache();
@@ -115,6 +118,8 @@ const context = {
   sanitizeFilename,
   loadPlaylists,
   savePlaylists,
+  recordRecentPlaylist,
+  getRecentPlaylistIds,
   readPasswordResets,
   savePasswordResets,
   readPlaybackCache,
@@ -130,6 +135,7 @@ registerPlaylistRoutes(app, context);
 registerSearchRoutes(app, context);
 registerSpotifyPlaylistRoutes(app, context);
 registerImageProxyRoutes(app, context);
+registerDashboardRoutes(app, context);
 registerSongRoutes(app, context);
 registerLyricsRoutes(app, context);
 registerLegacyStreamRoutes(app, context);

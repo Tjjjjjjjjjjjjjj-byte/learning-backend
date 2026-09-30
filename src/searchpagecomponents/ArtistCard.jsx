@@ -5,7 +5,7 @@ function ArtistCard({ artist }) {
 
   return (
     <article
-      className="search-result-card clickable-search-result"
+      className="search-result-card search-result-artist clickable-search-result"
       onClick={() => href && window.open(href, "_blank", "noopener,noreferrer")}
       role={href ? "link" : undefined}
       tabIndex={href ? 0 : undefined}

@@ -1,0 +1,147 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 32px 40px 64px;
+}
+
+.dashboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60vh;
+  color: #b3b3b3;
+}
+
+.dashboard-loading .material-symbols-outlined {
+  font-size: 32px;
+  animation: dashboard-spin 1s linear infinite;
+}
+
+@keyframes dashboard-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.dashboard-empty {
+  padding: 24px 0;
+  color: #b3b3b3;
+}
+
+.dashboard-row-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.dashboard-row-heading h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.dashboard-show-all {
+  border: 0;
+  background: transparent;
+  color: #b3b3b3;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.dashboard-show-all:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.dashboard-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-tile-cover {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background-color: #282828;
+  background-position: center;
+  background-size: cover;
+  color: #6a6a6a;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.dashboard-tile:hover .dashboard-tile-cover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.dashboard-tile-cover.round {
+  border-radius: 50%;
+}
+
+.dashboard-tile-cover .material-symbols-outlined {
+  font-size: 36px;
+}
+
+.dashboard-tile-name {
+  overflow: hidden;
+  width: 100%;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-tile-subtitle {
+  overflow: hidden;
+  width: 100%;
+  color: #b3b3b3;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .dashboard {
+    gap: 30px;
+    padding: 20px 16px 48px;
+  }
+
+  .dashboard-tile-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 14px;
+  }
+
+  .dashboard-row-heading h2 {
+    font-size: 1.25rem;
+  }
+}

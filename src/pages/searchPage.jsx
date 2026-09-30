@@ -2,7 +2,7 @@ import {
   useSearchParams,
   useNavigate,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getRetryDelayMs } from "../utils/retryDelay.js";
 import { waitForSpotifyReady } from "../utils/spotifyGate.js";
 import Nav from "../home-components/nav";
@@ -10,8 +10,90 @@ import TrackCard from "../searchpagecomponents/Trackcard";
 import AlbumCard from "../searchpagecomponents/AlbumCard";
 import ArtistCard from "../searchpagecomponents/ArtistCard";
 import PublicPlaylistCard from "../searchpagecomponents/PublicPlaylistCard";
+import TopResultCard from "../searchpagecomponents/TopResultCard";
 import { SEARCH_QUEUE_ID } from "../App";
 import "../styling/search.css";
+
+const RESULT_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "playlist", label: "Playlists" },
+  { id: "track", label: "Songs" },
+  { id: "artist", label: "Artists" },
+  { id: "album", label: "Albums" },
+];
+
+// One combined, interleaved feed instead of separate "Songs" / "Artists" /
+// "Albums" sections -- each round takes one item per type, in this order.
+const COMBINE_ORDER = ["track", "playlist", "album", "artist"];
+
+function interleaveResults(byType) {
+  const combined = [];
+  const maxLength = Math.max(
+    0,
+    ...COMBINE_ORDER.map((type) => byType[type]?.length || 0),
+  );
+
+  for (let index = 0; index < maxLength; index += 1) {
+    for (const type of COMBINE_ORDER) {
+      const item = byType[type]?.[index];
+      if (item) combined.push({ type, item });
+    }
+  }
+
+  return combined;
+}
+
+// Spotify's search endpoint ranks each result type independently and gives
+// no single cross-type relevance score, so the "top result" hero card is a
+// heuristic: prefer an exact/prefix name match, then a per-type weight
+// (artists and playlists tend to be what people are looking for by name),
+// then popularity as a tiebreaker.
+const TOP_RESULT_TYPE_WEIGHT = { artist: 30, playlist: 22, album: 14, track: 8 };
+
+function scoreTopResultCandidate(item, type, query) {
+  const name = String(item?.name || "").toLowerCase();
+  const q = query.trim().toLowerCase();
+
+  let score = TOP_RESULT_TYPE_WEIGHT[type] || 0;
+
+  if (name === q) score += 100;
+  else if (name.startsWith(q)) score += 55;
+  else if (name.includes(q)) score += 25;
+
+  const popularity = Number(item?.popularity);
+  if (Number.isFinite(popularity)) score += popularity / 10;
+
+  return score;
+}
+
+function pickTopResult(byType, query) {
+  let best = null;
+
+  for (const type of COMBINE_ORDER) {
+    const item = byType[type]?.[0];
+    if (!item) continue;
+
+    const score = scoreTopResultCandidate(item, type, query);
+    if (!best || score > best.score) best = { type, item, score };
+  }
+
+  return best;
+}
+
+function resultSubtitle(item, type) {
+  if (type === "track" || type === "album") {
+    return item.artists?.map((artist) => artist.name).filter(Boolean).join(", ");
+  }
+
+  if (type === "playlist") return item.owner;
+
+  return "";
+}
+
+function resultCover(item, type) {
+  if (type === "playlist") return item.cover;
+  return item.images?.[0]?.url || item.album?.images?.[0]?.url;
+}
 
 async function readJsonResponse(response) {
   const contentType = response.headers.get("content-type") || "";
@@ -43,6 +125,7 @@ function SearchPage({ player }) {
   const [playlists, setPlaylists] = useState([]);
   const [savingPlaylistId, setSavingPlaylistId] = useState(null);
   const [error, setError] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
 
   const navigate = useNavigate();
 
@@ -157,16 +240,17 @@ function SearchPage({ player }) {
           /*
            * "unavailable"/"metadata-only" mean Spotify is currently
            * rate-limiting or restricting the item lookup -- transient,
-           * not a genuinely empty playlist. Quietly retry a few times
-           * in the background, staying on the loading state, instead of
-           * showing "0 songs" for something that might resolve seconds
-           * later.
+           * not a genuinely empty playlist. Keep quietly retrying in the
+           * background, staying on the loading state, instead of ever
+           * settling on "0 songs" / "unavailable" for something that
+           * might resolve later. getRetryDelayMs caps the backoff at a
+           * minute, so this never hammers the server even if it takes a
+           * long time to clear.
            */
           const status = data.itemsStatus || "unavailable";
           const isTransient =
             playlistTracks.length === 0 &&
-            (status === "unavailable" || status === "metadata-only") &&
-            retryCount < MAX_RETRIES;
+            (status === "unavailable" || status === "metadata-only");
 
           if (isTransient) {
             const delay = getRetryDelayMs(null, retryCount);
@@ -203,6 +287,10 @@ function SearchPage({ player }) {
       cancelled = true;
       if (retryTimeout) clearTimeout(retryTimeout);
     };
+  }, [searchValue]);
+
+  useEffect(() => {
+    setActiveFilter("all");
   }, [searchValue]);
 
   async function fetchPlaylists() {
@@ -285,10 +373,98 @@ function SearchPage({ player }) {
       )
     : false;
 
-  const hasNormalResults =
-    results?.tracks?.items?.length ||
-    results?.artists?.items?.length ||
-    results?.albums?.items?.length;
+  function isPlaylistSaved(playlist) {
+    return playlists.some(
+      (item) =>
+        item.importedSpotifyPlaylistId === playlist.spotifyPlaylistId ||
+        (item.type === "spotify-public" &&
+          item.spotifyPlaylistId === playlist.spotifyPlaylistId),
+    );
+  }
+
+  // A direct playlist-URL paste (handled above via `publicPlaylist`) is its
+  // own single-playlist view. Everything else -- an ordinary text search --
+  // combines every result type into one feed instead of separate sections.
+  const byType = useMemo(
+    () => ({
+      track: results?.tracks?.items || [],
+      artist: results?.artists?.items || [],
+      album: results?.albums?.items || [],
+      playlist: results?.playlists?.items || [],
+    }),
+    [results],
+  );
+
+  const hasNormalResults = COMBINE_ORDER.some((type) => byType[type].length > 0);
+
+  const topResult = useMemo(
+    () => (hasNormalResults ? pickTopResult(byType, searchValue) : null),
+    [byType, hasNormalResults, searchValue],
+  );
+
+  const combinedResults = useMemo(
+    () => interleaveResults(byType),
+    [byType],
+  );
+
+  const visibleResults =
+    activeFilter === "all"
+      ? combinedResults
+      : combinedResults.filter((entry) => entry.type === activeFilter);
+
+  function openExternal(url) {
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function topResultAction() {
+    if (!topResult) return;
+
+    if (topResult.type === "track") {
+      playFromSearch(topResult.item);
+    } else if (topResult.type === "playlist") {
+      openPublicPlaylist(topResult.item);
+    } else {
+      openExternal(topResult.item.external_urls?.spotify);
+    }
+  }
+
+  function renderResultItem({ type, item }, key) {
+    if (type === "track") {
+      return (
+        <TrackCard
+          key={key}
+          track={item}
+          playlists={playlists}
+          isCurrentTrack={
+            current === item.id && currentPlaylistId === SEARCH_QUEUE_ID
+          }
+          isPlaying={isPlaying}
+          onPlay={playFromSearch}
+          onAddToQueue={addToQueue}
+          onPlayNext={playNext}
+        />
+      );
+    }
+
+    if (type === "artist") {
+      return <ArtistCard key={key} artist={item} />;
+    }
+
+    if (type === "album") {
+      return <AlbumCard key={key} album={item} />;
+    }
+
+    return (
+      <PublicPlaylistCard
+        key={key}
+        playlist={item}
+        saved={isPlaylistSaved(item)}
+        saving={savingPlaylistId === item.spotifyPlaylistId}
+        onOpen={() => openPublicPlaylist(item)}
+        onSave={() => savePublicPlaylist(item)}
+      />
+    );
+  }
 
   return (
     <>
@@ -329,64 +505,57 @@ function SearchPage({ player }) {
                     />
                   </div>
 
-                  {publicPlaylist.itemsStatus === "unavailable" && (
-                    <p className="search-error">
-                      Spotify provided the playlist metadata, but its song items are unavailable to this API client. This is not an empty playlist.
-                    </p>
-                  )}
-
                   {publicPlaylist.itemsStatus === "empty" && (
                     <p>No songs are available in this Spotify playlist.</p>
                   )}
                 </section>
               )}
 
-              {results.tracks?.items?.length > 0 && (
-                <section className="search-section">
-                  <h2>Songs</h2>
+              {!publicPlaylist && hasNormalResults && (
+                <>
+                  <div className="search-filter-pills">
+                    {RESULT_FILTERS.map((filter) => (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        className={`search-filter-pill${
+                          activeFilter === filter.id ? " active" : ""
+                        }`}
+                        onClick={() => setActiveFilter(filter.id)}
+                      >
+                        {filter.label}
+                      </button>
+                    ))}
+                  </div>
 
-                  <div className="search-results">
-                    {results.tracks.items.map((track, index) => (
-                      <TrackCard
-                        key={`${track.id}-${index}`}
-                        track={track}
-                        playlists={playlists}
+                  {activeFilter === "all" && topResult && (
+                    <section className="search-section top-result-section">
+                      <h2>Top result</h2>
+
+                      <TopResultCard
+                        item={topResult.item}
+                        type={topResult.type}
+                        subtitle={resultSubtitle(topResult.item, topResult.type)}
+                        cover={resultCover(topResult.item, topResult.type)}
                         isCurrentTrack={
-                          current === track.id &&
+                          topResult.type === "track" &&
+                          current === topResult.item.id &&
                           currentPlaylistId === SEARCH_QUEUE_ID
                         }
                         isPlaying={isPlaying}
-                        onPlay={playFromSearch}
-                        onAddToQueue={addToQueue}
-                        onPlayNext={playNext}
+                        onOpen={topResultAction}
                       />
-                    ))}
-                  </div>
-                </section>
-              )}
+                    </section>
+                  )}
 
-              {results.artists?.items?.length > 0 && (
-                <section className="search-section">
-                  <h2>Artists</h2>
-
-                  <div className="search-results">
-                    {results.artists.items.map((artist) => (
-                      <ArtistCard key={artist.id} artist={artist} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {results.albums?.items?.length > 0 && (
-                <section className="search-section">
-                  <h2>Albums</h2>
-
-                  <div className="search-results">
-                    {results.albums.items.map((album) => (
-                      <AlbumCard key={album.id} album={album} />
-                    ))}
-                  </div>
-                </section>
+                  <section className="search-section">
+                    <div className="search-results">
+                      {visibleResults.map((entry) =>
+                        renderResultItem(entry, `${entry.type}-${entry.item.id}`),
+                      )}
+                    </div>
+                  </section>
+                </>
               )}
 
               {!publicPlaylist && !hasNormalResults && (

@@ -229,10 +229,6 @@
     cursor: pointer;
     border-radius: 4px;
     transition: color .15s ease, background .15s ease;
-    opacity: 0;
-}
-
-.song-card:hover .delete {
     opacity: 1;
 }
 
@@ -261,13 +257,9 @@
     background: transparent;
     color: #8f8f8f;
     cursor: pointer;
-    opacity: 0;
-    transform: translateY(-50%);
-    transition: opacity .15s ease, background .15s ease, color .15s ease, transform .15s ease;
-}
-
-.song-card:hover .download {
     opacity: 1;
+    transform: translateY(-50%);
+    transition: background .15s ease, color .15s ease, transform .15s ease;
 }
 
 .download .material-symbols-outlined {
@@ -1152,7 +1144,7 @@
 
 .search-result-card .track-actions .track-download,
 .search-result-card .track-actions .track-download-state {
-  opacity: 0;
+  opacity: 1;
 }
 
 .search-result-card:hover .track-actions .track-download,
@@ -1172,13 +1164,8 @@
   background: transparent;
   color: #8f8f8f;
   cursor: pointer;
-  opacity: 0;
-  transition: color .15s ease, background .15s ease, opacity .15s ease;
-}
-
-.search-result-card:hover .track-queue-action,
-.search-result-card.playing .track-queue-action {
   opacity: 1;
+  transition: color .15s ease, background .15s ease;
 }
 
 .track-queue-action:hover {
@@ -1273,16 +1260,9 @@
     background: transparent;
     color: #9a9a9a;
     cursor: pointer;
-    opacity: 0;
-    transform: none;
-    transition: opacity .15s ease, color .15s ease, background .15s ease;
-}
-
-.song-card:hover .song-actions .delete,
-.song-card:hover .song-queue-action,
-.song-card.current .song-actions .delete,
-.song-card.current .song-queue-action {
     opacity: 1;
+    transform: none;
+    transition: color .15s ease, background .15s ease;
 }
 
 .song-queue-action:hover {

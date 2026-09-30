@@ -1,7 +1,8 @@
 import { getImageUrl } from "../utils/imageUrl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import LyricsSection from "./lyricsSection.jsx";
+import { useLyrics } from "../utils/useLyrics.js";
 
 function formatTime(value) {
   if (!Number.isFinite(value) || value < 0) {
@@ -256,11 +257,111 @@ function QueuePanel({
   );
 }
 
+function LyricsFullscreen({ player, onClose }) {
+  const { currentTrack, currentTime, isPlaying, togglePlay, nextTrack, previousTrack } =
+    player;
+
+  const { lines, loading, unavailable, activeLine } = useLyrics(
+    currentTrack,
+    currentTime,
+  );
+
+  const lineRefs = useRef([]);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    lineRefs.current = [];
+  }, [currentTrack?.id]);
+
+  useEffect(() => {
+    if (activeLine < 0) return;
+
+    lineRefs.current[activeLine]?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [activeLine]);
+
+  return (
+    <div className="lyrics-fullscreen" ref={containerRef}>
+      <div className="lyrics-fullscreen-top">
+        <button type="button" onClick={onClose} title="Close fullscreen lyrics">
+          <span className="material-symbols-outlined">close_fullscreen</span>
+        </button>
+
+        <div className="lyrics-fullscreen-track">
+          <img
+            src={getImageUrl(getCover(currentTrack))}
+            alt={currentTrack?.album?.name || currentTrack?.name || ""}
+          />
+
+          <span>
+            <strong>{currentTrack?.name || "Nothing playing"}</strong>
+            <small>{getArtist(currentTrack)}</small>
+          </span>
+        </div>
+
+        <div className="lyrics-fullscreen-top-spacer" />
+      </div>
+
+      <div className="lyrics-fullscreen-body">
+        {loading ? (
+          <div className="lyrics-placeholder">Loading lyrics...</div>
+        ) : unavailable ? (
+          <div className="lyrics-placeholder">Lyrics unavailable</div>
+        ) : (
+          <div className="lyrics-fullscreen-lines">
+            {lines.map((line, index) => (
+              <p
+                key={`${line.startTimeMs}-${index}`}
+                ref={(element) => {
+                  lineRefs.current[index] = element;
+                }}
+                className={
+                  index === activeLine
+                    ? "lyrics-fullscreen-line active"
+                    : "lyrics-fullscreen-line"
+                }
+              >
+                {line.words}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="lyrics-fullscreen-controls">
+        <button type="button" onClick={previousTrack} title="Previous">
+          <span className="material-symbols-outlined">skip_previous</span>
+        </button>
+
+        <button
+          type="button"
+          className="large-play"
+          onClick={togglePlay}
+          title={isPlaying ? "Pause" : "Play"}
+        >
+          <span className="material-symbols-outlined">
+            {isPlaying ? "pause" : "play_arrow"}
+          </span>
+        </button>
+
+        <button type="button" onClick={nextTrack} title="Next">
+          <span className="material-symbols-outlined">skip_next</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ExpandedPlayer({
   player,
   onClose,
 }) {
   const [queueOpen, setQueueOpen] =
+    useState(false);
+
+  const [lyricsOpen, setLyricsOpen] =
     useState(false);
 
   useEffect(() => {
@@ -318,9 +419,10 @@ function ExpandedPlayer({
             className={
               queueOpen ? "active" : ""
             }
-            onClick={() =>
-              setQueueOpen(!queueOpen)
-            }
+            onClick={() => {
+              setLyricsOpen(false);
+              setQueueOpen(!queueOpen);
+            }}
             title="Queue"
           >
             <span className="material-symbols-outlined">
@@ -335,6 +437,11 @@ function ExpandedPlayer({
             onClose={() =>
               setQueueOpen(false)
             }
+          />
+        ) : lyricsOpen ? (
+          <LyricsFullscreen
+            player={player}
+            onClose={() => setLyricsOpen(false)}
           />
         ) : (
           <div className="now-playing-expanded-content">
@@ -457,7 +564,14 @@ function ExpandedPlayer({
 
             </div>
 
-            <LyricsSection currentTrack={currentTrack} currentTime={currentTime} />
+            <LyricsSection
+              currentTrack={currentTrack}
+              currentTime={currentTime}
+              onExpand={() => {
+                setQueueOpen(false);
+                setLyricsOpen(true);
+              }}
+            />
 
             <div className="sleep-timer">
               <div>

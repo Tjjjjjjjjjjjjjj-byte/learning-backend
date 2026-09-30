@@ -162,8 +162,16 @@ function PlaylistModal({
             nextTracks.length === 0 &&
             (status === "unavailable" || status === "metadata-only");
 
-          if (isTransient && retryAttempt < MAX_RETRY_ATTEMPTS) {
-            const delay = getRetryDelayMs(null, retryAttempt);
+          /*
+           * Spotify's own rate limit can outlast a fixed retry budget for
+           * a big/unlucky playlist. Rather than ever settling on
+           * "unavailable" (which reads as a permanent failure), keep
+           * retrying in the background -- the UI just keeps showing a
+           * loading state for the song count -- capping how slowly it
+           * backs off instead of capping how many times it tries.
+           */
+          if (isTransient) {
+            const delay = getRetryDelayMs(null, Math.min(retryAttempt, MAX_RETRY_ATTEMPTS));
             retryAttempt += 1;
             retryTimeout = setTimeout(getTracks, delay);
             return;
@@ -550,10 +558,11 @@ function PlaylistModal({
               : selectedPlaylist.type === "spotify-public" &&
                 Number.isFinite(Number(selectedPlaylist.trackCount))
                 ? Number(selectedPlaylist.trackCount)
-                : 0
+                : null
           }
           totalMinutes={totalMinutes}
           totalSeconds={totalSeconds}
+          loading={loading}
         />
 
         <Features

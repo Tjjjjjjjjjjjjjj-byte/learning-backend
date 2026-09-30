@@ -126,6 +126,15 @@ export function registerRoutes(app, context) {
         const username =
           req.session.user?.username;
 
+        // Same "about to play this" signal as the local-playlist tracks
+        // route, for the home dashboard's Recents row.
+        if (username && typeof context.recordRecentPlaylist === "function") {
+          context.recordRecentPlaylist(
+            username,
+            `spotify:${playlist.spotifyPlaylistId}`,
+          );
+        }
+
         const downloadedIds = username
           ? new Set(
               context
@@ -202,6 +211,14 @@ export function registerRoutes(app, context) {
             ? saved[username]
             : [];
 
+        // Preserve the original save date across re-saves (e.g. re-saving
+        // to refresh metadata) so "newest"/"oldest" on the home dashboard
+        // reflects when the user actually added it, not the last refresh.
+        const previous = userSaved.find(
+          (item) =>
+            item.spotifyPlaylistId === playlist.spotifyPlaylistId,
+        );
+
         const reference = {
           id: `spotify:${playlist.spotifyPlaylistId}`,
 
@@ -223,6 +240,9 @@ export function registerRoutes(app, context) {
 
           trackCount:
             playlist.trackCount,
+
+          createdAt:
+            previous?.createdAt || new Date().toISOString(),
 
           updatedAt:
             new Date().toISOString(),

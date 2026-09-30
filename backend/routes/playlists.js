@@ -3,7 +3,17 @@ import { getTracksByIds } from "../services/spotifyTracks.js";
 import { sendSpotifyError } from "../services/spotifyHttp.js";
 
 export function registerRoutes(app, context) {
-  const { fs, path, PROJECT_ROOT, loadPlaylists, savePlaylists, loadSpotifyPublicPlaylists, getUserDownloads, getSpotifyToken } = context;
+  const {
+    fs,
+    path,
+    PROJECT_ROOT,
+    loadPlaylists,
+    savePlaylists,
+    loadSpotifyPublicPlaylists,
+    getUserDownloads,
+    getSpotifyToken,
+    recordRecentPlaylist,
+  } = context;
 
 app.get("/home", (req, res) => {
   if (!req.session.user) {
@@ -223,6 +233,13 @@ app.get("/home/playlist/:id/tracks", async (req, res) => {
       return res.status(404).json({
         message: "Playlist not found",
       });
+    }
+
+    // This endpoint is only called when App.jsx is about to start playing
+    // this playlist, so it's a reliable "the user played this" signal for
+    // the home dashboard's Recents row.
+    if (typeof recordRecentPlaylist === "function") {
+      recordRecentPlaylist(username, targetPlaylist.id);
     }
 
     const songs = Array.isArray(targetPlaylist.songs)
