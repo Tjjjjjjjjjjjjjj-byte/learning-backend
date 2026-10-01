@@ -8,7 +8,6 @@ export function registerRoutes(app, context) {
     lyricsCache,
     findUserByIdentifier,
     deleteUserAccount,
-    verifyPassword,
   } = context;
 
   function requireUser(req, res) {
@@ -62,7 +61,7 @@ export function registerRoutes(app, context) {
    * DELETE /account   body: { password }
    * Permanently deletes the logged-in user and everything stored for them.
    */
-  app.delete("/account", async (req, res) => {
+  app.delete("/account", (req, res) => {
     const username = requireUser(req, res);
     if (!username) return;
 
@@ -73,9 +72,7 @@ export function registerRoutes(app, context) {
       return res.status(404).json({ message: "Account not found" });
     }
 
-    const { ok } = await verifyPassword(user.password, password);
-
-    if (!ok) {
+    if (user.password !== password) {
       return res.status(403).json({ message: "Incorrect password" });
     }
 

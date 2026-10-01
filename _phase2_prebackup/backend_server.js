@@ -56,7 +56,6 @@ import {
   runWithConcurrency,
 } from "./services/playback.js";
 import { parseLrcLyrics, createLyricsCache } from "./services/lyrics.js";
-import { hashPassword, verifyPassword } from "./services/passwords.js";
 
 import { registerRoutes as registerAuthRoutes } from "./routes/auth.js";
 import { registerRoutes as registerPlaylistRoutes } from "./routes/playlists.js";
@@ -69,20 +68,6 @@ import { registerRoutes as registerImageProxyRoutes } from "./routes/imageProxy.
 import { registerRoutes as registerDashboardRoutes } from "./routes/dashboard.js";
 import { registerRoutes as registerAccountRoutes } from "./routes/account.js";
 
-const isProduction = process.env.NODE_ENV === "production";
-let sessionSecret = process.env.SESSION_SECRET;
-
-if (!sessionSecret) {
-  if (isProduction) {
-    throw new Error("SESSION_SECRET must be set when NODE_ENV=production");
-  }
-
-  // Development only: a throwaway secret (sessions are in memory anyway, so
-  // they already reset on restart).
-  sessionSecret = crypto.randomBytes(32).toString("hex");
-  console.warn("SESSION_SECRET is not set; using a random one for this run.");
-}
-
 const app = express();
 const lyricsCache = createLyricsCache();
 
@@ -91,14 +76,9 @@ cleanupPlaybackCache();
 
 app.use(
   session({
-    secret: sessionSecret,
+    secret: "some-random-secret-string",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProduction,
-    },
   }),
 );
 
@@ -148,8 +128,6 @@ const context = {
   updateUserPassword,
   deleteUserAccount,
   nextPlaylistId,
-  hashPassword,
-  verifyPassword,
   readPasswordResets,
   savePasswordResets,
   readPlaybackCache,

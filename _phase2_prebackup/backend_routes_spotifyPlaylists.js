@@ -36,8 +36,6 @@ export function registerRoutes(app, context) {
    * limiting us, or everything needed for this track is already cached.
    */
   app.get("/spotify/status", (req, res) => {
-    if (!requireUser(req, res)) return;
-
     const status = getSpotifyRateLimitStatus();
     const trackId = String(req.query.trackId || "").trim();
 
@@ -81,8 +79,6 @@ export function registerRoutes(app, context) {
   app.get(
     "/spotify/playlist/:playlistId",
     async (req, res) => {
-      if (!requireUser(req, res)) return;
-
       try {
         const playlist = await getSpotifyPublicPlaylist(
           req.params.playlistId,
@@ -121,8 +117,6 @@ export function registerRoutes(app, context) {
   app.get(
     "/spotify/playlist/:playlistId/tracks",
     async (req, res) => {
-      if (!requireUser(req, res)) return;
-
       try {
         const playlist = await getSpotifyPublicPlaylist(
           req.params.playlistId,

@@ -28,15 +28,3 @@ data/
 *.db
 *.db-wal
 *.db-shm
-
-# Local data, secrets and generated files
-users.json
-passwordResets.json
-playbackState.json
-downloads.json
-recentlyPlayed.json
-playlists.json
-spotifyPublicPlaylists.json
-downloads/
-temp/
-.env

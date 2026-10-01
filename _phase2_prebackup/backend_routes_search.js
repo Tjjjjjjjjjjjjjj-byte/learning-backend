@@ -48,12 +48,6 @@ export function registerRoutes(app, context) {
   const { getSpotifyToken, getUserDownloads } = context;
 
   app.get("/search", async (req, res) => {
-    if (!req.session.user) {
-      return res.status(401).json({
-        message: "Must be logged in",
-      });
-    }
-
     try {
       const userSearch = String(req.query.q || "").trim();
 

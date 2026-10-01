@@ -10,8 +10,6 @@ export function registerRoutes(app, context) {
     findUserByEmail,
     createUser,
     updateUserPassword,
-    hashPassword,
-    verifyPassword,
   } = context;
 
 app.get("/me", (req, res) => {
@@ -27,7 +25,7 @@ app.get("/me", (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", (req, res) => {
   const { identifier, password } = req.body ?? {};
 
   if (
@@ -43,23 +41,10 @@ app.post("/login", async (req, res) => {
 
   const foundUser = findUserByIdentifierOrEmail(identifier.trim());
 
-  // Runs a dummy hash when the user doesn't exist so timing doesn't reveal it.
-  const { ok, needsRehash } = await verifyPassword(foundUser?.password, password);
-
-  if (!ok) {
+  if (!foundUser || foundUser.password !== password) {
     return res.status(401).json({
       message: "Invalid credentials",
     });
-  }
-
-  // One-time migration: a legacy plaintext password is replaced by a hash
-  // the first time its owner logs in successfully.
-  if (needsRehash) {
-    try {
-      updateUserPassword(foundUser.identifier, await hashPassword(password));
-    } catch (error) {
-      console.error("PASSWORD MIGRATION ERROR:", error);
-    }
   }
 
   req.session.user = {
@@ -71,7 +56,7 @@ app.post("/login", async (req, res) => {
   });
 });
 
-app.post("/signUpPage", async (req, res) => {
+app.post("/signUpPage", (req, res) => {
   const { username: rawUsername, email, password, confirmPassword } = req.body ?? {};
 
   const username = typeof rawUsername === "string" ? rawUsername.trim() : "";
@@ -114,7 +99,7 @@ app.post("/signUpPage", async (req, res) => {
   const newUser = {
     identifier: username,
     email,
-    password: await hashPassword(password),
+    password,
   };
 
   try {
@@ -135,9 +120,9 @@ app.post("/signUpPage", async (req, res) => {
 });
 
 app.post("/forgotPassword", (req, res) => {
-  const { email } = req.body ?? {};
+  const { email } = req.body;
 
-  if (typeof email !== "string" || !validator.isEmail(email)) {
+  if (!email || !validator.isEmail(email)) {
     return res.status(422).json({
       message: "Must be a valid email",
     });
@@ -145,42 +130,34 @@ app.post("/forgotPassword", (req, res) => {
 
   const user = findUserByEmail(email);
 
-  // A token is generated either way so the response is identical whether or
-  // not the email exists; it is only stored when there is a matching user.
+  if (!user) {
+    return res.status(200).json({
+      message: "If that email exists, a reset link has been generated.",
+    });
+  }
+
   const token = crypto.randomBytes(24).toString("hex");
 
-  if (user) {
-    const resets = readPasswordResets();
+  const resets = readPasswordResets();
 
-    resets[token] = {
-      username: user.identifier,
-      expiresAt: Date.now() + 15 * 60 * 1000,
-    };
-
-    savePasswordResets(resets);
-  }
-
-  const body = {
-    message: "If that email exists, a reset link has been generated.",
+  resets[token] = {
+    username: user.identifier,
+    expiresAt: Date.now() + 15 * 60 * 1000,
   };
 
-  // Local development has no email delivery, so hand the link back directly.
-  if (process.env.NODE_ENV !== "production") {
-    body.resetUrl = `http://localhost:5173/resetPasswordPage?token=${token}`;
-  }
+  savePasswordResets(resets);
 
-  return res.status(200).json(body);
+  return res.status(200).json({
+    message:
+      "Reset link generated. This local development build does not send email.",
+    resetUrl: `http://localhost:5173/resetPasswordPage?token=${token}`,
+  });
 });
 
-app.post("/resetPassword", async (req, res) => {
-  const { token, password } = req.body ?? {};
+app.post("/resetPassword", (req, res) => {
+  const { token, password } = req.body;
 
-  if (
-    typeof token !== "string" ||
-    typeof password !== "string" ||
-    !token ||
-    password.length < 6
-  ) {
+  if (!token || !password || password.length < 6) {
     return res.status(400).json({
       message:
         "A valid token and a password of at least 6 characters are required",
@@ -214,7 +191,7 @@ app.post("/resetPassword", async (req, res) => {
     });
   }
 
-  updateUserPassword(user.identifier, await hashPassword(password));
+  updateUserPassword(user.identifier, password);
 
   delete resets[token];
 
